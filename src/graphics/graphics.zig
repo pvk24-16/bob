@@ -16,21 +16,23 @@ pub const Renderer = struct {
     };
 
     const max_callbacks: usize = 8;
+    const window_width: u32 = 800;
+    const window_height: u32 = 600;
+    const window_title = "project_name";
 
     window_handle: *glfw.GLFWwindow = undefined,
 
     /// Create renderer.
     pub fn init() !Renderer {
-        const window_width: u32 = 800;
-        const window_height: u32 = 600;
-        const window_title = "project_name";
-
         if (glfw.glfwInit() == glfw.GLFW_FALSE) return Error.failed_to_init_glfw;
+        glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 4);
+        glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 6);
+        glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_COMPAT_PROFILE);
 
         const window = glfw.glfwCreateWindow(
             window_width,
             window_height,
-            @ptrCast(&window_title),
+            window_title[0..],
             null,
             null,
         ) orelse return Error.failed_to_create_window;
@@ -38,6 +40,8 @@ pub const Renderer = struct {
 
         if (gl.gladLoadGLLoader(@ptrCast(&glfw.glfwGetProcAddress)) == 0) return Error.failed_to_init_gl;
         gl.glViewport(0, 0, window_width, window_height);
+
+        glfw.glfwSwapInterval(1);
 
         return Renderer{
             .window_handle = window,
