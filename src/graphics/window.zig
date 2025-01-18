@@ -155,7 +155,7 @@ pub fn Window(comptime max_callbacks: usize) type {
             height: c_int,
         ) callconv(.C) void {
             const self: *Self = @alignCast(@ptrCast(glfw.glfwGetWindowUserPointer(h)));
-            gl.glViewport(0, 0, width, height); // Maybe the user should decide this?
+            gl.glViewport(0, 0, width, height); // TODO: Maybe the user should decide this?
 
             for (0..self.resize_num) |i| {
                 self.resize_callbacks[i](
