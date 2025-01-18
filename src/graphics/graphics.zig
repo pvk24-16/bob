@@ -9,3 +9,9 @@ pub const CallbackKind = window.CallbackKind;
 
 const shader = @import("shader.zig");
 pub const Shader = shader.Shader;
+
+const buffer = @import("buffer.zig");
+pub const Buffer = buffer.Buffer;
+pub const BufferError = buffer.Error;
+pub const BufferAccessPattern = buffer.Pattern;
+pub const BufferKind = buffer.Kind;

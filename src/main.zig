@@ -1,7 +1,7 @@
 const std = @import("std");
-const gfx = @import("graphics/graphics.zig");
-const Window = gfx.Window;
-const Shader = gfx.Shader;
+const g = @import("graphics/graphics.zig");
+const Window = g.Window;
+const Shader = g.Shader;
 
 pub fn main() !void {
     try std.io.getStdOut().writeAll("Hello, my name is Bob\n");

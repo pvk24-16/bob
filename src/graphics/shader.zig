@@ -9,7 +9,7 @@ pub const Error = error{
 pub const Shader = struct {
     program: usize = undefined,
 
-    /// Create a regular shader program.
+    /// Creates a regular shader program.
     /// Tip, use @embedFile()!
     pub fn init(vertex_code: []const u8, fragment_code: []const u8) !Shader {
         const program_id = id: {
