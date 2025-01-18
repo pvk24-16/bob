@@ -1,14 +1,16 @@
 const std = @import("std");
-const Renderer = @import("graphics/graphics.zig").Renderer;
+const Window = @import("graphics/graphics.zig").Window;
 
 pub fn main() !void {
     try std.io.getStdOut().writeAll("Hello, my name is Bob\n");
 
-    var renderer = try Renderer.init();
-    defer renderer.deinit();
-
     var running = true;
+    var window = try Window(8).init();
+    defer window.deinit();
+    window.setUserPointer();
+
     while (running) {
-        running = renderer.update();
+        window.update();
+        running = window.running();
     }
 }
