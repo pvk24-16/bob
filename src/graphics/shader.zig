@@ -20,8 +20,6 @@ pub const Shader = struct {
             const fragment_shader = gl.glCreateShader(gl.GL_FRAGMENT_SHADER);
 
             gl.glShaderSource(vertex_shader, 1, @ptrCast(&vertex_code.ptr), null);
-            gl.glShaderSource(fragment_shader, 1, @ptrCast(&fragment_code.ptr), null);
-
             gl.glCompileShader(vertex_shader);
             gl.glGetShaderiv(vertex_shader, gl.GL_COMPILE_STATUS, &s);
             if (s == 0) {
@@ -30,6 +28,7 @@ pub const Shader = struct {
                 return Error.shader_compile_error;
             }
 
+            gl.glShaderSource(fragment_shader, 1, @ptrCast(&fragment_code.ptr), null);
             gl.glCompileShader(fragment_shader);
             gl.glGetShaderiv(fragment_shader, gl.GL_COMPILE_STATUS, &s);
             if (s == 0) {
