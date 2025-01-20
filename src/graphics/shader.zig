@@ -7,7 +7,7 @@ pub const Error = error{
 };
 
 pub const Shader = struct {
-    program: usize = undefined,
+    program: u32 = undefined,
 
     /// Creates a regular shader program.
     /// Tip, use @embedFile()!
@@ -61,11 +61,11 @@ pub const Shader = struct {
 
     /// Destroys the shader.
     pub fn deinit(self: *Shader) void {
-        gl.glDeleteProgram(@intCast(self.program));
+        gl.glDeleteProgram(self.program);
     }
 
     /// Bind shader for usage.
     pub fn bind(self: *Shader) void {
-        gl.glUseProgram(@intCast(self.program));
+        gl.glUseProgram(self.program);
     }
 };

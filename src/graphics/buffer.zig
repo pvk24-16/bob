@@ -45,7 +45,7 @@ pub fn VertexBuffer(comptime T: type) type {
 
         /// Enable a vertex attribute.
         pub fn enableAttribute(
-            self: *Self,
+            _: *Self,
             index: usize,
             comptime component_count: usize,
             component_type: ComponentType,
@@ -56,9 +56,6 @@ pub fn VertexBuffer(comptime T: type) type {
                 @compileError("A vertex attribute may not have 0 or more than 4 components");
             }
 
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.buffer);
-            gl.glBindVertexArray(@intCast(self.attribute));
-
             gl.glEnableVertexAttribArray(@intCast(index));
             gl.glVertexAttribPointer(
                 @intCast(index),
@@ -68,31 +65,160 @@ pub fn VertexBuffer(comptime T: type) type {
                 @sizeOf(T),
                 @ptrFromInt(offset),
             );
-
-            gl.glBindVertexArray(0);
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0);
         }
 
         /// Write data to buffer.
-        pub fn write(self: *Self, data: []T, pattern: Pattern) void {
-            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.buffer);
+        pub fn write(_: *Self, data: []T, pattern: Pattern) void {
             gl.glBufferData(
                 gl.GL_ARRAY_BUFFER,
                 @intCast(data.len * @sizeOf(T)),
                 @ptrCast(data),
                 @intFromEnum(pattern),
             );
+        }
+
+        /// Bind vertex array and buffer.
+        pub inline fn bind(self: *Self) void {
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.buffer);
+            gl.glBindVertexArray(self.attribute);
+        }
+
+        /// Unbind vertex array and buffer.
+        pub inline fn unbind(_: *Self) void {
             gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0);
+            gl.glBindVertexArray(0);
         }
 
         /// Bind vertex array for drawing.
-        pub inline fn bind(self: *Self) void {
+        pub inline fn bindArray(self: *Self) void {
             gl.glBindVertexArray(self.attribute);
         }
 
         /// Unbind vertex array.
-        pub inline fn unbind(_: *Self) void {
+        pub inline fn unbindArray(_: *Self) void {
             gl.glBindVertexArray(0);
+        }
+    };
+}
+
+pub fn ElementBuffer(comptime T: type) type {
+    const info = @typeInfo(T);
+    if (info != .Int) @compileError("Expected integer, found: " ++ @typeName(T));
+    if (info.Int.signedness != .unsigned) @compileError("Indices must me unsigned.");
+    if (info.Int.bits > 32) @compileError("Too many bits.");
+
+    return struct {
+        const Self = @This();
+
+        buffer: u32,
+        /// Create element buffer.
+        pub fn init() Self {
+            var buffer: u32 = undefined;
+            gl.glGenBuffers(1, @ptrCast(&buffer));
+
+            return Self{ .buffer = buffer };
+        }
+
+        /// Destroy element buffer.
+        pub fn deinit(self: *Self) void {
+            gl.glDeleteBuffers(1, @ptrCast(&self.buffer));
+        }
+
+        /// Write data to element buffer.
+        pub fn write(_: *Self, data: []T, pattern: Pattern) void {
+            gl.glBufferData(
+                gl.GL_ELEMENT_ARRAY_BUFFER,
+                @intCast(data.len * @sizeOf(T)),
+                @ptrCast(data),
+                @intFromEnum(pattern),
+            );
+        }
+
+        /// Bind element buffer.
+        pub inline fn bind(self: *Self) void {
+            gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, self.buffer);
+        }
+
+        /// Unbind element buffer.
+        pub inline fn unbind(_: *Self) void {
+            gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
+
+        /// Return gl enum representing index type.
+        pub inline fn indexType(_: *Self) u32 {
+            return comptime switch (info.Int.bits) {
+                0...8 => gl.GL_UNSIGNED_BYTE,
+                9...16 => gl.GL_UNSIGNED_SHORT,
+                17...32 => gl.GL_UNSIGNED_INT,
+                else => unreachable,
+            };
+        }
+    };
+}
+
+pub fn UniformBuffer(comptime T: type) type {
+    return struct {
+        const Self = @This();
+
+        buffer: u32 = undefined,
+
+        /// Createi and allocate uniform buffer.
+        pub fn init() Self {
+            var buffer: u32 = undefined;
+            gl.glGenBuffers(1, @ptrCast(&buffer));
+
+            return Self{ .buffer = buffer };
+        }
+
+        /// Destroy uniform buffer.
+        pub fn deinit(self: *Self) void {
+            gl.glDeleteBuffers(1, @ptrCast(&self.buffer));
+        }
+
+        /// Allocate uniform buffer.
+        pub fn alloc(_: *Self, pattern: Pattern) void {
+            gl.glBufferData(
+                gl.GL_UNIFORM_BUFFER,
+                @sizeOf(T),
+                null,
+                @intFromEnum(pattern),
+            );
+        }
+
+        /// Write data to field.
+        pub fn write(
+            _: *Self,
+            data: *anyopaque,
+            field_offset: u32,
+            field_size: u32,
+        ) void {
+            gl.glBufferSubData(gl.GL_UNIFORM_BUFFER, field_offset, field_size, data);
+        }
+
+        /// Link uniform buffer to shader.
+        pub fn linkBlockBinding(_: *Self, uniform_name: []const u8, program_id: u32) void {
+            const index = gl.glGetUniformBlockIndex(program_id, @ptrCast(uniform_name.ptr));
+            gl.glUniformBlockBinding(program_id, index, 0);
+        }
+
+        /// Bind uniform buffer.
+        pub inline fn bind(self: *Self) void {
+            gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, self.buffer);
+        }
+
+        /// Unbind uniform buffer.
+        pub inline fn unbind(_: *Self) void {
+            gl.glBindBuffer(gl.GL_UNIFORM_BUFFER, 0);
+        }
+
+        /// Bind uniform buffer range for writing.
+        pub inline fn bindRange(self: *Self) void {
+            gl.glBindBufferRange(gl.GL_UNIFORM_BUFFER, 0, self.buffer, 0, @sizeOf(T));
+        }
+
+        /// Unbind uniform buffer range.
+        pub inline fn unbindRange(_: *Self) void {
+            gl.glBindBufferRange(gl.GL_UNIFORM_BUFFER, 0, 0, 0, 0);
         }
     };
 }
