@@ -20,6 +20,10 @@ pub fn build(b: *std.Build) void {
             exe.linkSystemLibrary("opengl32");
             exe.linkSystemLibrary("glfw3");
         },
+        .linux => {
+            exe.linkSystemLibrary("GL");
+            exe.linkSystemLibrary("glfw");
+        },
         else => @panic("Unsupported platform"),
     }
 
