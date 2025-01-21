@@ -162,7 +162,7 @@ pub fn UniformBuffer(comptime T: type) type {
 
         buffer: u32 = undefined,
 
-        /// Createi and allocate uniform buffer.
+        /// Create and allocate uniform buffer.
         pub fn init() Self {
             var buffer: u32 = undefined;
             gl.glGenBuffers(1, @ptrCast(&buffer));

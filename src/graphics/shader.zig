@@ -68,4 +68,73 @@ pub const Shader = struct {
     pub fn bind(self: *Shader) void {
         gl.glUseProgram(self.program);
     }
+
+    /// Unbind shader.
+    pub fn unbind(_: *Shader) void {
+        gl.glUseProgram(0);
+    }
+
+    // Uniforms
+
+    /// Pass boolean to uniform.
+    pub fn setBool(self: *Shader, name: []const u8, val: bool) void {
+        gl.glUniform1i(
+            gl.glGetUniformLocation(self.program, @ptrCast(name)),
+            @intFromBool(val),
+        );
+    }
+
+    /// Pass signed 32-bit integer to uniform.
+    pub fn setI32(self: *Shader, name: []const u8, val: i32) void {
+        gl.glUniform1i(
+            gl.glGetUniformLocation(self.program, @ptrCast(name)),
+            val,
+        );
+    }
+
+    /// Pass unsigned 32-bit integer to uniform.
+    pub fn setU32(self: *Shader, name: []const u8, val: u32) void {
+        gl.glUniform1ui(
+            gl.glGetUniformLocation(self.program, @ptrCast(name)),
+            val,
+        );
+    }
+
+    /// Pass 32-bit float to uniform.
+    pub fn setF32(self: *Shader, name: []const u8, val: f32) void {
+        gl.glUniform1f(
+            gl.glGetUniformLocation(self.program, @ptrCast(name)),
+            val,
+        );
+    }
+
+    /// Pass vec2 to uniform. TODO: implement math library.
+    pub fn setVec2(self: *Shader, name: []const u8, x: f32, y: f32) void {
+        gl.glUniform2f(
+            gl.glGetUniformLocation(self.program, @ptrCast(name)),
+            x,
+            y,
+        );
+    }
+
+    /// Pass vec3 to uniform. TODO: implement math library.
+    pub fn setVec3(self: *Shader, name: []const u8, x: f32, y: f32, z: f32) void {
+        gl.glUniform3f(
+            gl.glGetUniformLocation(self.program, @ptrCast(name)),
+            x,
+            y,
+            z,
+        );
+    }
+
+    /// Pass vec4 to uniform. TODO: implement math library.
+    pub fn setVec4(self: *Shader, name: []const u8, x: f32, y: f32, z: f32, w: f32) void {
+        gl.glUniform4f(
+            gl.glGetUniformLocation(self.program, @ptrCast(name)),
+            x,
+            y,
+            z,
+            w,
+        );
+    }
 };

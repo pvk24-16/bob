@@ -71,6 +71,8 @@ pub fn main() !void {
     while (running) {
         window.update();
 
+        default_shader.setF32("time", @floatCast(g.glfw.glfwGetTime()));
+
         g.gl.glClearColor(0.7, 0.4, 0.85, 1.0);
         g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
 
