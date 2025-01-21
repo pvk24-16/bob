@@ -1,6 +1,7 @@
 const std = @import("std");
 const gl = @import("c.zig").gl;
 const glfw = @import("c.zig").glfw;
+const os_tag = @import("builtin").os.tag;
 
 pub const Error = error{
     failed_to_init_glfw,
@@ -45,9 +46,12 @@ pub fn Window(comptime max_callbacks: usize) type {
         /// To use callbacks, call setUserPointer() after initializing.
         pub fn init() !Self {
             if (glfw.glfwInit() == glfw.GLFW_FALSE) return Error.failed_to_init_glfw;
-            glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 4);
-            glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 6);
+            glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
+            glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
             glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_COMPAT_PROFILE);
+            if (os_tag == .macos) {
+                glfw.glfwWindowHint(glfw.GLFW_OPENGL_FORWARD_COMPAT, glfw.GLFW_TRUE);
+            }
 
             const window = glfw.glfwCreateWindow(
                 window_width,

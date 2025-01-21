@@ -24,6 +24,9 @@ pub fn build(b: *std.Build) void {
             exe.linkSystemLibrary("GL");
             exe.linkSystemLibrary("glfw");
         },
+        .macos => {
+            @panic("Don't have a mac, please configure.");
+        },
         else => @panic("Unsupported platform"),
     }
 

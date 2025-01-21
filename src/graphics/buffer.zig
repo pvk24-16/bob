@@ -102,10 +102,10 @@ pub fn VertexBuffer(comptime T: type) type {
 }
 
 pub fn ElementBuffer(comptime T: type) type {
-    const info = @typeInfo(T);
-    if (info != .Int) @compileError("Expected integer, found: " ++ @typeName(T));
-    if (info.Int.signedness != .unsigned) @compileError("Indices must me unsigned.");
-    if (info.Int.bits > 32) @compileError("Too many bits.");
+    switch (T) {
+        u8, u16, u32 => {},
+        else => @compileError("Expected u8, u16 or u32, found: " ++ @typeName(T)),
+    }
 
     return struct {
         const Self = @This();
@@ -146,10 +146,10 @@ pub fn ElementBuffer(comptime T: type) type {
 
         /// Return gl enum representing index type.
         pub inline fn indexType(_: *Self) u32 {
-            return comptime switch (info.Int.bits) {
-                0...8 => gl.GL_UNSIGNED_BYTE,
-                9...16 => gl.GL_UNSIGNED_SHORT,
-                17...32 => gl.GL_UNSIGNED_INT,
+            return comptime switch (T) {
+                u8 => gl.GL_UNSIGNED_BYTE,
+                u16 => gl.GL_UNSIGNED_SHORT,
+                u32 => gl.GL_UNSIGNED_INT,
                 else => unreachable,
             };
         }
