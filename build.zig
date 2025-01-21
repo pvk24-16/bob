@@ -25,7 +25,9 @@ pub fn build(b: *std.Build) void {
             exe.linkSystemLibrary("glfw");
         },
         .macos => {
-            @panic("Don't have a mac, please configure.");
+            exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+            exe.linkFramework("OpenGL");
+            exe.linkSystemLibrary("glfw");
         },
         else => @panic("Unsupported platform"),
     }

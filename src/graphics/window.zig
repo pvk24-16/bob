@@ -17,6 +17,10 @@ pub const CallbackKind = enum {
     cursor,
 };
 
+fn errorCallback(err: c_int, msg: [*c]const u8) callconv(.C) void {
+    std.debug.print("Error code: {} message: {s}\n", .{ err, msg });
+}
+
 pub fn Window(comptime max_callbacks: usize) type {
     return struct {
         const Self = @This();
@@ -46,6 +50,7 @@ pub fn Window(comptime max_callbacks: usize) type {
         /// To use callbacks, call setUserPointer() after initializing.
         pub fn init() !Self {
             if (glfw.glfwInit() == glfw.GLFW_FALSE) return Error.failed_to_init_glfw;
+            _ = glfw.glfwSetErrorCallback(errorCallback);
             glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
             glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
             glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_COMPAT_PROFILE);
