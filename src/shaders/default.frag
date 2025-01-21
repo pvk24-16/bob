@@ -1,9 +1,9 @@
-#version 460
+#version 330 core
 
-layout(location = 0) in vec3 i_col;
+in vec3 vs_col;
 
-layout(location = 0) out vec4 o_col;
+out vec4 o_col;
 
 void main() {
-    o_col = vec4(i_col, 1.0);
+    o_col = vec4(vs_col, 1.0);
 }
