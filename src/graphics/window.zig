@@ -153,8 +153,9 @@ pub fn Window(comptime max_callbacks: usize) type {
             }
         }
 
+        /// Print error and code on GLFW errors.
         fn errorCallback(err: c_int, msg: [*c]const u8) callconv(.C) void {
-            std.debug.print("Error code: {} message: {s}\n", .{ err, msg });
+            std.log.err("Error code: {} message: {s}", .{ err, msg });
         }
 
         /// Upon window resize, call all registered callbacks.

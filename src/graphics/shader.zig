@@ -4,6 +4,7 @@ const gl = @import("c.zig").gl;
 pub const Error = error{
     shader_compile_error,
     shader_link_error,
+    failed_to_create_framebuffer,
 };
 
 pub const Shader = struct {
@@ -65,12 +66,12 @@ pub const Shader = struct {
     }
 
     /// Bind shader for usage.
-    pub fn bind(self: *Shader) void {
+    pub inline fn bind(self: *Shader) void {
         gl.glUseProgram(self.program);
     }
 
     /// Unbind shader.
-    pub fn unbind(_: *Shader) void {
+    pub inline fn unbind(_: *Shader) void {
         gl.glUseProgram(0);
     }
 
@@ -136,91 +137,5 @@ pub const Shader = struct {
             z,
             w,
         );
-    }
-};
-
-pub const ComputeShader = struct {
-    io: u32 = undefined,
-    quad_buffer: u32 = undefined,
-    quad_attributes: u32 = undefined,
-    /// Underlying shader.
-    s: Shader = undefined,
-
-    /// Create compute shader.
-    pub fn init(vertex_code: []const u8, fragment_code: []const u8) !ComputeShader {
-        var io: u32 = undefined;
-        var buffer: u32 = undefined;
-        var attributes: u32 = undefined;
-        gl.glGenTextures(1, &io);
-
-        gl.glGenBuffers(1, &buffer);
-        gl.glGenVertexArrays(1, &attributes);
-
-        gl.glBindVertexArray(attributes);
-        gl.glBindBuffer(gl.GL_ARRAY_BUFFER, buffer);
-        gl.glBufferData(
-            gl.GL_ARRAY_BUFFER,
-            12 * @sizeOf(f32),
-            @ptrCast(@alignCast(&[12]f32{
-                1.0,  1.0,
-                1.0,  -1.0,
-                -1.0, -1.0,
-                -1.0, -1.0,
-                -1.0, 1.0,
-                1.0,  1.0,
-            })),
-            gl.GL_STATIC_DRAW,
-        );
-
-        gl.glEnableVertexAttribArray(0);
-        gl.glVertexAttribPointer(
-            0,
-            2,
-            gl.GL_FLOAT,
-            gl.GL_FALSE,
-            2 * @sizeOf(f32),
-            @ptrFromInt(0),
-        );
-
-        return ComputeShader{
-            .io = io,
-            .quad_buffer = buffer,
-            .quad_attributes = attributes,
-            .s = (try Shader.init(vertex_code, fragment_code)),
-        };
-    }
-
-    /// Destroy compute shader.
-    pub fn deinit(self: *ComputeShader) void {
-        gl.glDeleteTextures(1, &self.io);
-        gl.glDeleteBuffers(1, &self.quad_buffer);
-        gl.glDeleteVertexArrays(1, &self.quad_attributes);
-        self.s.deinit();
-    }
-
-    /// Write input data.
-    pub fn write(self: *ComputeShader, comptime T: type, data: []T) void {
-        gl.glBindTexture(gl.GL_TEXTURE_2D, self.io);
-
-        gl.glTexImage2D(
-            gl.GL_TEXTURE_2D,
-            0,
-            gl.GL_RED,
-            @sizeOf(T),
-            data.len,
-            0,
-            gl.GL_RED,
-            gl.GL_UNSIGNED_BYTE,
-            data,
-        );
-
-        gl.glBindTexture(gl.GL_TEXTURE_2D, 0);
-    }
-
-    /// Perform computations.
-    pub fn execute(self: *ComputeShader) void {
-        gl.glBindVertexArray(self.quad_attributes);
-
-        gl.glBindVertexArray(0);
     }
 };
