@@ -1,7 +1,9 @@
 const std = @import("std");
 
+// Struct to store analysis data,
+// currently only fft data but more can be added
 pub const AudioAnalysisData = struct {
-    fft_data : []const f32,
+    fft_data: []const f32,
 };
 
 pub const vec3 = struct {
@@ -13,7 +15,7 @@ pub const vec3 = struct {
 pub const Vertex = struct { pos: vec3, col: vec3 };
 
 pub fn full_quad() []Vertex {
-    var arr : [6]Vertex = .{
+    var arr: [6]Vertex = .{
         Vertex{
             .pos = .{ .x = -1.0, .y = -1.0, .z = 0.0 },
             .col = .{ .x = 1.0, .y = 1.0, .z = 1.0 },
@@ -40,7 +42,7 @@ pub fn full_quad() []Vertex {
         },
     };
     return &arr;
-} 
+}
 
 pub fn read_file(allocator: std.mem.Allocator, filePath: []const u8, offset: *u64) ![]const f32 {
     var file = try std.fs.cwd().openFile(filePath, .{});

@@ -21,8 +21,6 @@ pub fn main() !void {
     var fft_data = try vutils.read_file(allocator, fft_path, &offset);
     defer allocator.free(fft_data);
 
-    std.debug.print("{}\n", .{fft_data.len});
-
     var audio_data = vutils.AudioAnalysisData{
         .fft_data = fft_data,
     };
