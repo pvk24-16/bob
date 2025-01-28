@@ -1,17 +1,14 @@
 const std = @import("std");
 const g = @import("graphics/graphics.zig");
+const math = @import("math/math.zig");
 const Window = g.window.Window;
 const Shader = g.shader.Shader;
 const VertexBuffer = g.buffer.VertexBuffer;
 const IndexBuffer = g.buffer.ElementBuffer;
+const Vec3 = math.Vec3;
+const Mat4 = math.Mat4;
 
-const vec3 = struct {
-    x: f32 = 0.0,
-    y: f32 = 0.0,
-    z: f32 = 0.0,
-};
-
-const Vertex = struct { pos: vec3, col: vec3 };
+const Vertex = struct { pos: Vec3, col: Vec3 };
 
 pub fn main() !void {
     try std.io.getStdOut().writeAll("Hello, my name is Bob\n");
@@ -29,20 +26,20 @@ pub fn main() !void {
 
     var vertex_data = [_]Vertex{
         Vertex{
-            .pos = .{ .x = 0.8, .y = 0.8, .z = 0.0 },
-            .col = .{ .x = 1.0, .y = 1.0, .z = 1.0 },
+            .pos = .{ .x = 0.8, .y = 0.8, .z = -1.0 },
+            .col = .{ .x = 1.0, .y = 0.0, .z = 0.0 },
         },
         Vertex{
-            .pos = .{ .x = 0.8, .y = -0.8, .z = 0.0 },
-            .col = .{ .x = 0.0, .y = 0.0, .z = 0.0 },
+            .pos = .{ .x = 0.8, .y = -0.8, .z = -1.0 },
+            .col = .{ .x = 0.0, .y = 1.0, .z = 0.0 },
         },
         Vertex{
-            .pos = .{ .x = -0.8, .y = -0.8, .z = 0.0 },
-            .col = .{ .x = 1.0, .y = 1.0, .z = 1.0 },
+            .pos = .{ .x = -0.8, .y = -0.8, .z = -1.0 },
+            .col = .{ .x = 0.0, .y = 0.0, .z = 1.0 },
         },
         Vertex{
-            .pos = .{ .x = -0.8, .y = 0.8, .z = 0.0 },
-            .col = .{ .x = 0.0, .y = 0.0, .z = 0.0 },
+            .pos = .{ .x = -0.8, .y = 0.8, .z = -1.0 },
+            .col = .{ .x = 1.0, .y = 0.0, .z = 1.0 },
         },
     };
 
@@ -72,6 +69,7 @@ pub fn main() !void {
         window.update();
 
         default_shader.setF32("time", @floatCast(g.glfw.glfwGetTime()));
+        default_shader.setMat4("perspectiveMatrix", Mat4.perspective(90, 0.1, 10.0));
 
         g.gl.glClearColor(0.7, 0.4, 0.85, 1.0);
         g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);

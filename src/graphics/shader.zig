@@ -1,5 +1,10 @@
 const std = @import("std");
 const gl = @import("c.zig").gl;
+const math = @import("../math/math.zig");
+const Vec2 = math.Vec2;
+const Vec3 = math.Vec3;
+const Vec4 = math.Vec4;
+const Mat4 = math.Mat4;
 
 pub const Error = error{
     shader_compile_error,
@@ -110,32 +115,41 @@ pub const Shader = struct {
     }
 
     /// Pass vec2 to uniform. TODO: implement math library.
-    pub fn setVec2(self: *Shader, name: []const u8, x: f32, y: f32) void {
+    pub fn setVec2(self: *Shader, name: []const u8, v: Vec2) void {
         gl.glUniform2f(
             gl.glGetUniformLocation(self.program, @ptrCast(name)),
-            x,
-            y,
+            v.x,
+            v.y,
         );
     }
 
     /// Pass vec3 to uniform. TODO: implement math library.
-    pub fn setVec3(self: *Shader, name: []const u8, x: f32, y: f32, z: f32) void {
+    pub fn setVec3(self: *Shader, name: []const u8, v: Vec3) void {
         gl.glUniform3f(
             gl.glGetUniformLocation(self.program, @ptrCast(name)),
-            x,
-            y,
-            z,
+            v.x,
+            v.y,
+            v.z,
         );
     }
 
     /// Pass vec4 to uniform. TODO: implement math library.
-    pub fn setVec4(self: *Shader, name: []const u8, x: f32, y: f32, z: f32, w: f32) void {
+    pub fn setVec4(self: *Shader, name: []const u8, v: Vec4) void {
         gl.glUniform4f(
             gl.glGetUniformLocation(self.program, @ptrCast(name)),
-            x,
-            y,
-            z,
-            w,
+            v.x,
+            v.y,
+            v.z,
+            v.w,
+        );
+    }
+
+    pub fn setMat4(self: *Shader, name: []const u8, mat: Mat4) void {
+        gl.glUniformMatrix4fv(
+            gl.glGetUniformLocation(self.program, @ptrCast(name)),
+            1,
+            gl.GL_FALSE,
+            &(mat.arr),
         );
     }
 };
