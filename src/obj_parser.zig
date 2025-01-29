@@ -88,10 +88,6 @@ fn populateBuffers(
                 const tex_coord: Vec2 = tex_coords.*[tex_index];
                 const norm: Vec3 = normals.*[norm_index];
 
-                if (vert_index == 372) {
-                    std.debug.print("sdknajdasndn {any}", .{vertex});
-                }
-
                 data[vert_index] = VertexWithTex{
                     .pos = vertex,
                     .tex_coord = tex_coord,
@@ -130,10 +126,6 @@ fn create_buffers(vertex_data: *VertexData, index_data: *[]u32) Buffers {
             vertex_buffer.enableAttribute(2, 3, .float, false, @offsetOf(VertexWithTex, "norm"));
 
             vertex_buffer.unbind();
-
-            for (data, 0..) |v, i| {
-                std.debug.print("{} : {any}\n", .{ i, v.pos });
-            }
 
             return Buffers{
                 .vertex_buffer = BufferType{ .with_tex = vertex_buffer },
