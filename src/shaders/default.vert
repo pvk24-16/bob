@@ -34,9 +34,9 @@ mat3 rotationMatrixZ(float angleDegrees) {
 }
 
 void main() {
-    mat3 transform = rotationMatrixY(-time) * rotationMatrixZ(time * time);
-    vec3 pos = transform * i_pos + vec3(0., 0., -4.);
+    mat3 transform = rotationMatrixY(-time);
+    vec3 pos = transform * i_pos + vec3(0., 0., -5.0);
     gl_Position = perspectiveMatrix * vec4(pos, 1.0);
     tex_coord = uv;
-    normal = transform * norm;
+    normal = norm;
 }
