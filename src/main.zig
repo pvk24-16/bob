@@ -2,14 +2,12 @@ const std = @import("std");
 const g = @import("graphics/graphics.zig");
 const math = @import("math/math.zig");
 const objparser = @import("obj_parser.zig");
+const texture = @import("graphics/textures.zig");
 const Window = g.window.Window;
 const Shader = g.shader.Shader;
 const VertexBuffer = g.buffer.VertexBuffer;
 const IndexBuffer = g.buffer.ElementBuffer;
-const Vec3 = math.Vec3;
 const Mat4 = math.Mat4;
-
-const Vertex = struct { pos: Vec3, col: Vec3 };
 
 pub fn main() !void {
     try std.io.getStdOut().writeAll("Hello, my name is Bob\n");
@@ -25,56 +23,17 @@ pub fn main() !void {
     );
     defer default_shader.deinit();
 
-    // var vertex_data = [_]Vertex{
-    //     Vertex{
-    //         .pos = .{ .x = 0.8, .y = 0.8, .z = -1.0 },
-    //         .col = .{ .x = 1.0, .y = 0.0, .z = 0.0 },
-    //     },
-    //     Vertex{
-    //         .pos = .{ .x = 0.8, .y = -0.8, .z = -1.0 },
-    //         .col = .{ .x = 0.0, .y = 1.0, .z = 0.0 },
-    //     },
-    //     Vertex{
-    //         .pos = .{ .x = -0.8, .y = -0.8, .z = -1.0 },
-    //         .col = .{ .x = 0.0, .y = 0.0, .z = 1.0 },
-    //     },
-    //     Vertex{
-    //         .pos = .{ .x = -0.8, .y = 0.8, .z = -1.0 },
-    //         .col = .{ .x = 1.0, .y = 0.0, .z = 1.0 },
-    //     },
-    // };
-
-    // var indices = [_]u8{
-    //     0, 1, 2,
-    //     2, 3, 0,
-    // };
-
-    // var index_buffer = IndexBuffer(u8).init();
-    // defer index_buffer.deinit();
-    // var vertex_buffer = VertexBuffer(Vertex).init();
-    // defer vertex_buffer.deinit();
-
-    // vertex_buffer.bind();
-    // index_buffer.bind();
-
-    // vertex_buffer.write(&vertex_data, .static);
-    // vertex_buffer.enableAttribute(0, 3, .float, false, 0);
-    // vertex_buffer.enableAttribute(1, 3, .float, false, @offsetOf(Vertex, "col"));
-    // index_buffer.write(&indices, .static);
-
-    // index_buffer.unbind();
-    // vertex_buffer.unbind();
-
     default_shader.bind();
 
     const allocator = std.heap.page_allocator;
-    const buffers = try objparser.parseObj("src/objects/fish.obj", allocator);
+    const buffers = try objparser.parseObj("objects/fish.obj", allocator);
+    // defer buffers.deinit();
+
+    const tex = try texture.createTexture("objects/fish_texture.png");
+
     var vertex_buffer = buffers.vertex_buffer.with_tex;
-    //const num_vertices = buffers[1];
     var index_buffer = buffers.index_buffer;
     const num_indices = buffers.index_count;
-
-    std.debug.print("{any}\n", .{Mat4.perspective(90, 0.1, 50.0)});
 
     g.gl.glEnable(g.gl.GL_DEPTH_TEST);
 
@@ -83,6 +42,7 @@ pub fn main() !void {
 
         default_shader.setF32("time", @floatCast(g.glfw.glfwGetTime()));
         default_shader.setMat4("perspectiveMatrix", Mat4.perspective(90, 0.1, 10.0));
+        default_shader.setTexture("tex", tex, 0);
 
         g.gl.glClearColor(0.7, 0.4, 0.85, 1.0);
         g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);

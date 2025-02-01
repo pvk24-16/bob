@@ -5,7 +5,10 @@ in vec3 normal;
 
 out vec4 o_col;
 
+uniform sampler2D tex;
+
 void main() {
-    float clr = dot(normal, vec3(0.0, 1.0, 0.0));
-    o_col = vec4(vec3(clr), 1.0);
+    float shade = dot(normal, vec3(0.0, 0.0, 1.0));
+    vec4 clr = texture2D(tex, tex_coord);
+    o_col = clr;
 }

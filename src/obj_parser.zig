@@ -32,6 +32,18 @@ const Buffers = struct {
     vertex_count: usize,
     index_buffer: IndexBuffer(u32),
     index_count: usize,
+
+    // pub fn deinit(self: *Buffers) void {
+    //     self.index_buffer.deinit();
+    //     switch (self.vertex_buffer) {
+    //         .with_tex => |buf| {
+    //             buf.deinit();
+    //         },
+    //         .no_tex => |buf| {
+    //             buf.deinit();
+    //         },
+    //     }
+    // }
 };
 
 fn parseIndices(comptime T: type, tokens: *std.mem.TokenIterator(T, .any)) usize {
@@ -174,9 +186,11 @@ pub fn parseObj(
 
     // Count vertices, texture coordinates and normals
     while (lines.next()) |line| {
-        var split = std.mem.tokenizeAny(u8, line, " ");
+        var split = std.mem.tokenizeAny(u8, line, " \n\r");
 
-        const s = split.next().?;
+        const s = split.next() orelse {
+            continue;
+        };
         if (std.mem.eql(u8, s, "v")) {
             num_vertices += 1;
         } else if (std.mem.eql(u8, s, "vt")) {
@@ -201,7 +215,7 @@ pub fn parseObj(
 
     var index_data: []u32 = try allocator.alloc(u32, num_indices);
 
-    lines = std.mem.tokenizeAny(u8, file_contents, "\n");
+    lines = std.mem.tokenizeAny(u8, file_contents, "\n\r");
 
     var v_i: usize = 0;
     var vt_i: usize = 0;
@@ -212,7 +226,9 @@ pub fn parseObj(
     while (lines.next()) |line| {
         var split = std.mem.tokenizeAny(u8, line, " \n\r");
 
-        const s = split.next().?;
+        const s = split.next() orelse {
+            continue;
+        };
 
         if (std.mem.eql(u8, s, "v")) {
             const x = try std.fmt.parseFloat(f32, split.next().?);

@@ -152,4 +152,10 @@ pub const Shader = struct {
             &(mat.arr),
         );
     }
+
+    pub fn setTexture(self: *Shader, name: []const u8, texture: u32, texture_unit: u32) void {
+        gl.glActiveTexture(gl.GL_TEXTURE0);
+        gl.glBindTexture(gl.GL_TEXTURE_2D, texture);
+        self.setU32(name, texture_unit);
+    }
 };

@@ -34,6 +34,7 @@ pub fn build(b: *std.Build) void {
 
     exe.addIncludePath(.{ .cwd_relative = "deps/include/" });
     exe.addCSourceFiles(.{ .files = &.{"deps/src/glad.c"} });
+    exe.addCSourceFiles(.{ .files = &.{"deps/src/stb_image_fix.c"} });
 
     const run_exe = b.addRunArtifact(exe);
     const run_step = b.step("run", "Run the application");
