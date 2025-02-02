@@ -5,6 +5,7 @@ pub fn createTexture(path: [:0]const u8) !u32 {
     var width: c_int = 0;
     var height: c_int = 0;
     var channels: c_int = 0;
+    g.stb_image.stbi_set_flip_vertically_on_load(1);
     const pixel_data = g.stb_image.stbi_load(
         @ptrCast(@alignCast(path)),
         &width,

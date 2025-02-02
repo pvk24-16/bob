@@ -42,6 +42,7 @@ pub fn main() !void {
 
         default_shader.setF32("time", @floatCast(g.glfw.glfwGetTime()));
         default_shader.setMat4("perspectiveMatrix", Mat4.perspective(90, 0.1, 10.0));
+        // default_shader.setMat4("perspectiveMatrix", Mat4.identity());
         default_shader.setTexture("tex", tex, 0);
 
         g.gl.glClearColor(0.7, 0.4, 0.85, 1.0);

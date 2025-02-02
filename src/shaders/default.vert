@@ -21,22 +21,8 @@ mat3 rotationMatrixY(float angleRadians) {
     );
 }
 
-mat3 rotationMatrixZ(float angleDegrees) {
-    float angleRadians = radians(angleDegrees); // Convert angle to radians
-    float c = cos(angleRadians);
-    float s = sin(angleRadians);
-
-    return mat3(
-        c, -s, 0.0,
-        s,  c, 0.0,
-        0.0, 0.0, 1.0
-    );
-}
-
 void main() {
-    mat3 transform = rotationMatrixY(-time);
-    vec3 pos = transform * i_pos + vec3(0., 0., -5.0);
-    gl_Position = perspectiveMatrix * vec4(pos, 1.0);
+    gl_Position = perspectiveMatrix * vec4(i_pos + vec3(2., 0., -4.0), 1.0);
     tex_coord = uv;
     normal = norm;
 }
