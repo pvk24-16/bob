@@ -137,8 +137,6 @@ fn create_buffers(vertex_data: *VertexData, index_data: *[]u32) Buffers {
             vertex_buffer.enableAttribute(1, 2, .float, false, @offsetOf(VertexWithTex, "tex_coord"));
             vertex_buffer.enableAttribute(2, 3, .float, false, @offsetOf(VertexWithTex, "norm"));
 
-            vertex_buffer.unbind();
-
             return Buffers{
                 .vertex_buffer = BufferType{ .with_tex = vertex_buffer },
                 .vertex_count = data.len,

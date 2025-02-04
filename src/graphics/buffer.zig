@@ -101,6 +101,85 @@ pub fn VertexBuffer(comptime T: type) type {
     };
 }
 
+pub fn ArrayBuffer(comptime T: type) type {
+    return struct {
+        pub const ComponentType = enum(u32) {
+            double = gl.GL_DOUBLE,
+            float = gl.GL_FLOAT,
+            integer = gl.GL_INT,
+            unsigned = gl.GL_UNSIGNED_INT,
+            bool = gl.GL_BOOL,
+        };
+
+        const Self = @This();
+
+        buffer: u32 = undefined,
+
+        /// Generate array buffer.
+        pub fn init() Self {
+            var buffer: u32 = undefined;
+            gl.glGenBuffers(1, @ptrCast(&buffer));
+
+            return Self{
+                .buffer = buffer,
+            };
+        }
+
+        /// Destroy vertex buffer.
+        pub fn deinit(self: *Self) void {
+            gl.glDeleteBuffers(1, @ptrCast(&self.buffer));
+        }
+
+        /// Enable a vertex attribute.
+        pub fn enableAttribute(
+            _: *Self,
+            index: usize,
+            comptime component_count: usize,
+            component_type: ComponentType,
+            normalize: bool,
+            offset: usize,
+        ) void {
+            if (component_count > 4 or component_count == 0) {
+                @compileError("A vertex attribute may not have 0 or more than 4 components");
+            }
+
+            gl.glEnableVertexAttribArray(@intCast(index));
+            gl.glVertexAttribPointer(
+                @intCast(index),
+                @intCast(component_count),
+                @intFromEnum(component_type),
+                @intFromBool(normalize),
+                @sizeOf(T),
+                @ptrFromInt(offset),
+            );
+        }
+
+        pub fn setDivisior(_: *Self, index: usize, divisor: usize) void {
+            gl.glVertexAttribDivisor(@intCast(index), @intCast(divisor));
+        }
+
+        /// Write data to buffer.
+        pub fn write(_: *Self, data: []T, pattern: Pattern) void {
+            gl.glBufferData(
+                gl.GL_ARRAY_BUFFER,
+                @intCast(data.len * @sizeOf(T)),
+                @ptrCast(data),
+                @intFromEnum(pattern),
+            );
+        }
+
+        /// Bind vertex array and buffer.
+        pub inline fn bind(self: *Self) void {
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.buffer);
+        }
+
+        /// Unbind vertex array and buffer.
+        pub inline fn unbind(_: *Self) void {
+            gl.glBindBuffer(gl.GL_ARRAY_BUFFER, 0);
+        }
+    };
+}
+
 pub fn ElementBuffer(comptime T: type) type {
     switch (T) {
         u8, u16, u32 => {},
