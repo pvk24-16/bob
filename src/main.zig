@@ -1,7 +1,7 @@
 const std = @import("std");
 const g = @import("graphics/graphics.zig");
 const math = @import("math/math.zig");
-const objparser = @import("obj_parser.zig");
+const objparser = @import("graphics/obj_parser.zig");
 const texture = @import("graphics/textures.zig");
 const Window = g.window.Window;
 const Shader = g.shader.Shader;
@@ -56,12 +56,14 @@ pub fn main() !void {
 
     const tex = try texture.createTexture("objects/fish_texture.png");
     const allocator = std.heap.page_allocator;
-    const buffers = try objparser.parseObj("objects/fish.obj", allocator);
-    // defer buffers.deinit();
+    var buffers = try objparser.parseObj("objects/fish.obj", allocator);
+    defer buffers.deinit();
 
     var vertex_buffer = buffers.vertex_buffer.with_tex;
     var index_buffer = buffers.index_buffer;
     const num_indices = buffers.index_count;
+
+    std.debug.print("{}\n", .{buffers.vertex_count});
 
     // x : side-to-side amplitude
     // y : side-to-side wiggle
@@ -69,7 +71,7 @@ pub fn main() !void {
     // w : phase
     const wiggle_coefs = try randomWiggleCoefs(
         allocator,
-        10,
+        100,
         .{ 0.3, 1.5 },
         .{ 4.0, 10.0 },
         .{ 0.3, 3.0 },
@@ -87,10 +89,12 @@ pub fn main() !void {
     default_shader.bind();
 
     g.gl.glEnable(g.gl.GL_DEPTH_TEST);
+    g.gl.glEnable(g.gl.GL_CULL_FACE);
+    g.gl.glCullFace(g.gl.GL_BACK);
 
     default_shader.setMat4(
         "transformMatrix",
-        Mat4.perspective(90, 0.1, 10.0)
+        Mat4.perspective(90, 0.1, 30.0)
             .translate(0.0, 0.0, -5.0),
     );
     default_shader.setTexture("tex", tex, 0);

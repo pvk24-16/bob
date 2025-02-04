@@ -1,8 +1,8 @@
 const std = @import("std");
-const g = @import("graphics/graphics.zig");
+const g = @import("graphics.zig");
 const VertexBuffer = g.buffer.VertexBuffer;
 const IndexBuffer = g.buffer.ElementBuffer;
-const math = @import("math/math.zig");
+const math = @import("../math/math.zig");
 const Vec3 = math.Vec3;
 const Vec2 = math.Vec2;
 
@@ -28,22 +28,22 @@ const BufferType = union(enum) {
 };
 
 const Buffers = struct {
-    vertex_buffer: BufferType,
     vertex_count: usize,
     index_buffer: IndexBuffer(u32),
     index_count: usize,
+    vertex_buffer: BufferType,
 
-    // pub fn deinit(self: *Buffers) void {
-    //     self.index_buffer.deinit();
-    //     switch (self.vertex_buffer) {
-    //         .with_tex => |buf| {
-    //             buf.deinit();
-    //         },
-    //         .no_tex => |buf| {
-    //             buf.deinit();
-    //         },
-    //     }
-    // }
+    pub fn deinit(self: *Buffers) void {
+        self.index_buffer.deinit();
+        switch (self.vertex_buffer) {
+            .with_tex => |buf| {
+                @constCast(&buf).deinit();
+            },
+            .no_tex => |buf| {
+                @constCast(&buf).deinit();
+            },
+        }
+    }
 };
 
 fn parseIndices(comptime T: type, tokens: *std.mem.TokenIterator(T, .any)) usize {
