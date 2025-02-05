@@ -21,7 +21,7 @@ pub fn randomWiggleCoefs(
     z_range: struct { f32, f32 },
     w_range: struct { f32, f32 },
 ) ![]Vec4 {
-    var prng = std.crypto.random; // Modern way to get random numbers
+    var prng = std.crypto.random;
 
     const coefs = try allocator.alloc(Vec4, count);
     for (coefs) |*coef| {
@@ -62,8 +62,6 @@ pub fn main() !void {
     var vertex_buffer = buffers.vertex_buffer.with_tex;
     var index_buffer = buffers.index_buffer;
     const num_indices = buffers.index_count;
-
-    std.debug.print("{}\n", .{buffers.vertex_count});
 
     // x : side-to-side amplitude
     // y : side-to-side wiggle

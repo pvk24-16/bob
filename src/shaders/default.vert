@@ -39,5 +39,5 @@ void main() {
     vec4 pos = transformMatrix * vec4(scaled_rotated_pos, 1.0);
     gl_Position = pos;
     tex_coord = uv;
-    normal = norm;
+    normal = (transformMatrix * vec4(norm, 1.0)).xyz;
 }

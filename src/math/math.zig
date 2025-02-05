@@ -58,6 +58,18 @@ pub const Mat4 = struct {
         return translation_matrix.matmul(m);
     }
 
+    pub fn scale(m: Mat4, s: f32) Mat4 {
+        const translation_matrix = Mat4{
+            .arr = [16]f32{
+                s,   0.0, 0.0, 0.0,
+                0.0, s,   0.0, 0.0,
+                0.0, 0.0, s,   0.0,
+                0.0, 0.0, 0.0, 1.0,
+            },
+        };
+        return translation_matrix.matmul(m);
+    }
+
     pub fn rotate(m: Mat4, axis: [3]f32, angle_degrees: f32) Mat4 {
         const radians = angle_degrees * (std.math.pi / 180.0);
         const x = axis[0];
