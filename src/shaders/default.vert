@@ -57,8 +57,6 @@ vec4 transformPos(vec3 pos) {
 }
 
 void main() {
-    float angle = wiggle_coefs.w - time;
-
     gl_Position = perspectiveMatrix * transformPos(i_pos);
     normal = transformPos(norm).xyz;
     tex_coord = uv;
