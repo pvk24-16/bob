@@ -1,4 +1,5 @@
 const std = @import("std");
+const gui = @import("graphics/gui.zig");
 const g = @import("graphics/graphics.zig");
 const math = @import("math/math.zig");
 const objparser = @import("graphics/obj_parser.zig");
@@ -97,6 +98,35 @@ pub fn main() !void {
     );
     default_shader.setTexture("tex", tex, 0);
 
+    const gui_context = gui.imgui.CreateContext();
+    gui.imgui.SetCurrentContext(gui_context);
+    {
+        const im_io = gui.imgui.GetIO();
+        im_io.IniFilename = null;
+        im_io.ConfigFlags = gui.imgui.ConfigFlags.with(
+            im_io.ConfigFlags,
+            .{ .NavEnableKeyboard = true, .NavEnableGamepad = true },
+        );
+    }
+
+
+    // Setup Dear ImGui style
+    gui.imgui.StyleColorsDark();
+
+    // Setup Platform/Renderer backends
+    _ = gui.ImGui_ImplGlfw_InitForOpenGL(window.window_handle, true);
+    switch (gui.populate_dear_imgui_opengl_symbol_table(@ptrCast(&gui.get_proc_address))) {
+        .ok => {},
+        .init_error, .open_library => return error.LoadOpenGLFailed,
+        .opengl_version_unsupported => {
+            std.log.warn("tried to run on unsupported opengl version", .{});
+        }
+        //.opengl_version_unsupported => if (!build_options.OPENGL_ES_PROFILE) return error.UnsupportedOpenGlVersion,
+    }
+    _ = gui.ImGui_ImplOpenGL3_Init("#version 300 es");
+
+    //const clear_color = gui.imgui.Vec4.init(1.0, 0.0, 1.0, 1.0);
+
     while (running) {
         window.update();
 
@@ -120,6 +150,48 @@ pub fn main() !void {
         index_buffer.unbind();
         vertex_buffer.unbindArray();
         offset_buffer.unbind();
+
+        // GUI starts here
+        gui.ImGui_ImplOpenGL3_NewFrame();
+        gui.ImGui_ImplGlfw_NewFrame();
+        gui.imgui.NewFrame();
+        {
+            // This should be all that's necessary to center the window,
+            // unforunately imgui ignores these settings for the demo window, so
+            // something more jank is in order
+            //
+            // zimgui.SetNextWindowPos(zimgui.Vec2.init(
+            //     ((@as(f32, @floatFromInt(window_size.width)) - 550) / 2),
+            //     ((@as(f32, @floatFromInt(window_size.height)) - 680) / 2),
+            // ));
+
+            // Behold: Jank.
+            const demo_window_x: f32 = 550.0;
+            const demo_window_y: f32 = 680.0;
+            const demo_offset_x: f32 = 650.0;
+            const demo_offset_y: f32 = 20.0;
+            const view = gui.imgui.GetMainViewport();
+            const im_io = gui.imgui.GetIO();
+
+            view.?.WorkPos.x -= demo_offset_x - ((im_io.DisplaySize.x - demo_window_x) / 2);
+            view.?.WorkPos.y -= demo_offset_y - ((im_io.DisplaySize.y - demo_window_y) / 2);
+
+            gui.imgui.ShowDemoWindow();
+        }
+
+        // Rendering
+        gui.imgui.Render();
+        //const fb_size = window.getFramebufferSize();
+        //zgl.viewport(0, 0, @intCast(fb_size.width), @intCast(fb_size.height));
+        //zgl.clearColor(
+        //    clear_color.x * clear_color.w,
+        //    clear_color.y * clear_color.w,
+        //    clear_color.z * clear_color.w,
+        //    clear_color.w,
+        //);
+        //zgl.clear(zgl.COLOR_BUFFER_BIT);
+        gui.ImGui_ImplOpenGL3_RenderDrawData(gui.imgui.GetDrawData());
+
 
         running = window.running();
     }
