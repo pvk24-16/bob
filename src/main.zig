@@ -13,23 +13,52 @@ const Vec3 = math.Vec3;
 const Vec2 = math.Vec2;
 const Vec4 = math.Vec4;
 
+// Box-Muller Transform: Converts two uniform random numbers into a normal distribution
+fn randomNormal(rng: *std.Random, mean: f32, stddev: f32) f32 {
+    const u_1 = rng.float(f32);
+    const u_2 = rng.float(f32);
+    const z0 = @sqrt(-2.0 * @log(u_1)) * @cos(2.0 * std.math.pi * u_2); // Normal (0,1)
+    return z0 * stddev + mean; // Scale and shift to desired mean/stddev
+}
+
 pub fn randomWiggleCoefs(
     allocator: std.mem.Allocator,
     count: usize,
-    x_range: struct { f32, f32 },
-    y_range: struct { f32, f32 },
-    z_range: struct { f32, f32 },
-    w_range: struct { f32, f32 },
+    x_params: struct { mean: f32, stddev: f32 },
+    y_params: struct { mean: f32, stddev: f32 },
+    z_params: struct { mean: f32, stddev: f32 },
+    w_params: struct { mean: f32, stddev: f32 },
 ) ![]Vec4 {
     var prng = std.crypto.random;
 
     const coefs = try allocator.alloc(Vec4, count);
     for (coefs) |*coef| {
         coef.* = Vec4{
-            .x = prng.float(f32) * (x_range[1] - x_range[0]) + x_range[0],
-            .y = prng.float(f32) * (y_range[1] - y_range[0]) + y_range[0],
-            .z = prng.float(f32) * (z_range[1] - z_range[0]) + z_range[0],
-            .w = prng.float(f32) * (w_range[1] - w_range[0]) + w_range[0],
+            .x = randomNormal(&prng, x_params.mean, x_params.stddev),
+            .y = randomNormal(&prng, y_params.mean, y_params.stddev),
+            .z = randomNormal(&prng, z_params.mean, z_params.stddev),
+            .w = randomNormal(&prng, w_params.mean, w_params.stddev),
+        };
+    }
+
+    return coefs;
+}
+
+pub fn randomOffsets(
+    allocator: std.mem.Allocator,
+    count: usize,
+    x_params: struct { mean: f32, stddev: f32 },
+    y_params: struct { mean: f32, stddev: f32 },
+    z_params: struct { mean: f32, stddev: f32 },
+) ![]Vec3 {
+    var prng = std.crypto.random;
+
+    const coefs = try allocator.alloc(Vec3, count);
+    for (coefs) |*coef| {
+        coef.* = Vec3{
+            .x = randomNormal(&prng, x_params.mean, x_params.stddev),
+            .y = randomNormal(&prng, y_params.mean, y_params.stddev),
+            .z = randomNormal(&prng, z_params.mean, z_params.stddev),
         };
     }
 
@@ -54,14 +83,18 @@ pub fn main() !void {
 
     // Generate vertex/index buffers from .obj file
 
-    const tex = try texture.createTexture("objects/fish_texture.png");
+    const tex = try texture.createTexture("objects/fish_low_poly.png");
     const allocator = std.heap.page_allocator;
-    var buffers = try objparser.parseObj("objects/fish.obj", allocator);
+    var buffers = try objparser.parseObj("objects/fish_low_poly.obj", allocator);
     defer buffers.deinit();
 
     var vertex_buffer = buffers.vertex_buffer.with_tex;
     var index_buffer = buffers.index_buffer;
     const num_indices = buffers.index_count;
+
+    // Generate buffers for instancing data
+
+    const num_fish = 100000;
 
     // x : side-to-side amplitude
     // y : side-to-side wiggle
@@ -69,45 +102,74 @@ pub fn main() !void {
     // w : phase
     const wiggle_coefs = try randomWiggleCoefs(
         allocator,
-        100,
-        .{ 0.3, 1.5 },
-        .{ 4.0, 10.0 },
-        .{ 0.3, 3.0 },
-        .{ 0.0, 10.0 },
+        num_fish,
+        .{ .mean = 0.5, .stddev = 0.3 },
+        .{ .mean = 15.0, .stddev = 5.0 },
+        .{ .mean = 0.1, .stddev = 1.0 },
+        .{ .mean = 0.0, .stddev = 1.0 },
     );
 
-    var offset_buffer = ArrayBuffer(Vec4).init();
+    var wiggle_buffer = ArrayBuffer(Vec4).init();
+    defer wiggle_buffer.deinit();
+
+    wiggle_buffer.bind();
+    wiggle_buffer.write(wiggle_coefs, .static);
+    wiggle_buffer.enableAttribute(3, 4, .float, false, 0);
+    wiggle_buffer.setDivisior(3, 1);
+
+    // Random x,y,z offsetss
+    const offsets = try randomOffsets(
+        allocator,
+        num_fish,
+        .{ .mean = 0.1, .stddev = 0.05 },
+        .{ .mean = 0.1, .stddev = 0.15 },
+        .{ .mean = 0.5, .stddev = 0.5 },
+    );
+
+    var offset_buffer = ArrayBuffer(Vec3).init();
     defer offset_buffer.deinit();
 
     offset_buffer.bind();
-    offset_buffer.write(wiggle_coefs, .static);
-    offset_buffer.enableAttribute(3, 4, .float, false, 0);
-    offset_buffer.setDivisior(3, 1);
+    offset_buffer.write(offsets, .static);
+    offset_buffer.enableAttribute(4, 3, .float, false, 0);
+    offset_buffer.setDivisior(4, 1);
 
     default_shader.bind();
+
+    default_shader.setMat4(
+        "scaleRotateMatrix",
+        Mat4.identity()
+            .scale(0.008),
+    );
+
+    default_shader.setMat4(
+        "translateMatrix",
+        Mat4.identity()
+            .translate(0.5, 0.0, 0.0),
+    );
+
+    default_shader.setMat4(
+        "perspectiveMatrix",
+        Mat4.perspective(90, 0.1, 20.0),
+    );
+
+    default_shader.setTexture("tex", tex, 0);
 
     g.gl.glEnable(g.gl.GL_DEPTH_TEST);
     g.gl.glEnable(g.gl.GL_CULL_FACE);
     g.gl.glCullFace(g.gl.GL_BACK);
 
-    default_shader.setMat4(
-        "transformMatrix",
-        Mat4.perspective(90, 0.1, 30.0)
-            .translate(0.0, 0.0, -5.0),
-    );
-    default_shader.setTexture("tex", tex, 0);
-
     while (running) {
         window.update();
 
         default_shader.setF32("time", @floatCast(g.glfw.glfwGetTime()));
-        g.gl.glClearColor(0.2, 0.5, 0.85, 1.0);
+        g.gl.glClearColor(0.0, 0.1, 0.35, 1.0);
         g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
         g.gl.glClear(g.gl.GL_DEPTH_BUFFER_BIT);
 
         vertex_buffer.bindArray();
         index_buffer.bind();
-        offset_buffer.bind();
+        wiggle_buffer.bind();
 
         g.gl.glDrawElementsInstanced(
             g.gl.GL_TRIANGLES,
@@ -119,7 +181,7 @@ pub fn main() !void {
 
         index_buffer.unbind();
         vertex_buffer.unbindArray();
-        offset_buffer.unbind();
+        wiggle_buffer.unbind();
 
         running = window.running();
     }
