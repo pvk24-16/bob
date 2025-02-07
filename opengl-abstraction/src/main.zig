@@ -17,8 +17,8 @@ const Vec4 = math.Vec4;
 fn randomNormal(rng: *std.Random, mean: f32, stddev: f32) f32 {
     const u_1 = rng.float(f32);
     const u_2 = rng.float(f32);
-    const z0 = @sqrt(-2.0 * @log(u_1)) * @cos(2.0 * std.math.pi * u_2); // Normal (0,1)
-    return z0 * stddev + mean; // Scale and shift to desired mean/stddev
+    const z0 = @sqrt(-2.0 * @log(u_1)) * @cos(2.0 * std.math.pi * u_2);
+    return z0 * stddev + mean;
 }
 
 pub fn randomWiggleCoefs(
@@ -117,6 +117,8 @@ pub fn main() !void {
     wiggle_buffer.enableAttribute(3, 4, .float, false, 0);
     wiggle_buffer.setDivisior(3, 1);
 
+    allocator.free(wiggle_coefs); // buffer already loaded to GPU, free CPU side data
+
     // Random x,y,z offsetss
     const offsets = try randomOffsets(
         allocator,
@@ -133,6 +135,8 @@ pub fn main() !void {
     offset_buffer.write(offsets, .static);
     offset_buffer.enableAttribute(4, 3, .float, false, 0);
     offset_buffer.setDivisior(4, 1);
+
+    allocator.free(offsets); // buffer already loaded to GPU, free CPU side data
 
     default_shader.bind();
 
