@@ -100,6 +100,7 @@ pub fn init(
     std.log.debug("[Windows Capture] Retrieved audio client", .{});
 
     self.wave_format = .{};
+    // TODO: Make this configurable.
     self.wave_format.wFormatTag = win.WAVE_FORMAT_IEEE_FLOAT;
     self.wave_format.nChannels = 2;
     self.wave_format.nSamplesPerSec = 44100;

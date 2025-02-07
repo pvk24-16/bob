@@ -307,7 +307,10 @@ const SelectClientCallback = struct {
             data.ctx.client_id = data.index.*;
             data.ctx.sink_id = info.index;
             data.ctx.sample_spec = info.sample_spec;
-            data.ctx.sample_spec.channels = 5;
+            // TODO: Make this configurable, matching windows.
+            data.ctx.sample_spec.channels = 2;
+            data.ctx.sample_spec.rate = 44100;
+            data.ctx.sample_spec.format = pulse.PA_SAMPLE_FLOAT32NE;
         }
     }
 };
