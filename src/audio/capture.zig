@@ -1,51 +1,37 @@
 const std = @import("std");
-const os_tag = @import("builtin").os.tag;
+const builtin = @import("builtin");
+
+const Config = @import("Config.zig");
 const Allocator = std.mem.Allocator;
 
-// Requires Tiger-style initialization.
-const AudioCapture = @This();
+/// The audio format is ieee 32-bit float
+pub const AudioCapturer = struct {
+    const Impl = switch (builtin.os.tag) {
+        //.linux => LinuxImpl,
+        .windows => @import("windows/capture.zig").WindowsImpl,
+        else => @compileError("Unsupported operating system " ++ @tagName(builtin.os.tag)),
+    };
 
-const Impl = switch (os_tag) {
-    .windows => @import("windows/capture.zig"),
-    .linux => @import("linux/capture.zig"),
-    else => @compileError("OS not supported " ++ @tagName(os_tag)),
+    impl: Impl,
+
+    pub fn init(config: Config, allocator: std.mem.Allocator) !AudioCapturer {
+        return AudioCapturer{ .impl = try Impl.init(config, allocator) };
+    }
+
+    pub fn deinit(self: *AudioCapturer, allocator: std.mem.Allocator) void {
+        self.impl.deinit(allocator);
+        self.* = undefined;
+    }
+
+    pub fn start(self: *AudioCapturer) !void {
+        return self.impl.start();
+    }
+
+    pub fn stop(self: *AudioCapturer) !void {
+        return self.impl.stop();
+    }
+
+    pub fn sample(self: *AudioCapturer) []const f32 {
+        return self.impl.sample();
+    }
 };
-
-impl: Impl = .{},
-
-/// Create audio capture.
-pub inline fn init(
-    self: *AudioCapture,
-    process_str: []const u8,
-    capacity: usize,
-    allocator: Allocator,
-) !void {
-    try self.impl.init(process_str, capacity, allocator);
-}
-
-/// Destroy audio capture.
-pub inline fn deinit(self: *AudioCapture) void {
-    self.impl.deinit();
-}
-
-/// Get an audio sample.
-pub inline fn getSample(self: *AudioCapture) []f32 {
-    self.impl.base.mutex.lock();
-    defer self.impl.base.mutex.unlock();
-    return self.impl.base.ring.read();
-}
-
-/// Start capture.
-pub inline fn startCapture(self: *AudioCapture) !void {
-    try self.impl.startCapture();
-}
-
-/// Stop capture.
-pub inline fn stopCapture(self: *AudioCapture) !void {
-    try self.impl.stopCapture();
-}
-
-/// Retrieve sample rate.
-pub inline fn sampleRate(self: *AudioCapture) u32 {
-    return self.impl.sampleRate();
-}

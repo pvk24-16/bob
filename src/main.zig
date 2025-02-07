@@ -1,8 +1,9 @@
 const std = @import("std");
 const g = @import("graphics/graphics.zig");
 
-const AudioCapture = @import("audio/capture.zig");
+const AudioCapture = @import("audio/capture.zig").AudioCapturer;
 const AudioAnalyzer = @import("audio/audio_analyzer.zig").AudioAnalyzer;
+const RingBuffer = @import("audio/RingBuffer.zig").RingBuffer;
 
 const gl = g.gl;
 const glfw = g.glfw;
@@ -35,15 +36,18 @@ pub fn main() !void {
     const pid_str = args.next() orelse @panic("No PID provided");
 
     // --- Audio capture ---
-    var cap: AudioCapture = .{};
-    try cap.init(pid_str, fft_size, allocator);
-    defer cap.deinit();
+    var cap = try AudioCapture.init(.{
+        .process_id = pid_str,
+        .sample_rate = 44100,
+        .channel_count = 2,
+        .window_time = 10,
+    }, allocator);
+    defer cap.deinit(allocator);
 
-    try cap.startCapture();
-    defer cap.stopCapture() catch {};
+    try cap.start();
+    defer cap.stop() catch {};
 
     // --- Audio analysis ---
-    const sr = cap.sampleRate();
     var analyzer = AudioAnalyzer(fft_size).init();
     defer analyzer.deinit();
 
@@ -60,7 +64,7 @@ pub fn main() !void {
     var line_vbo: u32 = 0;
     gl.glGenBuffers(1, @ptrCast(&line_vbo));
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, line_vbo);
-    gl.glBufferData(gl.GL_ARRAY_BUFFER, sr * @sizeOf(vec2) + 1, null, gl.GL_STREAM_DRAW);
+    gl.glBufferData(gl.GL_ARRAY_BUFFER, (bin_size + 1) * @sizeOf(vec2) + 1, null, gl.GL_STREAM_DRAW);
 
     var line_vao: u32 = 0;
     gl.glGenVertexArrays(1, @ptrCast(&line_vao));
@@ -88,6 +92,9 @@ pub fn main() !void {
         line[i].y = -0.5;
     }
 
+    var sample_ring = try RingBuffer(f32).init(2048, allocator);
+    defer sample_ring.deinit();
+
     var real: [bin_size]f32 = undefined;
     var imaginary: [bin_size]f32 = undefined;
 
@@ -98,8 +105,9 @@ pub fn main() !void {
             running = false;
         }
 
-        const sample = cap.getSample();
-        analyzer.process(sample);
+        const sample = cap.sample();
+        sample_ring.write(@constCast(sample));
+        analyzer.process(sample_ring.ring);
         analyzer.results(&real, &imaginary);
         for (1..bin_size) |i| {
             line[i].y = @sqrt(real[i] * real[i] + imaginary[i] * imaginary[i]);
