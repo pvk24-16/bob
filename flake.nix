@@ -14,7 +14,12 @@
         inherit (inputs.gitignore.lib) gitignoreSource;
       in {
         devShells.default = pkgs.mkShell {
-          nativeBuildInputs = with pkgs; [ zig_0_13 zls ];
+          nativeBuildInputs = with pkgs; [
+            zig_0_13
+            zls
+            glfw
+            pulseaudio
+          ];
         };
       }
     );
