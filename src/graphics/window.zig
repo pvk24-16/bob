@@ -22,7 +22,7 @@ pub fn Window(comptime callbacks: usize) type {
         const Self = @This();
 
         const window_width: u32 = 800;
-        const window_height: u32 = 600;
+        const window_height: u32 = 800;
         const window_title = "project_name";
 
         window_handle: *glfw.GLFWwindow = undefined,

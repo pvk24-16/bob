@@ -6,6 +6,7 @@ const imgui = @import("imgui");
 const glfw = @import("graphics/gui.zig").glfw;
 const gl = @import("graphics/gui.zig").gl;
 const Context = @import("Context.zig");
+const AudioCapturer = @import("audio/capture.zig").AudioCapturer;
 
 const os_tag = @import("builtin").os.tag;
 
@@ -61,6 +62,7 @@ pub fn main() !void {
     defer ui.deinit();
 
     var current_name: ?[*:0]const u8 = null;
+    var pid_str = [_]u8 {0} ** 32;
 
     var running = true;
 
@@ -74,6 +76,23 @@ pub fn main() !void {
         }
 
         ui.beginFrame();
+
+        if (context.capturer) |*capturer| {
+            if (imgui.Button("Disconnect")) {
+                capturer.deinit(gpa.allocator());
+                context.capturer = null;
+            }
+        } else {
+            _ = imgui.InputText("Application PID", &pid_str, @sizeOf(@TypeOf(pid_str)));
+            imgui.SameLine();
+            if (imgui.Button("Connect")) {
+                const pid_str_c: [*c]const u8 = &pid_str;
+                context.capturer = AudioCapturer.init(.{.process_id = std.mem.span(pid_str_c)}, gpa.allocator()) catch |e| blk: {
+                    std.log.err("unable to connect to process {s}: {s}", .{pid_str, @errorName(e)});
+                    break :blk null;
+                };
+            }
+        }
 
         if (ui.selectClient(&client_list, current_name)) |index| {
             if (context.client) |*client| {
