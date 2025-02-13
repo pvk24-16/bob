@@ -1,6 +1,6 @@
 const std = @import("std");
 
-const RingBuffer = @import("../RingBuffer.zig").RingBuffer;
+const RingBuffer = @import("buffer.zig").RingBuffer;
 const Config = @import("../Config.zig");
 
 const Allocator = std.mem.Allocator;
@@ -23,6 +23,8 @@ pub const WindowsImpl = struct {
         capture_client_retrieval,
         sample_ready_event_creation,
         sample_ready_event_registration,
+        start_capture,
+        stop_capture,
     };
 
     const process_loopback_path = std.unicode.utf8ToUtf16LeStringLiteral("VAD\\Process_Loopback");
@@ -32,10 +34,10 @@ pub const WindowsImpl = struct {
     capture_client: *win.IAudioCaptureClient,
     sample_ready_event: *anyopaque,
 
-    mutex: std.Thread.Mutex,
     thread: ?std.Thread,
+    mutex: std.Thread.Mutex,
     channel_count: u32,
-    ring_buffer: RingBuffer(f32),
+    ring_buffer: RingBuffer,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) !WindowsImpl {
         var result = win.CoInitializeEx(null, win.COINITBASE_MULTITHREADED);
@@ -176,8 +178,8 @@ pub const WindowsImpl = struct {
 
         log.info("sample ready event registered...", .{});
 
-        var ring_buffer = try RingBuffer(f32).init(config.windowSize() / @sizeOf(f32), allocator);
-        errdefer ring_buffer.deinit();
+        var ring_buffer = try RingBuffer.init(config.windowSize() / @sizeOf(f32), allocator);
+        errdefer ring_buffer.deinit(allocator);
 
         return WindowsImpl{
             .running = false,
@@ -192,8 +194,6 @@ pub const WindowsImpl = struct {
     }
 
     pub fn deinit(self: *WindowsImpl, allocator: std.mem.Allocator) void {
-        _ = allocator;
-
         if (self.thread) |thread| {
             self.mutex.lock();
             self.running = false;
@@ -204,7 +204,7 @@ pub const WindowsImpl = struct {
         const release_fn = self.audio_client.lpVtbl.*.Release.?;
 
         _ = release_fn(self.audio_client);
-        self.ring_buffer.deinit();
+        self.ring_buffer.deinit(allocator);
         win.CoUninitialize();
         self.* = undefined;
     }
@@ -222,7 +222,7 @@ pub const WindowsImpl = struct {
         const start_fn = self.audio_client.lpVtbl.*.Start.?;
 
         if (start_fn(self.audio_client) != win.S_OK) {
-            return error.start_capture;
+            return Error.start_capture;
         }
     }
 
@@ -236,14 +236,14 @@ pub const WindowsImpl = struct {
         const stop_fn = self.audio_client.lpVtbl.*.Stop.?;
 
         if (stop_fn(self.audio_client) != win.S_OK) {
-            return error.stop_capture;
+            return Error.stop_capture;
         }
     }
 
     pub fn sample(self: *WindowsImpl) []const f32 {
         self.mutex.lock();
         defer self.mutex.unlock();
-        return self.ring_buffer.read();
+        return self.ring_buffer.receive();
     }
 
     fn captureLoop(self: *WindowsImpl) void {
@@ -272,7 +272,7 @@ pub const WindowsImpl = struct {
                 const data_size = frames * self.channel_count;
 
                 self.mutex.lock();
-                self.ring_buffer.write(p_data[0..data_size]);
+                self.ring_buffer.send(p_data[0..data_size]);
                 self.mutex.unlock();
             }
         }

@@ -40,7 +40,7 @@ pub fn main() !void {
         .process_id = pid_str,
         .sample_rate = 44100,
         .channel_count = 2,
-        .window_time = 10,
+        .window_time = 5,
     }, allocator);
     defer cap.deinit(allocator);
 
