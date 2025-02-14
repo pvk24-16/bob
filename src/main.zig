@@ -38,9 +38,9 @@ pub fn main() !void {
     // --- Audio capture ---
     var cap = try AudioCapture.init(.{
         .process_id = pid_str,
-        .sample_rate = 44100,
-        .channel_count = 2,
-        .window_time = 5,
+        .sample_rate = 96000,
+        .channel_count = 1,
+        .window_time = 100,
     }, allocator);
     defer cap.deinit(allocator);
 
@@ -89,6 +89,10 @@ pub fn main() !void {
     for (0..bin_size) |i| {
         const f: f32 = @floatFromInt(i);
         line[i].x = -1.0 + 2 * f / @as(f32, @floatFromInt(bin_size));
+        //line[i].x = -1.0 + 2 * @log2(1 + f) / @log2(1 + @as(f32, @floatFromInt(bin_size)));
+        //line[i].x = -1.0 + 2 * @log2(1 + f / bin_size);
+        // const mel_scale = 1127 * @log(1 + f / 700.0);
+        // line[i].x = -1.0 + 2 * mel_scale / @as(f32, @floatFromInt(bin_size));
         line[i].y = -0.5;
     }
 

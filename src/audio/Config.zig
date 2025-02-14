@@ -1,5 +1,8 @@
 const Config = @This();
 
+const Channels = enum { mono, stereo };
+const SampleRate = enum {};
+
 process_id: []const u8 = undefined,
 sample_rate: u32 = 44100, // kHz
 channel_count: u32 = 2,

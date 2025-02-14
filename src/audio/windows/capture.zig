@@ -46,6 +46,8 @@ pub const WindowsImpl = struct {
             return Error.com_init;
         }
 
+        errdefer win.CoUninitialize();
+
         log.info("COM initialized...", .{});
 
         var blob: ActivationParams = undefined;
@@ -110,7 +112,7 @@ pub const WindowsImpl = struct {
 
         const audio_client = audio_client_nullable orelse unreachable;
 
-        std.log.debug("audio client retrieved...", .{});
+        log.info("audio client retrieved...", .{});
 
         const wave_format = win.WAVEFORMATEX{
             .wFormatTag = win.WAVE_FORMAT_IEEE_FLOAT,
@@ -139,6 +141,8 @@ pub const WindowsImpl = struct {
         if (result != win.S_OK) {
             return Error.audio_client_init;
         }
+
+        errdefer _ = audio_client.lpVtbl.*.Release.?(audio_client);
 
         log.info("audio client initialized...", .{});
 
@@ -201,11 +205,17 @@ pub const WindowsImpl = struct {
             thread.join();
         }
 
-        const release_fn = self.audio_client.lpVtbl.*.Release.?;
-
-        _ = release_fn(self.audio_client);
         self.ring_buffer.deinit(allocator);
+
+        const release_fn = self.audio_client.lpVtbl.*.Release.?;
+        _ = release_fn(self.audio_client);
+
+        log.info("audio client deinitialized...", .{});
+
         win.CoUninitialize();
+
+        log.info("com deinitialized...", .{});
+
         self.* = undefined;
     }
 
@@ -358,3 +368,6 @@ pub const WindowsImpl = struct {
         .Data4 = .{ 0xA4, 0xDE, 0x18, 0x5C, 0x39, 0x5C, 0xD3, 0x17 },
     };
 };
+
+// RESOURCES:
+// * https://learn.microsoft.com/en-us/answers/questions/1125409/loopbackcapture-(-activateaudiointerfaceasync-with?source=docs)
