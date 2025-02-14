@@ -22,12 +22,7 @@
     // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
-    .dependencies = .{
-        .@"opengl-abstraction" = .{
-            .url = "opengl-abstraction",
-            .hash = "12203d65edc97f448107406ace01fc08d7b9ef3766d9051ae5bd6ba422d864d160d3",
-        },
-    },
+    .dependencies = .{},
     .paths = .{
         "build.zig",
         "build.zig.zon",
