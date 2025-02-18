@@ -79,22 +79,22 @@ pub const RingBuffer = struct {
         if (self.head < self.tail) {
             const length = self.tail - self.head;
 
-            @memcpy(self.buffer[0 .. length], self.ring[self.head..self.tail]);
+            @memcpy(self.buffer[0..length], self.ring[self.head..self.tail]);
 
             self.tail = self.head;
 
-            return self.buffer[0 .. length];
+            return self.buffer[0..length];
         }
 
         const remainder = self.ring.len - self.head;
         const length = remainder + self.tail;
 
         @memcpy(self.buffer[0..remainder], self.ring[self.head..]);
-        @memcpy(self.buffer[remainder .. length], self.ring[0..self.tail]);
+        @memcpy(self.buffer[remainder..length], self.ring[0..self.tail]);
 
         self.tail = self.head;
 
-        return self.buffer[0 .. length];
+        return self.buffer[0..length];
     }
 
     /// Returns true if the buffer is currently full, false otherwise.
@@ -180,7 +180,7 @@ pub const RollBuffer = struct {
 
     /// Read content as a continous slice.
     pub fn read(self: *RollBuffer) []const f32 {
-        return self.buf[self.cur..self.cur + self.cap];
+        return self.buf[self.cur .. self.cur + self.cap];
     }
 
     /// Resets all values to zero.
@@ -188,3 +188,5 @@ pub const RollBuffer = struct {
         @memset(self.buf, 0);
     }
 };
+
+// https://medium.com/@ongzhixuan/exploring-the-short-time-fourier-transform-analyzing-time-varying-audio-signals-98157d1b9a12

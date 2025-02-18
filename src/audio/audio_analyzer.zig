@@ -93,3 +93,5 @@ pub fn AudioAnalyzer(comptime capacity: usize) type {
         }
     };
 }
+
+// smoothed​[k] = a * current[k] + (1 − a) * previous[k]

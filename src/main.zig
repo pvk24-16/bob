@@ -10,7 +10,7 @@ const glfw = g.glfw;
 
 const vec2 = struct { x: f32 = 0, y: f32 = 0 };
 
-const fft_size: comptime_int = 2048;
+const fft_size: comptime_int = 4096;
 const bin_size: comptime_int = fft_size / 2;
 
 fn resize(x: i32, y: i32, _: ?*anyopaque) void {
@@ -30,6 +30,12 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
+    var test_data: [256]f32 = undefined;
+    var test_rand = std.rand.Random.DefaultPrng.init(42);
+    for (0..test_data.len) |i| {
+        test_data[i] = test_rand.random().floatNorm(f32);
+    }
+
     var args = try std.process.argsWithAllocator(allocator);
     defer args.deinit();
     _ = args.skip();
@@ -48,8 +54,11 @@ pub fn main() !void {
     defer cap.stop() catch {};
 
     // --- Audio analysis ---
-    var analyzer = AudioAnalyzer(fft_size).init();
-    defer analyzer.deinit();
+    //var analyzer = AudioAnalyzer(fft_size).init();
+    //defer analyzer.deinit();
+    //
+    var fft = try @import("audio/fft.zig").FastFourierTransform.init(std.math.log2_int(usize, fft_size), 4, .blackman_harris, 0.8, allocator);
+    defer fft.deinit(allocator);
 
     // --- Window ---
     var running = true;
@@ -88,19 +97,19 @@ pub fn main() !void {
     line[bin_size] = .{ .x = 1.0, .y = -0.5 };
     for (0..bin_size) |i| {
         const f: f32 = @floatFromInt(i);
-        line[i].x = -1.0 + 2 * f / @as(f32, @floatFromInt(bin_size));
-        //line[i].x = -1.0 + 2 * @log2(1 + f) / @log2(1 + @as(f32, @floatFromInt(bin_size)));
+        //line[i].x = -1.0 + 2 * f / @as(f32, @floatFromInt(bin_size));
+        line[i].x = -1.0 + 2 * @log2(1 + f) / @log2(1 + @as(f32, @floatFromInt(bin_size)));
         //line[i].x = -1.0 + 2 * @log2(1 + f / bin_size);
-        // const mel_scale = 1127 * @log(1 + f / 700.0);
-        // line[i].x = -1.0 + 2 * mel_scale / @as(f32, @floatFromInt(bin_size));
-        line[i].y = -0.5;
+        //const mel_scale = 1127 * @log(1 + f / 700.0);
+        //line[i].x = -1.0 + 2 * mel_scale / @as(f32, @floatFromInt(bin_size));
+        //line[i].y = -0.5;
     }
 
-    var sample_ring = try RingBuffer(f32).init(2048, allocator);
-    defer sample_ring.deinit();
+    //var sample_ring = try RingBuffer(f32).init(2048, allocator);
+    //defer sample_ring.deinit();
 
-    var real: [bin_size]f32 = undefined;
-    var imaginary: [bin_size]f32 = undefined;
+    //var real: [bin_size]f32 = undefined;
+    //var imaginary: [bin_size]f32 = undefined;
 
     // --- Main loop ---
     while (running) {
@@ -110,14 +119,23 @@ pub fn main() !void {
         }
 
         const sample = cap.sample();
-        sample_ring.write(@constCast(sample));
-        analyzer.process(sample_ring.ring);
-        analyzer.results(&real, &imaginary);
+        //sample_ring.write(@constCast(sample));
+        //analyzer.process(sample_ring.ring);
+        //analyzer.results(&real, &imaginary);
+        //
+        fft.write(@constCast(sample));
+        const fft_result = fft.read();
+
         for (1..bin_size) |i| {
-            line[i].y = @sqrt(real[i] * real[i] + imaginary[i] * imaginary[i]);
-            line[i].y *= @floatFromInt(fft_size);
-            line[i].y = -1.5 / (@sqrt(30 * line[i].y) + 1) + 1.5;
-            line[i].y -= 0.5;
+            //line[i].y = @sqrt(real[i] * real[i] + imaginary[i] * imaginary[i]);
+            //
+            line[i].y = 8 * fft_result[i] / fft_size;
+
+            // std.debug.print("{} == {}\n", .{ @sqrt(real[i] * real[i] + imaginary[i] * imaginary[i]), fft_result[i] });
+
+            // line[i].y *= @floatFromInt(fft_size);
+            // line[i].y = -1.5 / (@sqrt(30 * line[i].y) + 1) + 1.5;
+            // line[i].y -= 0.5;
         }
 
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, line_vbo);
