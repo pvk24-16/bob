@@ -3,7 +3,7 @@
 
 struct bob_api api;
 
-struct bob_visualization_info info;
+static struct bob_visualization_info info;
 
 const struct bob_visualization_info *get_info(void)
 {

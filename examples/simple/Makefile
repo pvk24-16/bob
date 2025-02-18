@@ -1,4 +1,4 @@
-CFLAGS= -I../../api
+CFLAGS=-I../../api
 LDFLAGS=-shared -fPIC
 
 simple.so: simple.c
