@@ -2,7 +2,6 @@ name: Zig Build and Lint
 
 on:
   push: {}
-  pull_request: {}
 
 jobs:
   build:
