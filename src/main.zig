@@ -3,7 +3,12 @@ const Client = @import("Client.zig");
 const rt_api = @import("rt_api.zig");
 
 pub fn main() !void {
-    var args = std.process.args();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+
+    var args = try std.process.argsWithAllocator(gpa.allocator());
+    defer args.deinit();
+
     const name = args.next() orelse unreachable;
 
     const stdout = std.io.getStdOut().writer();
