@@ -1,6 +1,6 @@
 const std = @import("std");
 const Client = @import("Client.zig");
-const Api = @import("Api.zig");
+const rt_api = @import("rt_api.zig");
 
 pub fn main() !void {
     var args = std.process.args();
@@ -20,8 +20,7 @@ pub fn main() !void {
     };
     defer client.unload();
 
-    Api.fill(null, client.api.api);
-
+    rt_api.fill(null, client.api.api);
     const info = &client.api.get_info()[0];
 
     try stdout.print("Name: {s}\n", .{info.name});

@@ -26,10 +26,6 @@ comptime {
     for (api_fn_names) |name| checkSignature(name);
 }
 
-pub fn enable(context: ?*anyopaque, flags: c_int) callconv(.C) void {
-    _ = .{ context, flags };
-}
-
 pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_float_buffer {
     _ = .{ context, channel };
     const buffer: c.bob_float_buffer = std.mem.zeroes(c.bob_float_buffer);
@@ -46,9 +42,9 @@ pub fn get_chromagram(context: ?*anyopaque, buf: [*c]f32, channel: c_int) callco
     _ = .{ context, buf, channel };
 }
 
-pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_char_buffer {
+pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_float_buffer {
     _ = .{ context, channel };
-    const buffer: c.bob_char_buffer = std.mem.zeroes(c.bob_char_buffer);
+    const buffer: c.bob_float_buffer = std.mem.zeroes(c.bob_float_buffer);
     return buffer;
 }
 

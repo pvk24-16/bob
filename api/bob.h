@@ -7,11 +7,6 @@ extern "C" {
 
 #include <stddef.h>
 
-enum bob_channel_spec {
-  BOB_MONO,
-  BOB_STEREO,
-};
-
 enum bob_channel {
   BOB_MONO_CHANNEL,
   BOB_LEFT_CHANNEL,
@@ -29,15 +24,12 @@ struct bob_visualization_info {
   /* A description of this visualization */
   const char *description;
 
+  /* Enabled analysis tools */
   int enabled;
-
-  /* Channels */
-  enum bob_channel_spec channels;
 };
 
 /**
- * Types of audio analysis
- * Passed to `enable`.
+ * Types of audio analysis.
  */
 enum bob_audio_flags {
   /* Raw audio data */
@@ -63,11 +55,6 @@ enum bob_audio_flags {
 
 struct bob_float_buffer {
   float *ptr;
-  size_t size;
-};
-
-struct bob_char_buffer {
-  char *ptr;
   size_t size;
 };
 
@@ -99,7 +86,7 @@ struct bob_api {
   /**
    * Get pulse data for specified channel.
    */
-  struct bob_char_buffer (*get_pulse_data)(void *context, int channel);
+  struct bob_float_buffer (*get_pulse_data)(void *context, int channel);
 
   /**
    * Get tempo for specified channel.
@@ -124,7 +111,6 @@ const struct bob_visualization_info *get_info(void);
 
 /**
  * Initialize visualization.
- * Audio analysis should be enabled here.
  * UI parameters should be registered here.
  * Return a pointer to user data, or NULL.
  */

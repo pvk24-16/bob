@@ -1,4 +1,5 @@
 const std = @import("std");
+const rt_api = @import("rt_api.zig");
 
 const c = @cImport({
     @cInclude("bob.h");
@@ -34,12 +35,15 @@ ctx: ?*anyopaque,
 pub fn load(path: []const u8) !Client {
     var lib = try std.DynLib.open(path);
     const api = try ClientApi.load(&lib);
-    const ctx = api.create();
     return .{
         .lib = lib,
         .api = api,
-        .ctx = ctx,
+        .ctx = null,
     };
+}
+
+pub fn create(self: *Client) void {
+    self.ctx = self.api.create();
 }
 
 pub fn unload(client: *Client) void {
