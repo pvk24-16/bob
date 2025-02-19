@@ -9,7 +9,7 @@ uniform sampler2D tex;
 
 
 void main() {
-    float shade = dot(normalize(normal), normalize(vec3(0., 2., 1.)));
+    float shade = dot(normalize(normal), normalize(vec3(0.0, 2., -1.)));
     vec4 clr = texture2D(tex, tex_coord);
-    o_col = shade * clr;
+    o_col = (shade + 1.0) / 2.0 * clr;
 }

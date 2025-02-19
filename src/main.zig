@@ -1,4 +1,6 @@
 const std = @import("std");
+const Client = @import("Client.zig");
+const rt_api = @import("rt_api.zig");
 const gui = @import("graphics/gui.zig");
 const g = @import("graphics/graphics.zig");
 const math = @import("math/math.zig");
@@ -37,32 +39,34 @@ pub fn randomWiggleCoefs(
     return coefs;
 }
 
+
 pub fn main() !void {
-    try std.io.getStdOut().writeAll("Hello, my name is Bob\n");
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
 
-    var running = true;
-    var window = try Window(8).init();
-    defer window.deinit();
-    window.setUserPointer();
+    var args = try std.process.argsWithAllocator(gpa.allocator());
+    defer args.deinit();
 
-    var default_shader = try Shader.init(
-        @embedFile("shaders/default.vert"),
-        @embedFile("shaders/default.frag"),
-    );
-    defer default_shader.deinit();
+    const name = args.next() orelse unreachable;
 
-    default_shader.bind();
+    const stdout = std.io.getStdOut().writer();
+    const stderr = std.io.getStdErr().writer();
 
-    // Generate vertex/index buffers from .obj file
+    const path = args.next() orelse {
+        try stderr.print("usage: {s} <path>\n", .{name});
+        std.process.exit(1);
+    };
 
-    const tex = try texture.createTexture("objects/fish_texture.png");
-    const allocator = std.heap.page_allocator;
-    var buffers = try objparser.parseObj("objects/fish.obj", allocator);
-    defer buffers.deinit();
+    var client = Client.load(path) catch |e| {
+        try stderr.print("error: failed to load '{s}': {s}\n", .{ path, @errorName(e) });
+        std.process.exit(1);
+    };
+    defer client.unload();
 
-    var vertex_buffer = buffers.vertex_buffer.with_tex;
-    var index_buffer = buffers.index_buffer;
-    const num_indices = buffers.index_count;
+    rt_api.fill(null, client.api.api);
+    const info = &client.api.get_info()[0];
+    try stdout.print("Name: {s}\n", .{info.name});
+    try stdout.print("Description: {s}\n", .{info.description});
 
     // x : side-to-side amplitude
     // y : side-to-side wiggle

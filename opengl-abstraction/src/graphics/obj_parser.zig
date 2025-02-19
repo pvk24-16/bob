@@ -1,10 +1,9 @@
 const std = @import("std");
-const g = @import("graphics.zig");
+const g = @import("../lib.zig");
 const VertexBuffer = g.buffer.VertexBuffer;
 const IndexBuffer = g.buffer.ElementBuffer;
-const math = @import("../math/math.zig");
-const Vec3 = math.Vec3;
-const Vec2 = math.Vec2;
+const Vec3 = g.math.Vec3;
+const Vec2 = g.math.Vec2;
 
 const VertexNoTex = struct {
     pos: Vec3,

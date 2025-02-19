@@ -24,8 +24,6 @@ fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
-    const os_tag = target.result.os.tag;
-
 
     const zig_imgui_dep = b.dependency("Zig-ImGui", .{
         .target = target,
@@ -46,7 +44,7 @@ pub fn build(b: *std.Build) void {
         //   moment.
         // * Stateful Unicode features such as skin tone modifiers are not
         //   supported by the text renderer.
-        .enable_lunasvg = false // if unspecified, the default is false
+        .enable_lunasvg = false, // if unspecified, the default is false
     });
 
     const imgui_dep = zig_imgui_dep.builder.dependency("imgui", .{
@@ -70,8 +68,8 @@ pub fn build(b: *std.Build) void {
         lazy_xcode_dep,
     );
 
-    var exe = b.addExecutable(.{
-        .name = "project",
+    const exe = b.addExecutable(.{
+        .name = "bob",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
@@ -97,6 +95,8 @@ pub fn build(b: *std.Build) void {
     }
 
     run_step.dependOn(&run_exe.step);
+    exe.addIncludePath(b.path("api"));
+    exe.linkLibC();
 
     b.installArtifact(exe);
 }
