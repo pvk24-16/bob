@@ -1,44 +1,12 @@
 const std = @import("std");
 const Client = @import("Client.zig");
 const rt_api = @import("rt_api.zig");
+const imgui = @import("imgui");
 const gui = @import("graphics/gui.zig");
-const g = @import("graphics/graphics.zig");
-const math = @import("math/math.zig");
-const objparser = @import("graphics/obj_parser.zig");
-const texture = @import("graphics/textures.zig");
-const Window = g.window.Window;
-const Shader = g.shader.Shader;
-const VertexBuffer = g.buffer.VertexBuffer;
-const IndexBuffer = g.buffer.ElementBuffer;
-const ArrayBuffer = g.buffer.ArrayBuffer;
-const Mat4 = math.Mat4;
-const Vec3 = math.Vec3;
-const Vec2 = math.Vec2;
-const Vec4 = math.Vec4;
+const glfw = gui.glfw;
+const gl = gui.gl;
 
-pub fn randomWiggleCoefs(
-    allocator: std.mem.Allocator,
-    count: usize,
-    x_range: struct { f32, f32 },
-    y_range: struct { f32, f32 },
-    z_range: struct { f32, f32 },
-    w_range: struct { f32, f32 },
-) ![]Vec4 {
-    var prng = std.crypto.random;
-
-    const coefs = try allocator.alloc(Vec4, count);
-    for (coefs) |*coef| {
-        coef.* = Vec4{
-            .x = prng.float(f32) * (x_range[1] - x_range[0]) + x_range[0],
-            .y = prng.float(f32) * (y_range[1] - y_range[0]) + y_range[0],
-            .z = prng.float(f32) * (z_range[1] - z_range[0]) + z_range[0],
-            .w = prng.float(f32) * (w_range[1] - w_range[0]) + w_range[0],
-        };
-    }
-
-    return coefs;
-}
-
+const os_tag = @import("builtin").os.tag;
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -68,97 +36,85 @@ pub fn main() !void {
     try stdout.print("Name: {s}\n", .{info.name});
     try stdout.print("Description: {s}\n", .{info.description});
 
-    // x : side-to-side amplitude
-    // y : side-to-side wiggle
-    // z : up-down amplitude
-    // w : phase
-    const wiggle_coefs = try randomWiggleCoefs(
-        allocator,
-        100,
-        .{ 0.3, 1.5 },
-        .{ 4.0, 10.0 },
-        .{ 0.3, 3.0 },
-        .{ 0.0, 10.0 },
-    );
+    mainGui();
+}
 
-    var offset_buffer = ArrayBuffer(Vec4).init();
-    defer offset_buffer.deinit();
+/// Print error and code on GLFW errors.
+fn errorCallback(err: c_int, msg: [*c]const u8) callconv(.C) void {
+    std.log.err("Error code: {} message: {s}", .{ err, msg });
+}
 
-    offset_buffer.bind();
-    offset_buffer.write(wiggle_coefs, .static);
-    offset_buffer.enableAttribute(3, 4, .float, false, 0);
-    offset_buffer.setDivisior(3, 1);
+fn mainGui() void {
+    _ = glfw.glfwSetErrorCallback(errorCallback);
+    if (glfw.glfwInit() == glfw.GLFW_FALSE) {
+        std.log.err("Failed to init GLFW", .{});
+        return;
+    }
+    defer glfw.glfwTerminate();
 
-    default_shader.bind();
+    glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_CORE_PROFILE);
+    if (os_tag == .macos) {
+        glfw.glfwWindowHint(glfw.GLFW_OPENGL_FORWARD_COMPAT, glfw.GLFW_TRUE);
+    }
 
-    g.gl.glEnable(g.gl.GL_DEPTH_TEST);
-    g.gl.glEnable(g.gl.GL_CULL_FACE);
-    g.gl.glCullFace(g.gl.GL_BACK);
+    const window = glfw.glfwCreateWindow(
+        800,
+        600,
+        "project_name",
+        null,
+        null,
+    ) orelse {
+        std.log.err("Failed to create window", .{});
+        return;
+    };
+    defer glfw.glfwDestroyWindow(window);
+    glfw.glfwMakeContextCurrent(window);
+    if (gl.gladLoadGLLoader(@ptrCast(&glfw.glfwGetProcAddress)) == 0) {
+        std.log.err("Failed to load gl", .{});
+        return;
+    }
+    gl.glViewport(0, 0, 800, 600);
+    glfw.glfwSwapInterval(1);
 
-    default_shader.setMat4(
-        "transformMatrix",
-        Mat4.perspective(90, 0.1, 30.0)
-            .translate(0.0, 0.0, -5.0),
-    );
-    default_shader.setTexture("tex", tex, 0);
-
-    const gui_context = gui.imgui.CreateContext();
-    gui.imgui.SetCurrentContext(gui_context);
+    const gui_context = imgui.CreateContext();
+    imgui.SetCurrentContext(gui_context);
     {
-        const im_io = gui.imgui.GetIO();
+        const im_io = imgui.GetIO();
         im_io.IniFilename = null;
-        im_io.ConfigFlags = gui.imgui.ConfigFlags.with(
+        im_io.ConfigFlags = imgui.ConfigFlags.with(
             im_io.ConfigFlags,
             .{ .NavEnableKeyboard = true, .NavEnableGamepad = true },
         );
     }
 
+    imgui.StyleColorsDark();
 
-    // Setup Dear ImGui style
-    gui.imgui.StyleColorsDark();
-
-    // Setup Platform/Renderer backends
-    _ = gui.ImGui_ImplGlfw_InitForOpenGL(window.window_handle, true);
+    _ = gui.ImGui_ImplGlfw_InitForOpenGL(window, true);
     switch (gui.populate_dear_imgui_opengl_symbol_table(@ptrCast(&gui.get_proc_address))) {
         .ok => {},
-        .init_error, .open_library => return error.LoadOpenGLFailed,
+        .init_error, .open_library => {
+            std.log.err("Load OpenGL failed", .{});
+            return;
+        },
         .opengl_version_unsupported => {
-            std.log.warn("tried to run on unsupported opengl version", .{});
-        }
-        //.opengl_version_unsupported => if (!build_options.OPENGL_ES_PROFILE) return error.UnsupportedOpenGlVersion,
+            std.log.warn("Tried to run on unsupported OpenGL version", .{});
+            return;
+        },
     }
-    _ = gui.ImGui_ImplOpenGL3_Init("#version 300 es");
+    _ = gui.ImGui_ImplOpenGL3_Init("#version 330 core");
 
-    //const clear_color = gui.imgui.Vec4.init(1.0, 0.0, 1.0, 1.0);
+    var running = true;
 
     while (running) {
-        window.update();
+        glfw.glfwSwapBuffers(window);
+        glfw.glfwPollEvents();
 
-        default_shader.setF32("time", @floatCast(g.glfw.glfwGetTime()));
-        g.gl.glClearColor(0.2, 0.5, 0.85, 1.0);
-        g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
-        g.gl.glClear(g.gl.GL_DEPTH_BUFFER_BIT);
-
-        vertex_buffer.bindArray();
-        index_buffer.bind();
-        offset_buffer.bind();
-
-        g.gl.glDrawElementsInstanced(
-            g.gl.GL_TRIANGLES,
-            @intCast(num_indices),
-            index_buffer.indexType(),
-            null,
-            @intCast(wiggle_coefs.len),
-        );
-
-        index_buffer.unbind();
-        vertex_buffer.unbindArray();
-        offset_buffer.unbind();
-
-        // GUI starts here
         gui.ImGui_ImplOpenGL3_NewFrame();
         gui.ImGui_ImplGlfw_NewFrame();
-        gui.imgui.NewFrame();
+        imgui.NewFrame();
+
         {
             // This should be all that's necessary to center the window,
             // unforunately imgui ignores these settings for the demo window, so
@@ -174,17 +130,17 @@ pub fn main() !void {
             const demo_window_y: f32 = 680.0;
             const demo_offset_x: f32 = 650.0;
             const demo_offset_y: f32 = 20.0;
-            const view = gui.imgui.GetMainViewport();
-            const im_io = gui.imgui.GetIO();
+            const view = imgui.GetMainViewport();
+            const im_io = imgui.GetIO();
 
             view.?.WorkPos.x -= demo_offset_x - ((im_io.DisplaySize.x - demo_window_x) / 2);
             view.?.WorkPos.y -= demo_offset_y - ((im_io.DisplaySize.y - demo_window_y) / 2);
 
-            gui.imgui.ShowDemoWindow();
+            imgui.ShowDemoWindow();
         }
 
         // Rendering
-        gui.imgui.Render();
+        imgui.Render();
         //const fb_size = window.getFramebufferSize();
         //zgl.viewport(0, 0, @intCast(fb_size.width), @intCast(fb_size.height));
         //zgl.clearColor(
@@ -194,9 +150,8 @@ pub fn main() !void {
         //    clear_color.w,
         //);
         //zgl.clear(zgl.COLOR_BUFFER_BIT);
-        gui.ImGui_ImplOpenGL3_RenderDrawData(gui.imgui.GetDrawData());
+        gui.ImGui_ImplOpenGL3_RenderDrawData(imgui.GetDrawData());
 
-
-        running = window.running();
+        running = glfw.glfwWindowShouldClose(window) == glfw.GLFW_FALSE;
     }
 }

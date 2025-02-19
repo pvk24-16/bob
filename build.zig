@@ -1,10 +1,13 @@
 const std = @import("std");
 
 fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
+    add_to.addIncludePath(.{ .cwd_relative = "opengl-abstraction/deps/include/" });
+    add_to.addCSourceFiles(.{ .files = &.{"opengl-abstraction/deps/src/glad.c"} });
+    add_to.addCSourceFiles(.{ .files = &.{"opengl-abstraction/deps/src/stb_image_fix.c"} });
     switch (os_tag) {
         .windows => {
-            add_to.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
-            add_to.addObjectFile(.{ .cwd_relative = "deps/lib/windows/glfw3.dll" });
+            add_to.addLibraryPath(.{ .cwd_relative = "opengl-abstraction/deps/lib/windows" });
+            add_to.addObjectFile(.{ .cwd_relative = "opengl-abstraction/deps/lib/windows/glfw3.dll" });
             add_to.linkSystemLibrary("opengl32");
             add_to.linkSystemLibrary("glfw3");
         },
@@ -24,6 +27,17 @@ fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+
+    const exe = b.addExecutable(.{
+        .name = "bob",
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    linkToGLFW(exe, target.result.os.tag);
+    exe.addIncludePath(b.path("api"));
+    exe.linkLibC();
 
     const zig_imgui_dep = b.dependency("Zig-ImGui", .{
         .target = target,
@@ -52,11 +66,6 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const lazy_xcode_dep = switch (target.result.os.tag.isDarwin()) {
-        true => b.lazyDependency("xcode_frameworks", .{ .target = target, .optimize = optimize }),
-        else => null,
-    };
-
     const imgui_opengl = createImguiOpenGLStaticLib(b, target, optimize, imgui_dep, zig_imgui_dep);
 
     const imgui_glfw = createImguiGLFWStaticLib(
@@ -65,38 +74,11 @@ pub fn build(b: *std.Build) void {
         optimize,
         imgui_dep,
         zig_imgui_dep,
-        lazy_xcode_dep,
     );
-
-    const exe = b.addExecutable(.{
-        .name = "bob",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
 
     exe.root_module.addImport("imgui", zig_imgui_dep.module("Zig-ImGui"));
     exe.linkLibrary(imgui_opengl);
     exe.linkLibrary(imgui_glfw);
-
-    linkToGLFW(exe, os_tag);
-
-    exe.linkLibC();
-
-    exe.addIncludePath(.{ .cwd_relative = "deps/include/" });
-    exe.addCSourceFiles(.{ .files = &.{"deps/src/glad.c"} });
-    exe.addCSourceFiles(.{ .files = &.{"deps/src/stb_image_fix.c"} });
-
-    const run_exe = b.addRunArtifact(exe);
-    const run_step = b.step("run", "Run the application");
-    switch (os_tag) {
-        .windows => b.installFile("deps/lib/windows/glfw3.dll", "bin/glfw3.dll"),
-        else => {},
-    }
-
-    run_step.dependOn(&run_exe.step);
-    exe.addIncludePath(b.path("api"));
-    exe.linkLibC();
 
     b.installArtifact(exe);
 }
@@ -145,7 +127,6 @@ fn createImguiGLFWStaticLib(
     optimize: std.builtin.OptimizeMode,
     imgui_dep: *std.Build.Dependency,
     ZigImGui_dep: *std.Build.Dependency,
-    lazy_xcode_dep: ?*std.Build.Dependency,
 ) *std.Build.Step.Compile {
     // compile the desired backend into a separate static library
     const imgui_glfw = b.addStaticLibrary(.{
@@ -169,16 +150,7 @@ fn createImguiGLFWStaticLib(
     // ensure the backend has access to the ImGui headers it expects
     imgui_glfw.addIncludePath(imgui_dep.path("."));
     imgui_glfw.addIncludePath(imgui_dep.path("backends/"));
-    imgui_glfw.addIncludePath(b.path("deps/include/"));
-
-    // For MacOS specifically, ensure we include system headers that zig
-    // doesn't by default, which the xcode_frameworks project helpfully
-    // provides.
-    if (lazy_xcode_dep) |xcode_dep| {
-        imgui_glfw.addSystemFrameworkPath(xcode_dep.path("Frameworks/"));
-        imgui_glfw.addSystemIncludePath(xcode_dep.path("include/"));
-        imgui_glfw.addLibraryPath(xcode_dep.path("lib/"));
-    }
+    imgui_glfw.addIncludePath(b.path("opengl-abstraction/deps/include/"));
 
     linkToGLFW(imgui_glfw, target.result.os.tag);
 
