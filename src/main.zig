@@ -1,17 +1,16 @@
 const std = @import("std");
 const g = @import("graphics/graphics.zig");
 
+const AudioConfig = @import("audio/Config.zig");
 const AudioCapture = @import("audio/capture.zig").AudioCapturer;
-const AudioAnalyzer = @import("audio/audio_analyzer.zig").AudioAnalyzer;
+const AudioSplixer = @import("audio/splix.zig").AudioSplixer;
+const FFT = @import("audio/fft.zig").FastFourierTransform;
 const RingBuffer = @import("audio/RingBuffer.zig").RingBuffer;
 
 const gl = g.gl;
 const glfw = g.glfw;
 
 const vec2 = struct { x: f32 = 0, y: f32 = 0 };
-
-const fft_size: comptime_int = 4096;
-const bin_size: comptime_int = fft_size / 2;
 
 fn resize(x: i32, y: i32, _: ?*anyopaque) void {
     gl.glViewport(0, 0, x, y);
@@ -25,40 +24,50 @@ fn keyCallback(key: i32, _: i32, action: i32, _: i32, userdata: ?*anyopaque) voi
     }
 }
 
+const fft_length = 1024;
+const bin_length = 512;
+
 pub fn main() !void {
+    // -- Allocator --
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
 
-    var test_data: [256]f32 = undefined;
-    var test_rand = std.rand.Random.DefaultPrng.init(42);
-    for (0..test_data.len) |i| {
-        test_data[i] = test_rand.random().floatNorm(f32);
-    }
-
+    // -- Process ID --
     var args = try std.process.argsWithAllocator(allocator);
     defer args.deinit();
     _ = args.skip();
     const pid_str = args.next() orelse @panic("No PID provided");
 
-    // --- Audio capture ---
-    var cap = try AudioCapture.init(.{
+    // --- Audio config ---
+    const config = AudioConfig{
         .process_id = pid_str,
-        .sample_rate = 96000,
-        .channel_count = 1,
         .window_time = 100,
-    }, allocator);
+    };
+
+    // --- Audio capture ---
+    var cap = try AudioCapture.init(config, allocator);
     defer cap.deinit(allocator);
 
     try cap.start();
     defer cap.stop() catch {};
 
+    // --- Audio splixing ---
+    var splix = try AudioSplixer.init(config.windowSize(), allocator);
+    defer splix.deinit(allocator);
+
     // --- Audio analysis ---
-    //var analyzer = AudioAnalyzer(fft_size).init();
-    //defer analyzer.deinit();
-    //
-    var fft = try @import("audio/fft.zig").FastFourierTransform.init(std.math.log2_int(usize, fft_size), 4, .blackman_harris, 0.8, allocator);
+    var fft = try FFT.init(
+        10,
+        0,
+        .rectangular,
+        1.0,
+        allocator,
+    );
     defer fft.deinit(allocator);
+
+    std.debug.assert(fft_length == fft.inputLength());
+    std.debug.assert(bin_length == fft.outputLength());
 
     // --- Window ---
     var running = true;
@@ -73,7 +82,7 @@ pub fn main() !void {
     var line_vbo: u32 = 0;
     gl.glGenBuffers(1, @ptrCast(&line_vbo));
     gl.glBindBuffer(gl.GL_ARRAY_BUFFER, line_vbo);
-    gl.glBufferData(gl.GL_ARRAY_BUFFER, (bin_size + 1) * @sizeOf(vec2) + 1, null, gl.GL_STREAM_DRAW);
+    gl.glBufferData(gl.GL_ARRAY_BUFFER, (bin_length + 1) * @sizeOf(vec2) + 1, null, gl.GL_STREAM_DRAW);
 
     var line_vao: u32 = 0;
     gl.glGenVertexArrays(1, @ptrCast(&line_vao));
@@ -93,23 +102,21 @@ pub fn main() !void {
     gl.glEnable(gl.GL_LINE_SMOOTH);
     gl.glLineWidth(1.25);
 
-    var line: [bin_size + 1]vec2 = undefined;
-    line[bin_size] = .{ .x = 1.0, .y = -0.5 };
-    for (0..bin_size) |i| {
-        const f: f32 = @floatFromInt(i);
-        //line[i].x = -1.0 + 2 * f / @as(f32, @floatFromInt(bin_size));
-        line[i].x = -1.0 + 2 * @log2(1 + f) / @log2(1 + @as(f32, @floatFromInt(bin_size)));
-        //line[i].x = -1.0 + 2 * @log2(1 + f / bin_size);
-        //const mel_scale = 1127 * @log(1 + f / 700.0);
-        //line[i].x = -1.0 + 2 * mel_scale / @as(f32, @floatFromInt(bin_size));
-        //line[i].y = -0.5;
+    var line: [bin_length + 1]vec2 = undefined;
+    line[bin_length] = .{ .x = 1.0, .y = -0.5 };
+    for (0..bin_length) |i| {
+        line[i].x = xScaling(i, bin_length, .mel);
     }
 
-    //var sample_ring = try RingBuffer(f32).init(2048, allocator);
-    //defer sample_ring.deinit();
+    //const out = std.io.getStdOut().writer();
+    //var buffer = std.io.bufferedWriter(out);
+    //var writer = buffer.writer();
 
-    //var real: [bin_size]f32 = undefined;
-    //var imaginary: [bin_size]f32 = undefined;
+    var timer = try std.time.Timer.start();
+    var render_median: u64 = 0;
+    var render_median_buf = [7]u64{ 0, 0, 0, 0, 0, 0, 0 };
+    var capture_median: u64 = 0;
+    var capture_median_buf = [7]u64{ 0, 0, 0, 0, 0, 0, 0 };
 
     // --- Main loop ---
     while (running) {
@@ -118,25 +125,25 @@ pub fn main() !void {
             running = false;
         }
 
+        timer.reset();
         const sample = cap.sample();
-        //sample_ring.write(@constCast(sample));
-        //analyzer.process(sample_ring.ring);
-        //analyzer.results(&real, &imaginary);
-        //
-        fft.write(@constCast(sample));
+        splix.mix(sample);
+        const center = splix.getCenter();
+        fft.write(center);
         const fft_result = fft.read();
+        capture_median = rollingMedian(capture_median_buf[0..], timer.lap());
+        // for (sample, 0..) |x, i| {
+        //     if (i >= 4) break;
+        //     try writer.print("{}\t", .{x});
+        // }
+        // try writer.print("\n", .{});
+        // try buffer.flush();
 
-        for (1..bin_size) |i| {
-            //line[i].y = @sqrt(real[i] * real[i] + imaginary[i] * imaginary[i]);
-            //
-            line[i].y = 8 * fft_result[i] / fft_size;
-
-            // std.debug.print("{} == {}\n", .{ @sqrt(real[i] * real[i] + imaginary[i] * imaginary[i]), fft_result[i] });
-
-            // line[i].y *= @floatFromInt(fft_size);
-            // line[i].y = -1.5 / (@sqrt(30 * line[i].y) + 1) + 1.5;
-            // line[i].y -= 0.5;
+        for (1..bin_length) |i| {
+            line[i].y = fft_result[i];
         }
+
+        timer.reset();
 
         gl.glBindBuffer(gl.GL_ARRAY_BUFFER, line_vbo);
         gl.glBufferSubData(gl.GL_ARRAY_BUFFER, 0, @sizeOf(vec2) * line.len, @ptrCast(line[0..]));
@@ -152,5 +159,35 @@ pub fn main() !void {
 
         gl.glBindVertexArray(0);
         shader.unbind();
+
+        render_median = rollingMedian(render_median_buf[0..], timer.lap());
     }
+
+    std.debug.print("avg capture time {} ns\n", .{capture_median});
+    std.debug.print("avg render time {} ns\n", .{render_median});
+}
+
+fn rollingMedian(buf: []u64, x: u64) u64 {
+    buf[1 + (buf.len >> 1)] = x;
+    std.mem.sort(u64, buf, {}, std.sort.asc(u64));
+
+    var sum: u64 = 0;
+
+    for (buf) |y| {
+        sum += y;
+    }
+
+    return sum / buf.len;
+}
+
+fn xScaling(i: usize, n: usize, scaling: enum { linear, log2a, log2b, mel }) f32 {
+    const i_f: f32 = @floatFromInt(i);
+    const n_f: f32 = @floatFromInt(n);
+
+    return switch (scaling) {
+        .linear => -1.0 + 2 * i_f / n_f,
+        .log2a => -1.0 + 2 * @log2(1 + i_f) / @log2(1 + n_f),
+        .log2b => -1.0 + 2 * @log2(1 + i_f / n_f),
+        .mel => -1.0 + 2 * (1127 * @log(1 + i_f / 700.0)) / n_f,
+    };
 }

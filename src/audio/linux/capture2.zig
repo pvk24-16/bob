@@ -1,5 +1,4 @@
 const std = @import("std");
-const 
 
 const LinuxImpl = struct {
     const pulse = @cImport({
@@ -290,10 +289,7 @@ const LinuxImpl = struct {
                 return Error.stream_init;
             };
 
-            var userdata = Stream{
-                .ok = false,
-                .mainloop = mainloop
-            };
+            var userdata = Stream{ .ok = false, .mainloop = mainloop };
 
             const dev: [*c]u8 = null;
             const flags = pulse.PA_STREAM_START_CORKED | pulse.PA_STREAM_ADJUST_LATENCY;

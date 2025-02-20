@@ -287,8 +287,9 @@ pub const FastFourierTransform = struct {
         fft_eval(self.scratch, .forward);
 
         // Exponential Moving Average (EMA) smoothing
+        const length: f32 = @floatFromInt(self.result.len);
         for (self.scratch[0 .. self.scratch.len >> 1], 0..) |z, i| {
-            self.result[i] = self.smoothing_factor * z.magnitude() + (1.0 - self.smoothing_factor) * self.result[i];
+            self.result[i] = self.smoothing_factor * z.magnitude() / length + (1.0 - self.smoothing_factor) * self.result[i];
         }
 
         return self.result;
@@ -301,6 +302,14 @@ pub const FastFourierTransform = struct {
         @memset(self.window, 0);
 
         self.cursor = 0;
+    }
+
+    pub fn inputLength(self: *FastFourierTransform) usize {
+        return self.window.len;
+    }
+
+    pub fn outputLength(self: *FastFourierTransform) usize {
+        return self.result.len;
     }
 
     fn initBitReversalLookupTable(capacity: usize, allocator: std.mem.Allocator) ![]u32 {

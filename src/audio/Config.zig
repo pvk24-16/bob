@@ -1,10 +1,10 @@
 const Config = @This();
 
-const Channels = enum { mono, stereo };
-const SampleRate = enum {};
+pub const _channel_count = 2;
+pub const _sample_rate = 44100; // Hz
 
 process_id: []const u8 = undefined,
-sample_rate: u32 = 44100, // kHz
+sample_rate: u32 = 44100, // Hz
 channel_count: u32 = 2,
 window_time: u32 = 10, // ms
 

@@ -31,12 +31,15 @@ pub const RingBuffer = struct {
 
     /// Writes contents of buffer to the ring buffer, overwriting old content on overflow.
     pub fn send(self: *RingBuffer, buffer: []const f32) void {
-        // Handle case where there are no items.
+        //self.debug("pre-send", buffer.len);
+        //defer self.debug("post-send", buffer.len);
+
+        // Handle case where there are no items
         if (buffer.len == 0) {
             return;
         }
 
-        // Handle case where every item is replaced.
+        // Handle case where every item is replaced
         if (self.capacity() <= buffer.len) {
             @memcpy(self.ring[0..self.capacity()], buffer[buffer.len - self.capacity() ..]);
 
@@ -48,7 +51,7 @@ pub const RingBuffer = struct {
 
         var next_tail = self.tail + buffer.len;
 
-        // Handle case where tail wraps around.
+        // Handle case where tail wraps around
         if (next_tail >= self.ring.len) {
             next_tail -= self.ring.len; // Wrap around
 
@@ -57,7 +60,7 @@ pub const RingBuffer = struct {
             @memcpy(self.ring[self.tail..], buffer[0..remainder]);
             @memcpy(self.ring[0..next_tail], buffer[remainder..]);
 
-            self.head = @max(self.head, next_tail + 1); // Mod not required because next_tail < self.ring.len - 1
+            self.head = if (self.tail < self.head and next_tail <= self.head) next_tail + 1 else @max(self.head, next_tail + 1); // @max(self.head, next_tail + 1); // Mod not required because next_tail < self.ring.len - 1
             self.tail = next_tail;
 
             return;
@@ -72,6 +75,10 @@ pub const RingBuffer = struct {
 
     /// Writes contents of the ring buffer to the scratch buffer, returning the contents.
     pub fn receive(self: *RingBuffer) []const f32 {
+        //self.debug("pre-receive", 0);
+        //defer self.debug("post-receive", 0);
+
+        // Handle case where there are no items
         if (self.head == self.tail) {
             return self.buffer[0..0];
         }
@@ -81,7 +88,7 @@ pub const RingBuffer = struct {
 
             @memcpy(self.buffer[0..length], self.ring[self.head..self.tail]);
 
-            self.tail = self.head;
+            self.head = self.tail;
 
             return self.buffer[0..length];
         }
@@ -92,7 +99,7 @@ pub const RingBuffer = struct {
         @memcpy(self.buffer[0..remainder], self.ring[self.head..]);
         @memcpy(self.buffer[remainder..length], self.ring[0..self.tail]);
 
-        self.tail = self.head;
+        self.head = self.tail;
 
         return self.buffer[0..length];
     }
@@ -114,6 +121,16 @@ pub const RingBuffer = struct {
 
     pub fn wrap(self: *RingBuffer, i: usize) usize {
         return @mod(i, self.ring.len);
+    }
+
+    fn debug(self: *RingBuffer, namespace: []const u8, sent: usize) void {
+        std.debug.print("|{s}\t|{}\t|{}\t|{}\t|{}\t|\n", .{
+            namespace,
+            self.head,
+            self.tail,
+            if (self.head <= self.tail) self.tail - self.head else self.ring.len + self.tail - self.head,
+            sent,
+        });
     }
 };
 
