@@ -5,6 +5,7 @@ const imgui = @import("imgui");
 const gui = @import("graphics/gui.zig");
 const glfw = gui.glfw;
 const gl = gui.gl;
+const Context = @import("Context.zig");
 
 const os_tag = @import("builtin").os.tag;
 
@@ -25,18 +26,23 @@ pub fn main() !void {
         std.process.exit(1);
     };
 
+    var context = Context.init(gpa.allocator());
+    defer context.deinit();
+
     var client = Client.load(path) catch |e| {
         try stderr.print("error: failed to load '{s}': {s}\n", .{ path, @errorName(e) });
         std.process.exit(1);
     };
     defer client.unload();
 
-    rt_api.fill(null, client.api.api);
+    rt_api.fill(@ptrCast(&context), client.api.api);
     const info = &client.api.get_info()[0];
     try stdout.print("Name: {s}\n", .{info.name});
     try stdout.print("Description: {s}\n", .{info.description});
 
-    mainGui();
+    client.create();
+
+    mainGui(&context, &client);
 }
 
 /// Print error and code on GLFW errors.
@@ -44,7 +50,7 @@ fn errorCallback(err: c_int, msg: [*c]const u8) callconv(.C) void {
     std.log.err("Error code: {} message: {s}", .{ err, msg });
 }
 
-fn mainGui() void {
+fn mainGui(context: *Context, client: *Client) void {
     _ = glfw.glfwSetErrorCallback(errorCallback);
     if (glfw.glfwInit() == glfw.GLFW_FALSE) {
         std.log.err("Failed to init GLFW", .{});
@@ -136,7 +142,8 @@ fn mainGui() void {
             view.?.WorkPos.x -= demo_offset_x - ((im_io.DisplaySize.x - demo_window_x) / 2);
             view.?.WorkPos.y -= demo_offset_y - ((im_io.DisplaySize.y - demo_window_y) / 2);
 
-            imgui.ShowDemoWindow();
+            context.gui_state.update();
+            client.api.update(client.ctx);
         }
 
         // Rendering
