@@ -128,13 +128,13 @@ fn mainGui(context: *Context, client: *Client) void {
         const info = client.api.get_info()[0];
         _ = imgui.Begin(info.name);
         context.gui_state.update();
-        client.api.update(client.ctx);
         imgui.End();
 
         imgui.EndFrame();
 
         imgui.Render();
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
+        client.api.update(client.ctx);
         gui.ImGui_ImplOpenGL3_RenderDrawData(imgui.GetDrawData());
 
         const saved_context = glfw.glfwGetCurrentContext();
