@@ -22,7 +22,12 @@
     // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
-    .dependencies = .{},
+    .dependencies = .{
+        .@"Zig-ImGui" = .{
+            .url = "git+https://gitlab.com/joshua.software.dev/Zig-ImGui.git#808e1f141d8d85d826cf2796781ad74ffc65b08d",
+            .hash = "122023abc2b6cd8d9967ab3489750227e520d555e1844312e5638df577435310198e",
+        },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",
