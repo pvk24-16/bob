@@ -1,5 +1,5 @@
 CFLAGS=-I../../api
-LDFLAGS=-shared -fPIC
+LDFLAGS=-shared -fPIC -lGL
 
 ifeq ($(shell uname -s | grep -o _NT),_NT)
 OUT=simple.dll

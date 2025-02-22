@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <bob.h>
 
+#include <GL/gl.h>
+
 #ifdef WIN32
 #define EXPORT __attribute__((dllexport))
 #else
@@ -34,10 +36,8 @@ EXPORT void *create(void)
 EXPORT void update(void *userdata)
 {
   (void) userdata;
-  if (api.ui_element_is_updated(api.context, slider)) {
-    float value = api.get_ui_float_value(api.context, slider);
-    printf("visualizer: floatiness is %f\n", value);
-  }
+  float value = api.get_ui_float_value(api.context, slider);
+  glClearColor(value, value / 2.0f, 1.0f-value, 1.0f);
   if (api.ui_element_is_updated(api.context, checkbox)) {
     const char *value = api.get_ui_bool_value(api.context, checkbox) ? "enabled" : "disabled";
     printf("visualizer: booleans are %s\n", value);
