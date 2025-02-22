@@ -91,7 +91,12 @@ fn mainGui(context: *Context, client: *Client) void {
         im_io.IniFilename = null;
         im_io.ConfigFlags = imgui.ConfigFlags.with(
             im_io.ConfigFlags,
-            .{ .NavEnableKeyboard = true, .NavEnableGamepad = true },
+            .{
+                .NavEnableKeyboard = true,
+                .NavEnableGamepad = true,
+                .DockingEnable = true,
+                .ViewportsEnable = true,
+            },
         );
     }
 
@@ -114,51 +119,30 @@ fn mainGui(context: *Context, client: *Client) void {
     var running = true;
 
     while (running) {
-        glfw.glfwSwapBuffers(window);
         glfw.glfwPollEvents();
 
         gui.ImGui_ImplOpenGL3_NewFrame();
         gui.ImGui_ImplGlfw_NewFrame();
         imgui.NewFrame();
 
-        {
-            // This should be all that's necessary to center the window,
-            // unforunately imgui ignores these settings for the demo window, so
-            // something more jank is in order
-            //
-            // zimgui.SetNextWindowPos(zimgui.Vec2.init(
-            //     ((@as(f32, @floatFromInt(window_size.width)) - 550) / 2),
-            //     ((@as(f32, @floatFromInt(window_size.height)) - 680) / 2),
-            // ));
+        const info = client.api.get_info()[0];
+        _ = imgui.Begin(info.name);
+        context.gui_state.update();
+        client.api.update(client.ctx);
+        imgui.End();
 
-            // Behold: Jank.
-            const demo_window_x: f32 = 550.0;
-            const demo_window_y: f32 = 680.0;
-            const demo_offset_x: f32 = 650.0;
-            const demo_offset_y: f32 = 20.0;
-            const view = imgui.GetMainViewport();
-            const im_io = imgui.GetIO();
+        imgui.EndFrame();
 
-            view.?.WorkPos.x -= demo_offset_x - ((im_io.DisplaySize.x - demo_window_x) / 2);
-            view.?.WorkPos.y -= demo_offset_y - ((im_io.DisplaySize.y - demo_window_y) / 2);
-
-            context.gui_state.update();
-            client.api.update(client.ctx);
-        }
-
-        // Rendering
         imgui.Render();
-        //const fb_size = window.getFramebufferSize();
-        //zgl.viewport(0, 0, @intCast(fb_size.width), @intCast(fb_size.height));
-        //zgl.clearColor(
-        //    clear_color.x * clear_color.w,
-        //    clear_color.y * clear_color.w,
-        //    clear_color.z * clear_color.w,
-        //    clear_color.w,
-        //);
-        //zgl.clear(zgl.COLOR_BUFFER_BIT);
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         gui.ImGui_ImplOpenGL3_RenderDrawData(imgui.GetDrawData());
 
+        const saved_context = glfw.glfwGetCurrentContext();
+        imgui.UpdatePlatformWindows();
+        imgui.RenderPlatformWindowsDefault();
+        glfw.glfwMakeContextCurrent(saved_context);
+
         running = glfw.glfwWindowShouldClose(window) == glfw.GLFW_FALSE;
+        glfw.glfwSwapBuffers(window);
     }
 }
