@@ -104,6 +104,11 @@ struct bob_api {
   int (*register_checkbox)(void *context, const char *name, int default_value);
 
   /**
+   * Register a color picker.
+   */
+  int (*register_colorpicker)(void *context, const char *name, float *default_color);
+
+  /**
    * Check if a UI element is updated since last read.
    */
   int (*ui_element_is_updated)(void *context, int handle);
@@ -117,6 +122,11 @@ struct bob_api {
    * Get boolean value from a UI element.
    */
   int (*get_ui_bool_value)(void *context, int handle);
+
+  /**
+   * Get RGB values from a colorpicker.
+   */
+  void (*get_ui_colorpicker_value)(void *context, int handle, float *color);
 };
 
 /********************************************

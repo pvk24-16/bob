@@ -27,6 +27,8 @@ const api_fn_names: []const []const u8 = &.{
     "ui_element_is_updated",
     "get_ui_float_value",
     "get_ui_bool_value",
+    "register_colorpicker",
+    "get_ui_colorpicker_value",
 };
 
 comptime {
@@ -88,6 +90,24 @@ pub fn register_checkbox(context: ?*anyopaque, name: [*c]const u8, default_value
     return result catch -1;
 }
 
+pub fn register_colorpicker(context: ?*anyopaque, name: [*c]const u8, default_color: [*c]f32) callconv(.C) c_int {
+    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    var element: GuiState.GuiElement = .{
+        .name = name,
+        .data = .{ .colorpicker = .{
+            .rgb = undefined,
+        } },
+    };
+
+    var default_slice: []f32 = undefined;
+    default_slice.ptr = @ptrCast(default_color.?);
+    default_slice.len = 3;
+    @memcpy(&element.data.colorpicker.rgb, default_slice);
+
+    const result = context_.gui_state.registerElement(element);
+    return result catch -1;
+}
+
 pub fn ui_element_is_updated(context: ?*anyopaque, handle: c_int) callconv(.C) c_int {
     const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
     const id: GuiState.InternalIndexType = @intCast(handle);
@@ -119,6 +139,24 @@ pub fn get_ui_bool_value(context: ?*anyopaque, handle: c_int) callconv(.C) c_int
     };
     elem.update = false;
     return @intFromBool(value);
+}
+
+pub fn get_ui_colorpicker_value(context: ?*anyopaque, handle: c_int, color: [*c]f32) callconv(.C) void {
+    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const id: GuiState.InternalIndexType = @intCast(handle);
+    const elems = context_.gui_state.getElements();
+    const elem = &elems[id];
+    const value = switch (elem.data) {
+        .colorpicker => |b| &b.rgb,
+        else => return, // TODO: some error code?
+    };
+
+    var color_slice: []f32 = undefined;
+    color_slice.ptr = @ptrCast(color.?);
+    color_slice.len = 3;
+    @memcpy(color_slice, value);
+
+    elem.update = false;
 }
 
 pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(c.api)) void {

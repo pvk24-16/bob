@@ -86,6 +86,7 @@ pub fn build(b: *std.Build) !void {
     // Examples
     try helper.buildExample(b, target, optimize, "simple", &.{"examples/simple/simple.c"});
     try helper.buildExample(b, target, optimize, "checkboxes", &.{"examples/checkboxes/checkboxes.c"});
+    try helper.buildExample(b, target, optimize, "colorpicker", &.{"examples/colorpicker/colorpicker.c"});
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");

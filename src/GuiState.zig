@@ -19,12 +19,17 @@ pub const Checkbox = struct {
     default: bool,
 };
 
+pub const ColorPicker = struct {
+    rgb: [3]f32,
+};
+
 pub const GuiElement = struct {
     name: [*c]const u8,
     update: bool = false,
     data: union(enum) {
         float_slider: Slider(f32),
         checkbox: Checkbox,
+        colorpicker: ColorPicker,
     },
 };
 
@@ -57,6 +62,7 @@ pub fn update(self: *GuiState) void {
         elem.update = switch (elem.data) {
             .float_slider => |*e| imgui.SliderFloat(elem.name, &e.value, e.min, e.max),
             .checkbox => |*e| imgui.Checkbox(elem.name, &e.value),
+            .colorpicker => |*e| imgui.ColorPicker3(elem.name, &e.rgb),
         };
     }
 }
