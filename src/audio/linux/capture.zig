@@ -47,10 +47,7 @@ pub const LinuxImpl = struct {
         }
         log.info("context connected...", .{});
 
-        const client_info = try ClientInfo.init(config, mainloop, context);
-        log.info("client info initialized...", .{});
-
-        const sink_input_info = try SinkInputInfo.init(&client_info, mainloop, context);
+        const sink_input_info = try SinkInputInfo.init(config, mainloop, context);
         log.info("sink input info initialized...", .{});
 
         const stream = try Stream.init(config, &sink_input_info, mainloop, context);
@@ -191,63 +188,18 @@ pub const LinuxImpl = struct {
         }
     };
 
-    const ClientInfo = struct {
-        ok: bool,
-        client_info: pulse.pa_client_info,
-        process_id: []const u8,
-        mainloop: *pulse.pa_threaded_mainloop,
-
-        pub fn init(config: Config, mainloop: *pulse.pa_threaded_mainloop, context: *pulse.pa_context) !pulse.pa_client_info {
-            var userdata = ClientInfo{
-                .ok = false,
-                .client_info = undefined,
-                .process_id = config.process_id,
-                .mainloop = mainloop,
-            };
-
-            pulse.pa_threaded_mainloop_lock(mainloop);
-            _ = pulse.pa_context_get_client_info_list(context, callback, &userdata);
-            pulse.pa_threaded_mainloop_wait(mainloop);
-            pulse.pa_threaded_mainloop_unlock(mainloop);
-
-            if (!userdata.ok) {
-                return error.client_info_init;
-            }
-
-            return userdata.client_info;
-        }
-
-        fn callback(_: ?*pulse.pa_context, cinfo: ?*const pulse.pa_client_info, eol: c_int, userdata: ?*anyopaque) callconv(.C) void {
-            var data: *ClientInfo = @ptrCast(@alignCast(userdata.?));
-
-            if (eol > 0) {
-                pulse.pa_threaded_mainloop_signal(data.mainloop, 0);
-                return;
-            }
-
-            const info = cinfo orelse return;
-            const ptr = pulse.pa_proplist_gets(info.proplist, pulse.PA_PROP_APPLICATION_PROCESS_ID) orelse return;
-            const len = std.mem.indexOfSentinel(u8, 0, ptr);
-
-            if (std.mem.eql(u8, data.process_id, ptr[0..len])) {
-                data.ok = true;
-                data.client_info = info.*;
-            }
-        }
-    };
-
     const SinkInputInfo = struct {
         ok: bool,
         sink_input_info: pulse.pa_sink_input_info,
-        client_id: u32,
         mainloop: *pulse.pa_threaded_mainloop,
+        process_id: []const u8,
 
-        pub fn init(client_info: *const pulse.pa_client_info, mainloop: *pulse.pa_threaded_mainloop, context: *pulse.pa_context) !pulse.pa_sink_input_info {
+        pub fn init(config: Config, mainloop: *pulse.pa_threaded_mainloop, context: *pulse.pa_context) !pulse.pa_sink_input_info {
             var userdata = SinkInputInfo{
                 .ok = false,
                 .sink_input_info = undefined,
-                .client_id = client_info.index,
                 .mainloop = mainloop,
+                .process_id = config.process_id,
             };
 
             pulse.pa_threaded_mainloop_lock(mainloop);
@@ -271,8 +223,10 @@ pub const LinuxImpl = struct {
             }
 
             const info = cinfo orelse return;
+            const ptr = pulse.pa_proplist_gets(info.proplist, pulse.PA_PROP_APPLICATION_PROCESS_ID) orelse return;
+            const len = std.mem.indexOfSentinel(u8, 0, ptr);
 
-            if (data.client_id == info.client) {
+            if (std.mem.eql(u8, data.process_id, ptr[0..len])) {
                 data.ok = true;
                 data.sink_input_info = info.*;
             }
