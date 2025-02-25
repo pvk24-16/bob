@@ -18,7 +18,6 @@ const ClientApi = struct {
         var self: ClientApi = undefined;
         inline for (std.meta.fields(ClientApi)) |field| {
             const ptr = lib.lookup(field.type, field.name) orelse {
-                // TODO: logging
                 std.log.err("Missing symbol '" ++ field.name ++ "'\n", .{});
                 return error.MissingSymbol;
             };
@@ -46,7 +45,14 @@ pub fn create(self: *Client) void {
     self.ctx = self.api.create();
 }
 
+pub fn update(self: *const Client) void {
+    self.api.update(self.ctx);
+}
+
+pub fn destroy(self: *const Client) void {
+    self.api.destroy(self.ctx);
+}
+
 pub fn unload(client: *Client) void {
-    client.api.destroy(client.ctx);
     client.lib.close();
 }

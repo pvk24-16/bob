@@ -1,4 +1,5 @@
 const std = @import("std");
+const helper = @import("examples/build_helper.zig");
 
 fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
     add_to.addIncludePath(.{ .cwd_relative = "opengl-abstraction/deps/include/" });
@@ -24,7 +25,7 @@ fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
     }
 }
 
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
@@ -81,6 +82,11 @@ pub fn build(b: *std.Build) void {
     exe.linkLibrary(imgui_glfw);
 
     b.installArtifact(exe);
+
+    // Examples
+    try helper.buildExample(b, target, optimize, "simple", &.{"examples/simple/simple.c"});
+    try helper.buildExample(b, target, optimize, "checkboxes", &.{"examples/checkboxes/checkboxes.c"});
+    try helper.buildExample(b, target, optimize, "colorpicker", &.{"examples/colorpicker/colorpicker.c"});
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
