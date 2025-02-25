@@ -123,7 +123,7 @@ pub const LinuxImpl = struct {
         }
 
         if (buf) |okbuf| {
-            const len = bytes / (@sizeOf(f32) * Config._channel_count);
+            const len = bytes / @sizeOf(f32);
             self.mutex.lock();
             self.ring_buffer.send(okbuf[0..len]);
             self.mutex.unlock();
@@ -137,6 +137,7 @@ pub const LinuxImpl = struct {
             //         a[i * 4 + 3],
             //     });
             // }
+            _ = pulse.pa_stream_drop(stream);
         } else if (bytes != 0) {
             _ = pulse.pa_stream_drop(stream);
         }
@@ -290,8 +291,8 @@ pub const LinuxImpl = struct {
             defer pulse.pa_proplist_free(proplist);
 
             const sample_spec = pulse.pa_sample_spec{
-                .channels = Config._channel_count,
-                .rate = Config._sample_rate,
+                .channels = Config.channel_count,
+                .rate = Config.sample_rate,
                 .format = pulse.PA_SAMPLE_FLOAT32NE,
             };
 

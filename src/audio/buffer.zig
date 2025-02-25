@@ -31,8 +31,8 @@ pub const RingBuffer = struct {
 
     /// Writes contents of buffer to the ring buffer, overwriting old content on overflow.
     pub fn send(self: *RingBuffer, buffer: []const f32) void {
-        //self.debug("pre-send", buffer.len);
-        //defer self.debug("post-send", buffer.len);
+        // self.debug("pre-send", buffer.len);
+        // defer self.debug("post-send", buffer.len);
 
         // Handle case where there are no items
         if (buffer.len == 0) {
@@ -75,8 +75,8 @@ pub const RingBuffer = struct {
 
     /// Writes contents of the ring buffer to the scratch buffer, returning the contents.
     pub fn receive(self: *RingBuffer) []const f32 {
-        //self.debug("pre-receive", 0);
-        //defer self.debug("post-receive", 0);
+        // self.debug("pre-receive", 0);
+        // defer self.debug("post-receive", 0);
 
         // Handle case where there are no items
         if (self.head == self.tail) {

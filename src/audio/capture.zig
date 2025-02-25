@@ -6,7 +6,7 @@ const Allocator = std.mem.Allocator;
 
 /// The audio format is ieee 32-bit float.
 pub const AudioCapturer = struct {
-    const Impl = switch (builtin.os.tag) {
+    pub const Impl = switch (builtin.os.tag) {
         .linux => @import("linux/capture.zig").LinuxImpl,
         .windows => @import("windows/capture.zig").WindowsImpl,
         else => @compileError("Unsupported operating system " ++ @tagName(builtin.os.tag)),

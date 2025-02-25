@@ -5,7 +5,6 @@ const AudioConfig = @import("audio/Config.zig");
 const AudioCapture = @import("audio/capture.zig").AudioCapturer;
 const AudioSplixer = @import("audio/splix.zig").AudioSplixer;
 const FFT = @import("audio/fft.zig").FastFourierTransform;
-const RingBuffer = @import("audio/RingBuffer.zig").RingBuffer;
 
 const gl = g.gl;
 const glfw = g.glfw;
@@ -60,8 +59,8 @@ pub fn main() !void {
     var fft = try FFT.init(
         10,
         0,
-        .rectangular,
-        1.0,
+        .blackman_harris,
+        0.8,
         allocator,
     );
     defer fft.deinit(allocator);
@@ -105,7 +104,7 @@ pub fn main() !void {
     var line: [bin_length + 1]vec2 = undefined;
     line[bin_length] = .{ .x = 1.0, .y = -0.5 };
     for (0..bin_length) |i| {
-        line[i].x = xScaling(i, bin_length, .mel);
+        line[i].x = xScaling(i, bin_length, .linear);
     }
 
     //const out = std.io.getStdOut().writer();
@@ -163,8 +162,8 @@ pub fn main() !void {
         render_median = rollingMedian(render_median_buf[0..], timer.lap());
     }
 
-    std.debug.print("avg capture time {} ns\n", .{capture_median});
-    std.debug.print("avg render time {} ns\n", .{render_median});
+    // std.debug.print("avg capture time {} ms\n", .{capture_median / 1000000});
+    // std.debug.print("avg render time {} ms\n", .{render_median / 1000000});
 }
 
 fn rollingMedian(buf: []u64, x: u64) u64 {
