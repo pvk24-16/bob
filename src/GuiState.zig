@@ -60,3 +60,7 @@ pub fn update(self: *GuiState) void {
         };
     }
 }
+
+pub fn clear(self: *GuiState) void {
+    self.elements.clearRetainingCapacity();
+}

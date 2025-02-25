@@ -2,7 +2,13 @@
 #include <stdio.h>
 #include <bob.h>
 
+#if defined(_WIN32)
+#include <gl/gl.h>
+#elif defined(__APPLE__)
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
 
 #ifdef WIN32
 #define EXPORT __attribute__((dllexport))
