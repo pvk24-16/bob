@@ -15,13 +15,18 @@ pub fn buildExample(
 
     lib.linkLibC();
 
-    const opengl = switch (target.result.os.tag) {
-        .linux => "GL",
-        .windows => "opengl32",
-        .macos => "OpenGL",
+    switch (target.result.os.tag) {
+        .linux => {
+            lib.linkSystemLibrary("GL");
+        },
+        .windows => {
+            lib.linkSystemLibrary("opengl32");
+        },
+        .macos => {
+            lib.linkFramework("OpenGL");
+        },
         else => std.debug.panic("unsupported platform", .{}),
-    };
-    lib.linkSystemLibrary(opengl);
+    }
 
     for (source) |file| {
         lib.addCSourceFile(.{ .file = b.path(file) });
