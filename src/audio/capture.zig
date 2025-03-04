@@ -9,6 +9,7 @@ pub const AudioCapturer = struct {
     pub const Impl = switch (builtin.os.tag) {
         .linux => @import("linux/capture.zig").LinuxImpl,
         .windows => @import("windows/capture.zig").WindowsImpl,
+        .mac => @import("noise/noise.zig").RandomNoiseImpl,
         else => @compileError("Unsupported operating system " ++ @tagName(builtin.os.tag)),
     };
 
