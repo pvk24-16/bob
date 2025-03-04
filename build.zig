@@ -52,6 +52,11 @@ pub fn build(b: *std.Build) !void {
             exe.linkSystemLibrary("GL");
             exe.linkSystemLibrary("pulse");
         },
+        .macos => {
+            exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
+            exe.linkFramework("OpenGL");
+            exe.linkSystemLibrary("glfw");
+        },
         else => @panic("Unsupported platform"),
     }
 
