@@ -69,11 +69,11 @@ pub fn main() !void {
     while (running) {
         glfw.glfwPollEvents();
 
+        gl.glClearColor(0.2, 0.2, 0.2, 1.0);
+        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
+
         if (context.client) |client| {
             client.update();
-        } else {
-            gl.glClearColor(0.2, 0.2, 0.2, 1.0);
-            gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         }
 
         ui.beginFrame();
