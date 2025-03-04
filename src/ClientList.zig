@@ -5,7 +5,8 @@ const library: struct {
     prefix: []const u8,
     suffix: []const u8,
 } = switch (builtin.os.tag) {
-    .linux, .macos => .{ .prefix = "lib", .suffix = ".so" },
+    .linux => .{ .prefix = "lib", .suffix = ".so" },
+    .macos => .{ .prefix = "lib", .suffix = ".dylib" },
     .windows => .{ .prefix = "", .suffix = ".dll" },
     else => @compileError("unsupported platform"),
 };
