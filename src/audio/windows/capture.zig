@@ -36,7 +36,6 @@ pub const WindowsImpl = struct {
 
     thread: ?std.Thread,
     mutex: std.Thread.Mutex,
-    channel_count: u32,
     ring_buffer: RingBuffer,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) !WindowsImpl {
@@ -46,7 +45,10 @@ pub const WindowsImpl = struct {
             return Error.com_init;
         }
 
-        errdefer win.CoUninitialize();
+        errdefer {
+            win.CoUninitialize();
+            log.info("COM deinitialized due to previous error...", .{});
+        }
 
         log.info("COM initialized...", .{});
 
@@ -116,11 +118,11 @@ pub const WindowsImpl = struct {
 
         const wave_format = win.WAVEFORMATEX{
             .wFormatTag = win.WAVE_FORMAT_IEEE_FLOAT,
-            .nChannels = @intCast(config.channel_count),
-            .nSamplesPerSec = @intCast(config.sample_rate),
+            .nChannels = @intCast(Config.channel_count),
+            .nSamplesPerSec = @intCast(Config.sample_rate),
             .wBitsPerSample = @bitSizeOf(f32),
-            .nBlockAlign = @intCast(@sizeOf(f32) * config.channel_count),
-            .nAvgBytesPerSec = @intCast(@sizeOf(f32) * config.sample_rate * config.channel_count),
+            .nBlockAlign = @intCast(@sizeOf(f32) * Config.channel_count),
+            .nAvgBytesPerSec = @intCast(@sizeOf(f32) * Config.sample_rate * Config.channel_count),
         };
 
         const init_fn = audio_client.lpVtbl.*.Initialize.?;
@@ -192,7 +194,6 @@ pub const WindowsImpl = struct {
             .sample_ready_event = sample_ready_event,
             .mutex = .{},
             .thread = undefined,
-            .channel_count = config.channel_count,
             .ring_buffer = ring_buffer,
         };
     }
@@ -214,7 +215,7 @@ pub const WindowsImpl = struct {
 
         win.CoUninitialize();
 
-        log.info("com deinitialized...", .{});
+        log.info("COM deinitialized...", .{});
 
         self.* = undefined;
     }
@@ -279,7 +280,7 @@ pub const WindowsImpl = struct {
             ) == win.S_OK) {
                 defer _ = release_fn(self.capture_client, frames);
 
-                const data_size = frames * self.channel_count;
+                const data_size = frames * Config.channel_count;
 
                 self.mutex.lock();
                 self.ring_buffer.send(p_data[0..data_size]);
