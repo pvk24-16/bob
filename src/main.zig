@@ -62,17 +62,18 @@ pub fn main() !void {
     defer ui.deinit();
 
     var current_name: ?[*:0]const u8 = null;
-    var pid_str = [_]u8 {0} ** 32;
+    var pid_str = [_]u8{0} ** 32;
 
     var running = true;
 
     while (running) {
         glfw.glfwPollEvents();
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
-        gl.glClearColor(0.0, 0.0, 0.0, 1.0);
 
         if (context.client) |client| {
             client.update();
+        } else {
+            gl.glClearColor(0.2, 0.2, 0.2, 1.0);
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         }
 
         ui.beginFrame();
@@ -87,8 +88,8 @@ pub fn main() !void {
             imgui.SameLine();
             if (imgui.Button("Connect")) {
                 const pid_str_c: [*c]const u8 = &pid_str;
-                context.capturer = AudioCapturer.init(.{.process_id = std.mem.span(pid_str_c)}, gpa.allocator()) catch |e| blk: {
-                    std.log.err("unable to connect to process {s}: {s}", .{pid_str, @errorName(e)});
+                context.capturer = AudioCapturer.init(.{ .process_id = std.mem.span(pid_str_c) }, gpa.allocator()) catch |e| blk: {
+                    std.log.err("unable to connect to process {s}: {s}", .{ pid_str, @errorName(e) });
                     break :blk null;
                 };
             }

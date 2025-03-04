@@ -44,6 +44,7 @@ EXPORT void update(void *userdata)
   (void) userdata;
   float value = api.get_ui_float_value(api.context, slider);
   glClearColor(value, value / 2.0f, 1.0f-value, 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
   if (api.ui_element_is_updated(api.context, checkbox)) {
     const char *value = api.get_ui_bool_value(api.context, checkbox) ? "enabled" : "disabled";
     printf("visualizer: booleans are %s\n", value);
