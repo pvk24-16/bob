@@ -4,7 +4,7 @@ pub const channel_count = 2;
 pub const sample_rate = 44100; // Hz
 
 process_id: []const u8 = undefined,
-window_time: u32 = 10, // ms
+window_time: u32 = 20, // ms
 
 pub fn bitDepth() comptime_int {
     return @bitSizeOf(f32);
