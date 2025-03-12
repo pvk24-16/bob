@@ -39,6 +39,7 @@ EXPORT void update(void *userdata)
   if (api.ui_element_is_updated(api.context, handle))
     api.get_ui_colorpicker_value(api.context, handle, rgb);
   glClearColor(rgb[0], rgb[1], rgb[2], 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
 }
 
 EXPORT void destroy(void *userdata)
