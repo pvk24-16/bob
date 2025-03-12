@@ -2,21 +2,15 @@
 #include <stdio.h>
 #include <bob.h>
 
-// #if defined(_WIN32)
-// #include <gl/gl.h>
-// #elif defined(__APPLE__)
-// #include <OpenGL/gl.h>
-// #else
-// #include <GL/gl.h>
-// #endif
-
 #include "glad/glad.h"
 
-// #ifdef WIN32
-// #define EXPORT __attribute__((dllexport))
-// #else
+#define ABS(x) ((x) > 0.f ? (x) : -(x))
+
+#ifdef WIN32
+#define EXPORT __attribute__((dllexport))
+#else
 #define EXPORT
-// #endif
+#endif
 
 static const char *vertex_source =
   "#version 330 core\n"
@@ -39,6 +33,8 @@ static const char *fragment_source =
 
 EXPORT struct bob_api api;
 
+static int scale_handle;
+static float volume = 0;
 static GLuint vbo;
 static GLuint vao;
 static GLuint program;
@@ -96,17 +92,21 @@ EXPORT void *create(void)
 
   glUseProgram(program);
 
+  scale_handle = api.register_float_slider(api.context, "Scale factor", 0.25f, 10.0f, 1.0f);
+
   return NULL;
 }
 
 static float get_volume(const struct bob_float_buffer *buf)
 {
-  float acc = 0.f;
+  float max = 0.f;
   for (size_t i = 0; i < buf->size; ++i) {
     const float v = buf->ptr[i];
-    acc += v * v;
+    const float v2 = v * v;
+    if (v2 > max)
+      max = v2;
   }
-  return acc / (float) buf->size;
+  return max;
 }
 
 EXPORT void update(void *userdata)
@@ -118,7 +118,12 @@ EXPORT void update(void *userdata)
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
   const struct bob_float_buffer buf = api.get_time_data(api.context, BOB_MONO_CHANNEL);
-  const float volume = 40*get_volume(&buf);
+  const float scale = api.get_ui_float_value(api.context, scale_handle);
+  const float actual = (scale * get_volume(&buf) * 2.f) - 1.f;
+  const float speed = 0.05f;
+  const float threshold = 0.001f;
+  const float diff = actual - volume;
+  volume = ABS(diff) > threshold ? volume + diff * speed : actual;
 
   vertex_data[1] = volume;
   vertex_data[9] = volume;
