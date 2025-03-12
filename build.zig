@@ -1,14 +1,15 @@
 const std = @import("std");
 const helper = @import("examples/build_helper.zig");
+const zigHelper = @import("examples/zig_build_helper.zig");
 
 fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
-    add_to.addIncludePath(.{ .cwd_relative = "opengl-abstraction/deps/include/" });
-    add_to.addCSourceFiles(.{ .files = &.{"opengl-abstraction/deps/src/glad.c"} });
-    add_to.addCSourceFiles(.{ .files = &.{"opengl-abstraction/deps/src/stb_image_fix.c"} });
+    add_to.addIncludePath(.{ .cwd_relative = "deps/include/" });
+    add_to.addCSourceFiles(.{ .files = &.{"deps/src/glad.c"} });
+    add_to.addCSourceFiles(.{ .files = &.{"deps/src/stb_image_fix.c"} });
     switch (os_tag) {
         .windows => {
-            add_to.addLibraryPath(.{ .cwd_relative = "opengl-abstraction/deps/lib/windows" });
-            add_to.addObjectFile(.{ .cwd_relative = "opengl-abstraction/deps/lib/windows/glfw3.dll" });
+            add_to.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
+            add_to.addObjectFile(.{ .cwd_relative = "deps/lib/windows/glfw3.dll" });
             add_to.linkSystemLibrary("opengl32");
             add_to.linkSystemLibrary("glfw3");
         },
@@ -139,6 +140,7 @@ pub fn build(b: *std.Build) !void {
     try helper.buildExample(b, target, optimize, "simple", &.{"examples/simple/simple.c"});
     try helper.buildExample(b, target, optimize, "checkboxes", &.{"examples/checkboxes/checkboxes.c"});
     try helper.buildExample(b, target, optimize, "colorpicker", &.{"examples/colorpicker/colorpicker.c"});
+    try zigHelper.buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
