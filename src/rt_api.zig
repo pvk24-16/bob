@@ -36,8 +36,19 @@ comptime {
 }
 
 pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_float_buffer {
-    _ = .{ context, channel };
-    const buffer: c.bob_float_buffer = std.mem.zeroes(c.bob_float_buffer);
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+    const data = switch (channel) {
+        c.BOB_MONO_CHANNEL => ctx.splixer.?.getCenter(),
+        c.BOB_LEFT_CHANNEL => ctx.splixer.?.getLeft(),
+        c.BOB_RIGHT_CHANNEL => ctx.splixer.?.getRight(),
+        else => @panic("API function called with invalid BOB_*_CHANNEL"),
+    };
+
+    const buffer: c.bob_float_buffer = .{
+        .ptr = @ptrCast(data.ptr),
+        .size = data.len,
+    };
+
     return buffer;
 }
 
@@ -161,6 +172,7 @@ pub fn get_ui_colorpicker_value(context: ?*anyopaque, handle: c_int, color: [*c]
 
 pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(c.api)) void {
     client_api_ptr.context = context;
+    client_api_ptr.get_proc_address = @ptrCast(&@import("graphics/gui.zig").glfw.glfwGetProcAddress);
     inline for (api_fn_names) |name| {
         @field(client_api_ptr.*, name) = @field(@This(), name);
     }

@@ -27,7 +27,7 @@ pub const RandomNoiseImpl = struct {
 
     pub fn sample(self: *RandomNoiseImpl) []const f32 {
         for (self.buffer) |*x| {
-            x = self.rand.random().floatNorm(f32);
+            x.* = self.rand.random().floatNorm(f32);
         }
 
         return self.buffer;

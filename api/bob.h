@@ -37,24 +37,24 @@ enum bob_audio_flags {
   BOB_AUDIO_TIME_DOMAIN_STEREO = (1 << 1),
 
   /* Frequency domain data */
-  BOB_AUDIO_FREQUENCY_DOMAIN_MONO = (1 << 1),
-  BOB_AUDIO_FREQUENCY_DOMAIN_STEREO = (1 << 2),
+  BOB_AUDIO_FREQUENCY_DOMAIN_MONO = (1 << 2),
+  BOB_AUDIO_FREQUENCY_DOMAIN_STEREO = (1 << 3),
 
   /* Chromagram */
-  BOB_AUDIO_CHROMAGRAM_MONO = (1 << 3),
-  BOB_AUDIO_CHROMAGRAM_STEREO = (1 << 4),
+  BOB_AUDIO_CHROMAGRAM_MONO = (1 << 4),
+  BOB_AUDIO_CHROMAGRAM_STEREO = (1 << 5),
 
   /* Pulse data */
-  BOB_AUDIO_PULSE_MONO = (1 << 5),
-  BOB_AUDIO_PULSE_STEREO = (1 << 6),
+  BOB_AUDIO_PULSE_MONO = (1 << 6),
+  BOB_AUDIO_PULSE_STEREO = (1 << 7),
 
   /* Tempo data */
-  BOB_AUDIO_TEMPO_MONO = (1 << 7),
-  BOB_AUDIO_TEMPO_STEREO = (1 << 8),
+  BOB_AUDIO_TEMPO_MONO = (1 << 8),
+  BOB_AUDIO_TEMPO_STEREO = (1 << 9),
 };
 
 struct bob_float_buffer {
-  float *ptr;
+  const float *ptr;
   size_t size;
 };
 
@@ -66,6 +66,16 @@ struct bob_api {
    * BoB context passed to API functions.
    */
   void *context;
+
+  /**
+   * For use with OpenGL loaders.
+   */
+  void *(*get_proc_address)(const char *name);
+
+  /**
+   * Get delta time in seconds.
+   */
+  float (*get_deltatime)(void *context);
 
   /**
    * Get time domain data for specified channel.

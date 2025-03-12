@@ -2,13 +2,7 @@
 #include <stdio.h>
 #include <bob.h>
 
-#if defined(_WIN32)
-#include <gl/gl.h>
-#elif defined(__APPLE__)
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
+#include "glad/glad.h"
 
 #ifdef WIN32
 #define EXPORT __attribute__((dllexport))
@@ -34,6 +28,7 @@ EXPORT const struct bob_visualization_info *get_info(void)
 
 EXPORT void *create(void)
 {
+  gladLoadGLLoader(api.get_proc_address);
   boxr = api.register_checkbox(api.context, "Red", 0);
   boxg = api.register_checkbox(api.context, "Green", 0);
   boxb = api.register_checkbox(api.context, "Blue", 0);

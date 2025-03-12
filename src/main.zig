@@ -17,9 +17,6 @@ pub fn main() !void {
     var args = try std.process.argsWithAllocator(gpa.allocator());
     defer args.deinit();
 
-    var context = Context.init(gpa.allocator());
-    defer context.deinit();
-
     // the path to visualizers is currently overridden with the path where buildExample puts them
     var client_list = try @import("ClientList.zig").init(gpa.allocator(), "zig-out/bob");
     defer client_list.deinit();
@@ -61,6 +58,9 @@ pub fn main() !void {
     var ui = try @import("UI.zig").init(window);
     defer ui.deinit();
 
+    var context = Context.init(gpa.allocator());
+    defer context.deinit(gpa.allocator());
+
     var current_name: ?[*:0]const u8 = null;
     var pid_str = [_]u8{0} ** 32;
 
@@ -72,26 +72,29 @@ pub fn main() !void {
         gl.glClearColor(0.2, 0.2, 0.2, 1.0);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
 
+        context.processAudio();
+
         if (context.client) |client| {
-            client.update();
+            if (context.capturer != null)
+                client.update();
         }
 
         ui.beginFrame();
 
-        if (context.capturer) |*capturer| {
+        if (context.capturer) |_| {
             if (imgui.Button("Disconnect")) {
-                capturer.deinit(gpa.allocator());
-                context.capturer = null;
+                context.disconnect(gpa.allocator()) catch |e| {
+                    std.log.err("unable to disconnect: {s}", .{@errorName(e)});
+                };
             }
         } else {
             _ = imgui.InputText("Application PID", &pid_str, @sizeOf(@TypeOf(pid_str)));
             imgui.SameLine();
             if (imgui.Button("Connect")) {
                 const pid_str_c: [*c]const u8 = &pid_str;
-                context.capturer = AudioCapturer.init(.{ .process_id = std.mem.span(pid_str_c) }, gpa.allocator()) catch |e| blk: {
-                    std.log.err("unable to connect to process {s}: {s}", .{ pid_str, @errorName(e) });
+                context.connect(std.mem.span(pid_str_c), gpa.allocator()) catch |e| {
+                    std.log.err("Failed to connect to application with PID {s}: {s}", .{ pid_str_c, @errorName(e) });
                     try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)});
-                    break :blk null;
                 };
             }
         }
