@@ -90,6 +90,7 @@ pub fn main() !void {
                 const pid_str_c: [*c]const u8 = &pid_str;
                 context.capturer = AudioCapturer.init(.{ .process_id = std.mem.span(pid_str_c) }, gpa.allocator()) catch |e| blk: {
                     std.log.err("unable to connect to process {s}: {s}", .{ pid_str, @errorName(e) });
+                    try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)});
                     break :blk null;
                 };
             }
@@ -136,6 +137,8 @@ pub fn main() !void {
                 imgui.Text(info.description);
             }
         }
+
+        context.err.show();
 
         ui.endFrame();
 
