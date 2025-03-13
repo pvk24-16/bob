@@ -1,5 +1,6 @@
 const std = @import("std");
 const FastFourierTransform = @import("fft.zig").FastFourierTransform;
+const Config = @import("Config.zig");
 
 const Chroma = @This();
 
@@ -7,7 +8,7 @@ const padding_factor_log2: usize = 2;
 
 window_size: usize,
 fft: FastFourierTransform,
-chroma: [12] f32,
+chroma: [12]f32,
 c3: f32 = 130.81,
 num_octaves: usize = 6,
 num_bins: usize = 4,
