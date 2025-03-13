@@ -3,8 +3,10 @@ const helper = @import("examples/build_helper.zig");
 
 fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
     add_to.addIncludePath(.{ .cwd_relative = "opengl-abstraction/deps/include/" });
-    add_to.addCSourceFiles(.{ .files = &.{"opengl-abstraction/deps/src/glad.c"} });
-    add_to.addCSourceFiles(.{ .files = &.{"opengl-abstraction/deps/src/stb_image_fix.c"} });
+    add_to.addCSourceFiles(.{ .files = &.{
+        "opengl-abstraction/deps/src/glad.c",
+        "opengl-abstraction/deps/src/stb_image_fix.c",
+    } });
     switch (os_tag) {
         .windows => {
             add_to.addLibraryPath(.{ .cwd_relative = "opengl-abstraction/deps/lib/windows" });

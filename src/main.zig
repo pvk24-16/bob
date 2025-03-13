@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const Client = @import("Client.zig");
-const rt_api = @import("rt_api.zig");
+const bob_impl = @import("bob_impl.zig");
 const imgui = @import("imgui");
 const glfw = @import("graphics/gui.zig").glfw;
 const gl = @import("graphics/gui.zig").gl;
@@ -126,7 +126,7 @@ pub fn main() !void {
                 break :blk null;
             };
             if (context.client) |*client| {
-                rt_api.fill(@ptrCast(&context), client.api.api);
+                bob_impl.fill(@ptrCast(&context), client.api.api);
                 client.create();
                 context.flags.set(client.info.enabled);
                 context.flags.log();

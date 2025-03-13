@@ -1,13 +1,10 @@
 const std = @import("std");
+const bob = @import("bob.zig");
 const Context = @import("Context.zig");
 const GuiState = @import("GuiState.zig");
 
-const c = @cImport({
-    @cInclude("bob.h");
-});
-
 fn checkSignature(comptime name: []const u8) void {
-    const t1 = @TypeOf(@field(c.api, name));
+    const t1 = @TypeOf(@field(bob.api, name));
     const t2 = ?*const @TypeOf(@field(@This(), name));
     if (t1 != t2) {
         @compileError("API signature mismatch for '" ++ name ++ "': "
@@ -35,16 +32,16 @@ comptime {
     for (api_fn_names) |name| checkSignature(name);
 }
 
-pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_float_buffer {
+pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
     const ctx: *const Context = @ptrCast(@alignCast(context.?));
     const data = switch (channel) {
-        c.BOB_MONO_CHANNEL => ctx.splixer.?.getCenter(),
-        c.BOB_LEFT_CHANNEL => ctx.splixer.?.getLeft(),
-        c.BOB_RIGHT_CHANNEL => ctx.splixer.?.getRight(),
+        bob.BOB_MONO_CHANNEL => ctx.splixer.?.getCenter(),
+        bob.BOB_LEFT_CHANNEL => ctx.splixer.?.getLeft(),
+        bob.BOB_RIGHT_CHANNEL => ctx.splixer.?.getRight(),
         else => @panic("API function called with invalid BOB_*_CHANNEL"),
     };
 
-    const buffer: c.bob_float_buffer = .{
+    const buffer: bob.bob_float_buffer = .{
         .ptr = @ptrCast(data.ptr),
         .size = data.len,
     };
@@ -52,7 +49,7 @@ pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_fl
     return buffer;
 }
 
-pub fn get_frequency_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_float_buffer {
+pub fn get_frequency_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
     // const ctx: *const Context = @ptrCast(@alignCast(context.?));
 
     // const data = switch (channel) {
@@ -63,7 +60,7 @@ pub fn get_frequency_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.b
     // };
 
     _ = .{ context, channel };
-    const buffer: c.bob_float_buffer = std.mem.zeroes(c.bob_float_buffer);
+    const buffer: bob.bob_float_buffer = std.mem.zeroes(bob.bob_float_buffer);
     return buffer;
 }
 
@@ -71,9 +68,9 @@ pub fn get_chromagram(context: ?*anyopaque, buf: [*c]f32, channel: c_int) callco
     _ = .{ context, buf, channel };
 }
 
-pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_float_buffer {
+pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
     _ = .{ context, channel };
-    const buffer: c.bob_float_buffer = std.mem.zeroes(c.bob_float_buffer);
+    const buffer: bob.bob_float_buffer = std.mem.zeroes(bob.bob_float_buffer);
     return buffer;
 }
 
@@ -179,7 +176,7 @@ pub fn get_ui_colorpicker_value(context: ?*anyopaque, handle: c_int, color: [*c]
     elem.update = false;
 }
 
-pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(c.api)) void {
+pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(bob.api)) void {
     client_api_ptr.context = context;
     client_api_ptr.get_proc_address = @ptrCast(&@import("graphics/gui.zig").glfw.glfwGetProcAddress);
     inline for (api_fn_names) |name| {

@@ -1,5 +1,5 @@
 const std = @import("std");
-const gl = @import("c.zig").gl;
+const gl = @import("glad.zig");
 
 pub const Error = error{};
 

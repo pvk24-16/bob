@@ -1,18 +1,14 @@
 const std = @import("std");
-const rt_api = @import("rt_api.zig");
-
-const c = @cImport({
-    @cInclude("bob.h");
-});
+const bob = @import("bob.zig");
 
 const Client = @This();
 
 const ClientApi = struct {
-    api: *@TypeOf(c.api),
-    get_info: *const @TypeOf(c.get_info),
-    create: *const @TypeOf(c.create),
-    update: *const @TypeOf(c.update),
-    destroy: *const @TypeOf(c.destroy),
+    api: *@TypeOf(bob.api),
+    get_info: *const @TypeOf(bob.get_info),
+    create: *const @TypeOf(bob.create),
+    update: *const @TypeOf(bob.update),
+    destroy: *const @TypeOf(bob.destroy),
 
     pub fn load(lib: *std.DynLib) !ClientApi {
         var self: ClientApi = undefined;

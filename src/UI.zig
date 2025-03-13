@@ -4,9 +4,7 @@ const ClientList = @import("ClientList.zig");
 
 const ui_window_title = "bob";
 
-pub const glfw = @cImport({
-    @cInclude("GLFW/glfw3.h");
-});
+const glfw = @import("graphics/glfw.zig");
 
 pub fn init(window: *glfw.GLFWwindow) !@This() {
     const context = imgui.CreateContext();

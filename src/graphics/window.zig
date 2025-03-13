@@ -1,6 +1,6 @@
 const std = @import("std");
-const gl = @import("c.zig").gl;
-const glfw = @import("c.zig").glfw;
+const gl = @import("glad.zig");
+const glfw = @import("glfw.zig");
 const os_tag = @import("builtin").os.tag;
 
 pub const Error = error{
