@@ -10,7 +10,7 @@ const FFT = @import("audio/fft.zig").FastFourierTransform;
 const Error = @import("Error.zig");
 const AudioSplixer = @import("audio/AudioSplixer.zig");
 const AudioConfig = @import("audio/Config.zig");
-const Flags = @import("Flags.zig");
+const Flags = @import("flags.zig").Flags;
 
 err: Error,
 gui_state: GuiState,
@@ -28,7 +28,7 @@ pub fn init(allocator: std.mem.Allocator) Context {
         .capturer = null,
         .splixer = null,
         .fft = null,
-        .flags = Flags.empty(),
+        .flags = Flags{},
     };
 }
 

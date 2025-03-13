@@ -6,6 +6,7 @@ const imgui = @import("imgui");
 const glfw = @import("graphics/glfw.zig");
 const gl = @import("graphics/glad.zig");
 const Context = @import("Context.zig");
+const Flags = @import("flags.zig").Flags;
 
 const os_tag = @import("builtin").os.tag;
 
@@ -126,7 +127,7 @@ pub fn main() !void {
             if (context.client) |*client| {
                 bob_impl.fill(@ptrCast(&context), client.api.api);
                 client.create();
-                context.flags.set(client.info.enabled);
+                context.flags = Flags.init(client.info.enabled);
                 context.flags.log();
             }
         }
