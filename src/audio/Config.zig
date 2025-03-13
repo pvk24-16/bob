@@ -1,7 +1,7 @@
 const Config = @This();
 
 pub const channel_count = 2;
-pub const sample_rate = 48000; // Hz
+pub const sample_rate = 44100; // Hz
 pub const window_time: u32 = 20; // ms
 
 process_id: []const u8 = undefined,

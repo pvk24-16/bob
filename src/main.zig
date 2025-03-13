@@ -62,7 +62,7 @@ pub fn main() !void {
     var ui = try @import("UI.zig").init(window);
     defer ui.deinit();
 
-    var context = Context.init(allocator);
+    var context = try Context.init(allocator);
     defer context.deinit(allocator);
 
     var current_name: ?[*:0]const u8 = null;

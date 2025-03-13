@@ -36,9 +36,9 @@ comptime {
 pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
     const ctx: *const Context = @ptrCast(@alignCast(context.?));
     const data = switch (channel) {
-        bob.BOB_MONO_CHANNEL => ctx.splixer.?.getCenter(),
-        bob.BOB_LEFT_CHANNEL => ctx.splixer.?.getLeft(),
-        bob.BOB_RIGHT_CHANNEL => ctx.splixer.?.getRight(),
+        bob.BOB_MONO_CHANNEL => ctx.analyzer.splixer.getCenter(),
+        bob.BOB_LEFT_CHANNEL => ctx.analyzer.splixer.getLeft(),
+        bob.BOB_RIGHT_CHANNEL => ctx.analyzer.splixer.getRight(),
         else => @panic("API function called with invalid BOB_*_CHANNEL"),
     };
 
@@ -51,17 +51,21 @@ pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_
 }
 
 pub fn get_frequency_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
-    // const ctx: *const Context = @ptrCast(@alignCast(context.?));
+    // _ = .{ context, channel };
+    // const buffer: bob.bob_float_buffer = std.mem.zeroes(bob.bob_float_buffer);
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
 
-    // const data = switch (channel) {
-    //     c.BOB_MONO_CHANNEL => ctx.splixer.?.getCenter(),
-    //     c.BOB_LEFT_CHANNEL => ctx.splixer.?.getLeft(),
-    //     c.BOB_RIGHT_CHANNEL => ctx.splixer.?.getRight(),
-    //     else => @panic("API function called with invalid BOB_*_CHANNEL"),
-    // };
+    const data = switch (channel) {
+        bob.BOB_MONO_CHANNEL => ctx.analyzer.spectral_analyzer_center.read(),
+        bob.BOB_LEFT_CHANNEL => ctx.analyzer.spectral_analyzer_left.read(),
+        bob.BOB_RIGHT_CHANNEL => ctx.analyzer.spectral_analyzer_right.read(),
+        else => @panic("Bad API call"),
+    };
 
-    _ = .{ context, channel };
-    const buffer: bob.bob_float_buffer = std.mem.zeroes(bob.bob_float_buffer);
+    const buffer: bob.bob_float_buffer = .{
+        .ptr = @ptrCast(data.ptr),
+        .size = data.len,
+    };
     return buffer;
 }
 

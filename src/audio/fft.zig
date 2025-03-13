@@ -272,7 +272,12 @@ pub const FastFourierTransform = struct {
     }
 
     /// Reads frequency domain data as magnitudes.
-    pub fn read(self: *FastFourierTransform) []f32 {
+    pub inline fn read(self: *const FastFourierTransform) []f32 {
+        return self.result;
+    }
+
+    /// Evaluate FFT with written data.
+    pub fn evaluate(self: *FastFourierTransform) void {
         @memset(self.scratch[self.window.len..], c32.init(0, 0));
 
         const end = self.window.len - self.cursor;
@@ -292,8 +297,6 @@ pub const FastFourierTransform = struct {
         for (self.scratch[0 .. self.scratch.len >> 1], 0..) |z, i| {
             self.result[i] = self.smoothing_factor * self.scaling_factor * z.magnitude() + (1.0 - self.smoothing_factor) * self.result[i];
         }
-
-        return self.result;
     }
 
     /// Zeroes internal buffers.
