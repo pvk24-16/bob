@@ -16,13 +16,17 @@ const ClientApi = struct {
 
     pub fn load(lib: *std.DynLib) !ClientApi {
         var self: ClientApi = undefined;
+
         inline for (std.meta.fields(ClientApi)) |field| {
             const ptr = lib.lookup(field.type, field.name) orelse {
                 std.log.err("Missing symbol '" ++ field.name ++ "'\n", .{});
+
                 return error.MissingSymbol;
             };
+
             @field(self, field.name) = @ptrCast(ptr);
         }
+
         return self;
     }
 };
@@ -34,6 +38,7 @@ ctx: ?*anyopaque,
 pub fn load(path: []const u8) !Client {
     var lib = try std.DynLib.open(path);
     const api = try ClientApi.load(&lib);
+
     return .{
         .lib = lib,
         .api = api,
