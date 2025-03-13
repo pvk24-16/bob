@@ -1,6 +1,5 @@
 //! Holds all data used in API calls
 //! TODO: add all the stuff
-
 const std = @import("std");
 const Context = @This();
 
@@ -11,6 +10,7 @@ const FFT = @import("audio/fft.zig").FastFourierTransform;
 const Error = @import("Error.zig");
 const AudioSplixer = @import("audio/AudioSplixer.zig");
 const AudioConfig = @import("audio/Config.zig");
+const Flags = @import("Flags.zig");
 
 err: Error,
 gui_state: GuiState,
@@ -18,6 +18,7 @@ client: ?Client,
 capturer: ?AudioCapturer,
 splixer: ?AudioSplixer,
 fft: ?FFT,
+flags: Flags,
 
 pub fn init(allocator: std.mem.Allocator) Context {
     return .{
@@ -27,6 +28,7 @@ pub fn init(allocator: std.mem.Allocator) Context {
         .capturer = null,
         .splixer = null,
         .fft = null,
+        .flags = Flags.empty(),
     };
 }
 

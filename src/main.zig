@@ -7,6 +7,7 @@ const glfw = @import("graphics/gui.zig").glfw;
 const gl = @import("graphics/gui.zig").gl;
 const Context = @import("Context.zig");
 const AudioCapturer = @import("audio/AudioCapturer.zig");
+const Flags = @import("Flags.zig");
 
 const os_tag = @import("builtin").os.tag;
 
@@ -127,12 +128,13 @@ pub fn main() !void {
             if (context.client) |*client| {
                 rt_api.fill(@ptrCast(&context), client.api.api);
                 client.create();
+                context.flags.set(client.info.enabled);
+                context.flags.log();
             }
         }
 
         if (context.client) |*client| {
-            const info = client.api.get_info()[0];
-            imgui.SeparatorText(info.name);
+            imgui.SeparatorText(client.info.name);
             if (imgui.Button("Unload")) {
                 std.log.info("unloading visualizer", .{});
                 client.destroy();
@@ -143,7 +145,7 @@ pub fn main() !void {
             } else {
                 context.gui_state.update();
                 imgui.SeparatorText("Description");
-                imgui.Text(info.description);
+                imgui.Text(client.info.description);
             }
         }
 
