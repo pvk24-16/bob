@@ -14,11 +14,13 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
-    var args = try std.process.argsWithAllocator(gpa.allocator());
+    const allocator = gpa.allocator();
+
+    var args = try std.process.argsWithAllocator(allocator);
     defer args.deinit();
 
     // the path to visualizers is currently overridden with the path where buildExample puts them
-    var client_list = try @import("ClientList.zig").init(gpa.allocator(), "zig-out/bob");
+    var client_list = try @import("ClientList.zig").init(allocator, "zig-out/bob");
     defer client_list.deinit();
     try client_list.readClientDir();
 
@@ -60,8 +62,8 @@ pub fn main() !void {
     var ui = try @import("UI.zig").init(window);
     defer ui.deinit();
 
-    var context = Context.init(gpa.allocator());
-    defer context.deinit(gpa.allocator());
+    var context = Context.init(allocator);
+    defer context.deinit(allocator);
 
     var current_name: ?[*:0]const u8 = null;
     var pid_str = [_]u8{0} ** 32;
@@ -86,7 +88,7 @@ pub fn main() !void {
 
         if (context.capturer) |_| {
             if (imgui.Button("Disconnect")) {
-                context.disconnect(gpa.allocator()) catch |e| {
+                context.disconnect(allocator) catch |e| {
                     std.log.err("unable to disconnect: {s}", .{@errorName(e)});
                 };
             }
@@ -95,9 +97,9 @@ pub fn main() !void {
             imgui.SameLine();
             if (imgui.Button("Connect")) {
                 const pid_str_c: [*c]const u8 = &pid_str;
-                context.connect(std.mem.span(pid_str_c), gpa.allocator()) catch |e| {
+                context.connect(std.mem.span(pid_str_c), allocator) catch |e| {
                     std.log.err("Failed to connect to application with PID {s}: {s}", .{ pid_str_c, @errorName(e) });
-                    try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)});
+                    try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
                 };
             }
         }
@@ -145,7 +147,7 @@ pub fn main() !void {
             }
         }
 
-        context.err.show();
+        context.err.show(allocator);
 
         ui.endFrame();
 

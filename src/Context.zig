@@ -12,19 +12,19 @@ const Error = @import("Error.zig");
 const AudioSplixer = @import("audio/AudioSplixer.zig");
 const AudioConfig = @import("audio/Config.zig");
 
+err: Error,
 gui_state: GuiState,
 client: ?Client,
 capturer: ?AudioCapturer,
-err: Error,
 splixer: ?AudioSplixer,
 fft: ?FFT,
 
 pub fn init(allocator: std.mem.Allocator) Context {
     return .{
+        .err = Error{},
         .gui_state = GuiState.init(allocator),
         .client = null,
         .capturer = null,
-        .err = Error.init(allocator),
         .splixer = null,
         .fft = null,
     };
@@ -64,5 +64,5 @@ pub fn deinit(self: *Context, allocator: std.mem.Allocator) void {
         capturer.deinit(allocator);
     if (self.splixer) |*splixer|
         splixer.deinit(allocator);
-    self.err.deinit();
+    self.err.clear(allocator);
 }
