@@ -58,6 +58,9 @@ pub fn build(b: *std.Build) !void {
             exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
             exe.linkFramework("OpenGL");
             exe.linkSystemLibrary("glfw");
+            exe.linkFramework("CoreAudio");
+            exe.linkFramework("AudioUnit");
+            exe.linkFramework("CoreFoundation");
         },
         else => @panic("Unsupported platform"),
     }

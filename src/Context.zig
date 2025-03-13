@@ -55,8 +55,12 @@ pub fn deinit(self: *Context, allocator: std.mem.Allocator) void {
     self.gui_state.deinit();
     if (self.client) |*client|
         client.unload();
-    if (self.capturer) |*capturer|
+    if (self.capturer) |*capturer| {
+        capturer.stop() catch {
+            std.debug.print("Failed to stop capturer.", .{});
+        };
         capturer.deinit(allocator);
+    }
     self.err.clear(allocator);
     self.analyzer.deinit(allocator);
 }

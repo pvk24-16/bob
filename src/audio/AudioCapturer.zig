@@ -9,7 +9,7 @@ const Config = @import("Config.zig");
 pub const Impl = switch (builtin.os.tag) {
     .linux => @import("linux/capture.zig").LinuxImpl,
     .windows => @import("windows/capture.zig").WindowsImpl,
-    .macos => @import("noise/noise.zig").RandomNoiseImpl,
+    .macos => @import("mac/capture.zig").MacOSImpl,
     else => @compileError("Unsupported operating system " ++ @tagName(builtin.os.tag)),
 };
 
