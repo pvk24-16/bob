@@ -3,11 +3,9 @@ const builtin = @import("builtin");
 const Client = @import("Client.zig");
 const bob_impl = @import("bob_impl.zig");
 const imgui = @import("imgui");
-const glfw = @import("graphics/gui.zig").glfw;
-const gl = @import("graphics/gui.zig").gl;
+const glfw = @import("graphics/glfw.zig");
+const gl = @import("graphics/glad.zig");
 const Context = @import("Context.zig");
-const AudioCapturer = @import("audio/AudioCapturer.zig");
-const Flags = @import("Flags.zig");
 
 const os_tag = @import("builtin").os.tag;
 

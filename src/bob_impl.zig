@@ -1,5 +1,6 @@
 const std = @import("std");
 const bob = @import("bob.zig");
+const glfw = @import("graphics/glfw.zig");
 const Context = @import("Context.zig");
 const GuiState = @import("GuiState.zig");
 
@@ -178,7 +179,7 @@ pub fn get_ui_colorpicker_value(context: ?*anyopaque, handle: c_int, color: [*c]
 
 pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(bob.api)) void {
     client_api_ptr.context = context;
-    client_api_ptr.get_proc_address = @ptrCast(&@import("graphics/gui.zig").glfw.glfwGetProcAddress);
+    client_api_ptr.get_proc_address = @ptrCast(&glfw.glfwGetProcAddress);
     inline for (api_fn_names) |name| {
         @field(client_api_ptr.*, name) = @field(@This(), name);
     }

@@ -30,12 +30,12 @@ const ClientApi = struct {
 lib: std.DynLib,
 api: ClientApi,
 ctx: ?*anyopaque,
-info: c.bob_visualization_info,
+info: bob.bob_visualization_info,
 
 pub fn load(path: []const u8) !Client {
     var lib = try std.DynLib.open(path);
     const api = try ClientApi.load(&lib);
-    const info = api.get_info()[0];
+    const info = api.get_info().*;
     return .{
         .lib = lib,
         .api = api,
