@@ -46,6 +46,7 @@ export fn get_info() *VisualizationInfo {
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
 export fn create() ?*anyopaque {
+    g.gl.gladLoadGLLoader(api.get_proc_address);
     _ = api.register_float_slider.?(api.context, "Radius", 0.0, 1.0, 0.5);
     return null;
 }

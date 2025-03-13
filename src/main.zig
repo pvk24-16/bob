@@ -1,12 +1,12 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const Client = @import("Client.zig");
-const rt_api = @import("rt_api.zig");
+const bob_impl = @import("bob_impl.zig");
 const imgui = @import("imgui");
-const glfw = @import("graphics/gui.zig").glfw;
-const gl = @import("graphics/gui.zig").gl;
+const glfw = @import("graphics/glfw.zig");
+const gl = @import("graphics/glad.zig");
 const Context = @import("Context.zig");
-const AudioCapturer = @import("audio/capture.zig").AudioCapturer;
+const Flags = @import("flags.zig").Flags;
 
 const os_tag = @import("builtin").os.tag;
 
@@ -14,14 +14,13 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
-    var args = try std.process.argsWithAllocator(gpa.allocator());
+    const allocator = gpa.allocator();
+
+    var args = try std.process.argsWithAllocator(allocator);
     defer args.deinit();
 
-    var context = Context.init(gpa.allocator());
-    defer context.deinit();
-
     // the path to visualizers is currently overridden with the path where buildExample puts them
-    var client_list = try @import("ClientList.zig").init(gpa.allocator(), "zig-out/bob");
+    var client_list = try @import("ClientList.zig").init(allocator, "zig-out/bob");
     defer client_list.deinit();
     try client_list.readClientDir();
 
@@ -50,16 +49,21 @@ pub fn main() !void {
         return;
     };
     defer glfw.glfwDestroyWindow(window);
+
     glfw.glfwMakeContextCurrent(window);
     if (gl.gladLoadGLLoader(@ptrCast(&glfw.glfwGetProcAddress)) == 0) {
         std.log.err("Failed to load gl", .{});
         return;
     }
+
     gl.glViewport(0, 0, 800, 600);
     glfw.glfwSwapInterval(1);
 
     var ui = try @import("UI.zig").init(window);
     defer ui.deinit();
+
+    var context = Context.init(allocator);
+    defer context.deinit(allocator);
 
     var current_name: ?[*:0]const u8 = null;
     var pid_str = [_]u8{0} ** 32;
@@ -72,25 +76,30 @@ pub fn main() !void {
         gl.glClearColor(0.2, 0.2, 0.2, 1.0);
         gl.glClear(gl.GL_COLOR_BUFFER_BIT);
 
+        context.processAudio();
+
         if (context.client) |client| {
-            client.update();
+            if (context.capturer != null) {
+                client.update();
+            }
         }
 
         ui.beginFrame();
 
-        if (context.capturer) |*capturer| {
+        if (context.capturer) |_| {
             if (imgui.Button("Disconnect")) {
-                capturer.deinit(gpa.allocator());
-                context.capturer = null;
+                context.disconnect(allocator) catch |e| {
+                    std.log.err("unable to disconnect: {s}", .{@errorName(e)});
+                };
             }
         } else {
             _ = imgui.InputText("Application PID", &pid_str, @sizeOf(@TypeOf(pid_str)));
             imgui.SameLine();
             if (imgui.Button("Connect")) {
                 const pid_str_c: [*c]const u8 = &pid_str;
-                context.capturer = AudioCapturer.init(.{ .process_id = std.mem.span(pid_str_c) }, gpa.allocator()) catch |e| blk: {
-                    std.log.err("unable to connect to process {s}: {s}", .{ pid_str, @errorName(e) });
-                    break :blk null;
+                context.connect(std.mem.span(pid_str_c), allocator) catch |e| {
+                    std.log.err("Failed to connect to application with PID {s}: {s}", .{ pid_str_c, @errorName(e) });
+                    try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
                 };
             }
         }
@@ -110,19 +119,21 @@ pub fn main() !void {
             defer client_list.freeClientPath(path);
 
             std.log.info("loading visualizer {s}", .{current_name.?});
+
             context.client = Client.load(path) catch |e| blk: {
                 std.log.err("failed to load {s}: {s}", .{ path, @errorName(e) });
                 break :blk null;
             };
             if (context.client) |*client| {
-                rt_api.fill(@ptrCast(&context), client.api.api);
+                bob_impl.fill(@ptrCast(&context), client.api.api);
                 client.create();
+                context.flags = Flags.init(client.info.enabled);
+                context.flags.log();
             }
         }
 
         if (context.client) |*client| {
-            const info = client.api.get_info()[0];
-            imgui.SeparatorText(info.name);
+            imgui.SeparatorText(client.info.name);
             if (imgui.Button("Unload")) {
                 std.log.info("unloading visualizer", .{});
                 client.destroy();
@@ -133,17 +144,20 @@ pub fn main() !void {
             } else {
                 context.gui_state.update();
                 imgui.SeparatorText("Description");
-                imgui.Text(info.description);
+                imgui.Text(client.info.description);
             }
         }
+
+        context.err.show(allocator);
 
         ui.endFrame();
 
         running = glfw.glfwWindowShouldClose(window) == glfw.GLFW_FALSE;
         glfw.glfwSwapBuffers(window);
 
-        if (glfw.glfwGetKey(window, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS)
+        if (glfw.glfwGetKey(window, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
             break;
+        }
     }
 }
 

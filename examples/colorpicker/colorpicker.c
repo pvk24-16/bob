@@ -2,13 +2,7 @@
 #include <stdio.h>
 #include <bob.h>
 
-#if defined(_WIN32)
-#include <gl/gl.h>
-#elif defined(__APPLE__)
-#include <OpenGL/gl.h>
-#else
-#include <GL/gl.h>
-#endif
+#include "glad/glad.h"
 
 #ifdef WIN32
 #define EXPORT __attribute__((dllexport))
@@ -34,6 +28,7 @@ EXPORT const struct bob_visualization_info *get_info(void)
 
 EXPORT void *create(void)
 {
+  gladLoadGLLoader(api.get_proc_address);
   handle = api.register_colorpicker(api.context, "Pick a nice color", rgb);
   return NULL;
 }
@@ -44,6 +39,7 @@ EXPORT void update(void *userdata)
   if (api.ui_element_is_updated(api.context, handle))
     api.get_ui_colorpicker_value(api.context, handle, rgb);
   glClearColor(rgb[0], rgb[1], rgb[2], 1.0f);
+  glClear(GL_COLOR_BUFFER_BIT);
 }
 
 EXPORT void destroy(void *userdata)

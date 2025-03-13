@@ -184,7 +184,7 @@ pub const WindowsImpl = struct {
 
         log.info("sample ready event registered...", .{});
 
-        var ring_buffer = try RingBuffer.init(config.windowSize() / @sizeOf(f32), allocator);
+        var ring_buffer = try RingBuffer.init(Config.windowSize() / @sizeOf(f32), allocator);
         errdefer ring_buffer.deinit(allocator);
 
         return WindowsImpl{

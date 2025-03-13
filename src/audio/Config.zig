@@ -1,10 +1,10 @@
 const Config = @This();
 
 pub const channel_count = 2;
-pub const sample_rate = 44100; // Hz
+pub const sample_rate = 48000; // Hz
+pub const window_time: u32 = 20; // ms
 
 process_id: []const u8 = undefined,
-window_time: u32 = 10, // ms
 
 pub fn bitDepth() comptime_int {
     return @bitSizeOf(f32);
@@ -22,8 +22,8 @@ pub fn byteRate() comptime_int {
     return sample_rate * channel_count * @sizeOf(f32);
 }
 
-pub fn windowSize(self: Config) u32 {
-    var window_size: u32 = self.window_time * byteRate() / 1000;
+pub fn windowSize() u32 {
+    var window_size: u32 = window_time * byteRate() / 1000;
 
     // Round up to the nearest power of two.
     window_size -= 1;

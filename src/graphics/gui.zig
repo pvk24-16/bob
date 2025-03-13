@@ -1,10 +1,5 @@
 const imgui = @import("imgui");
-pub const glfw = @cImport({
-    @cInclude("GLFW/glfw3.h");
-});
-pub const gl = @cImport({
-    @cInclude("glad/glad.h");
-});
+const glfw = @import("glfw.zig");
 
 pub extern fn ImGui_ImplGlfw_InitForOpenGL(window: *glfw.GLFWwindow, install_callbacks: bool) bool;
 pub extern fn ImGui_ImplGlfw_Shutdown() void;

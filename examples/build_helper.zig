@@ -11,6 +11,7 @@ pub fn buildExample(
         .name = name,
         .target = target,
         .optimize = optimize,
+        .pic = true,
     });
 
     lib.linkLibC();
@@ -31,6 +32,9 @@ pub fn buildExample(
     for (source) |file| {
         lib.addCSourceFile(.{ .file = b.path(file) });
     }
+    lib.addCSourceFile(.{ .file = b.path("deps/src/glad.c") });
+
+    lib.addIncludePath(b.path("deps/include"));
     lib.addIncludePath(b.path("api"));
 
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
