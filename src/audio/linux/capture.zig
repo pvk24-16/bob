@@ -124,16 +124,6 @@ pub const LinuxImpl = struct {
             self.mutex.lock();
             self.ring_buffer.send(okbuf[0..len]);
             self.mutex.unlock();
-            // const a = @as([*]u8, @ptrCast(okbuf));
-            // for (0..len) |i| {
-            //     std.debug.print("{}\t[{}\t{}\t{}\t{}]\n", .{
-            //         okbuf[i],
-            //         a[i * 4 + 0],
-            //         a[i * 4 + 1],
-            //         a[i * 4 + 2],
-            //         a[i * 4 + 3],
-            //     });
-            // }
             _ = pulse.pa_stream_drop(stream);
         } else if (bytes != 0) {
             _ = pulse.pa_stream_drop(stream);
@@ -229,6 +219,10 @@ pub const LinuxImpl = struct {
             if (std.mem.eql(u8, data.process_id, ptr[0..len])) {
                 data.ok = true;
                 data.sink_input_info = info.*;
+                if (info.sample_spec.rate != Config.sample_rate) {
+                    std.log.err("sink input samplerate {d} does not match hardcoded value {d}", .{ info.sample_spec.rate, Config.sample_rate });
+                    data.ok = false;
+                }
             }
         }
     };
