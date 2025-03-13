@@ -1,6 +1,5 @@
 const std = @import("std");
 const helper = @import("examples/build_helper.zig");
-const zigHelper = @import("examples/zig_build_helper.zig");
 
 fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
     add_to.addIncludePath(.{ .cwd_relative = "deps/include/" });
@@ -140,7 +139,7 @@ pub fn build(b: *std.Build) !void {
     try helper.buildExample(b, target, optimize, "simple", &.{"examples/simple/simple.c"});
     try helper.buildExample(b, target, optimize, "checkboxes", &.{"examples/checkboxes/checkboxes.c"});
     try helper.buildExample(b, target, optimize, "colorpicker", &.{"examples/colorpicker/colorpicker.c"});
-    try zigHelper.buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
+    try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
@@ -210,7 +209,7 @@ fn createImguiGLFWStaticLib(
     // ensure the backend has access to the ImGui headers it expects
     imgui_glfw.addIncludePath(imgui_dep.path("."));
     imgui_glfw.addIncludePath(imgui_dep.path("backends/"));
-    imgui_glfw.addIncludePath(b.path("opengl-abstraction/deps/include/"));
+    imgui_glfw.addIncludePath(b.path("deps/include/"));
 
     linkToGLFW(imgui_glfw, target.result.os.tag);
 
