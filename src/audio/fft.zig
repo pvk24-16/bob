@@ -192,6 +192,7 @@ pub const FastFourierTransform = struct {
     window_coefficients: []const f32,
     bit_reversal_lookup_table: []const u32,
     smoothing_factor: f32,
+    scaling_factor: f32,
 
     /// The user guarantees `init` and `deinit` are called with the same allocator.
     pub fn init(capacity_log2: usize, padding_log2: usize, window_function: WindowFunction, smoothing_factor: f32, allocator: std.mem.Allocator) !FastFourierTransform {
@@ -229,6 +230,7 @@ pub const FastFourierTransform = struct {
             .window_coefficients = window_coefficients,
             .bit_reversal_lookup_table = bit_reversal_lookup_table,
             .smoothing_factor = @max(0.0, @min(1.0, smoothing_factor)),
+            .scaling_factor = window_function.scale() / @as(f32, @floatFromInt(result.len)),
         };
     }
 
@@ -287,9 +289,8 @@ pub const FastFourierTransform = struct {
         fft_eval(self.scratch, .forward);
 
         // Exponential Moving Average (EMA) smoothing
-        const length: f32 = @floatFromInt(self.result.len);
         for (self.scratch[0 .. self.scratch.len >> 1], 0..) |z, i| {
-            self.result[i] = self.smoothing_factor * z.magnitude() / length + (1.0 - self.smoothing_factor) * self.result[i];
+            self.result[i] = self.smoothing_factor * self.scaling_factor * z.magnitude() + (1.0 - self.smoothing_factor) * self.result[i];
         }
 
         return self.result;
@@ -361,7 +362,22 @@ pub const WindowFunction = enum {
             .hamming => hammingImpl(n_, i_),
             .nuttal => nuttallImpl(n_, i_),
             .blackman => blackmanImpl(n_, i_),
+            .blackman_nuttall => blackmanNuttallImpl(n_, i_),
             .blackman_harris => blackmanHarrisImpl(n_, i_),
+            else => @panic("Unimplemented window function"),
+        };
+    }
+
+    pub fn scale(self: WindowFunction) f32 {
+        return switch (self) {
+            .rectangular => 1.0,
+            .triangualar => 2.0,
+            .hann => 2.0,
+            .hamming => 1.85,
+            .nuttal => 2.75,
+            .blackman => 2.38,
+            .blackman_nuttall => 2.75,
+            .blackman_harris => 2.79,
             else => @panic("Unimplemented window function"),
         };
     }
@@ -406,7 +422,7 @@ pub const WindowFunction = enum {
         return a0 - a1 * cos(tau * i / n) + a2 * cos(2 * tau * i / n);
     }
 
-    fn blackmanNutallImpl(n: f32, i: f32) f32 {
+    fn blackmanNuttallImpl(n: f32, i: f32) f32 {
         const cos = std.math.cos;
         const tau = std.math.tau;
         const a0 = 0.3635819;
