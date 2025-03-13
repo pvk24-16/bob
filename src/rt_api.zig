@@ -53,6 +53,15 @@ pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_fl
 }
 
 pub fn get_frequency_data(context: ?*anyopaque, channel: c_int) callconv(.C) c.bob_float_buffer {
+    // const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    // const data = switch (channel) {
+    //     c.BOB_MONO_CHANNEL => ctx.splixer.?.getCenter(),
+    //     c.BOB_LEFT_CHANNEL => ctx.splixer.?.getLeft(),
+    //     c.BOB_RIGHT_CHANNEL => ctx.splixer.?.getRight(),
+    //     else => @panic("API function called with invalid BOB_*_CHANNEL"),
+    // };
+
     _ = .{ context, channel };
     const buffer: c.bob_float_buffer = std.mem.zeroes(c.bob_float_buffer);
     return buffer;

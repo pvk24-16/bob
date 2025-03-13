@@ -364,7 +364,6 @@ pub const WindowFunction = enum {
             .blackman => blackmanImpl(n_, i_),
             .blackman_nuttall => blackmanNuttallImpl(n_, i_),
             .blackman_harris => blackmanHarrisImpl(n_, i_),
-            else => @panic("Unimplemented window function"),
         };
     }
 
@@ -378,7 +377,6 @@ pub const WindowFunction = enum {
             .blackman => 2.38,
             .blackman_nuttall => 2.75,
             .blackman_harris => 2.79,
-            else => @panic("Unimplemented window function"),
         };
     }
 

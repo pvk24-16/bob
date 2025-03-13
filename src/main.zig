@@ -6,7 +6,7 @@ const imgui = @import("imgui");
 const glfw = @import("graphics/gui.zig").glfw;
 const gl = @import("graphics/gui.zig").gl;
 const Context = @import("Context.zig");
-const AudioCapturer = @import("audio/capture.zig").AudioCapturer;
+const AudioCapturer = @import("audio/AudioCapturer.zig");
 
 const os_tag = @import("builtin").os.tag;
 
@@ -47,11 +47,13 @@ pub fn main() !void {
         return;
     };
     defer glfw.glfwDestroyWindow(window);
+
     glfw.glfwMakeContextCurrent(window);
     if (gl.gladLoadGLLoader(@ptrCast(&glfw.glfwGetProcAddress)) == 0) {
         std.log.err("Failed to load gl", .{});
         return;
     }
+
     gl.glViewport(0, 0, 800, 600);
     glfw.glfwSwapInterval(1);
 
@@ -75,8 +77,9 @@ pub fn main() !void {
         context.processAudio();
 
         if (context.client) |client| {
-            if (context.capturer != null)
+            if (context.capturer != null) {
                 client.update();
+            }
         }
 
         ui.beginFrame();
@@ -148,8 +151,9 @@ pub fn main() !void {
         running = glfw.glfwWindowShouldClose(window) == glfw.GLFW_FALSE;
         glfw.glfwSwapBuffers(window);
 
-        if (glfw.glfwGetKey(window, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS)
+        if (glfw.glfwGetKey(window, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
             break;
+        }
     }
 }
 
