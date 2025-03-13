@@ -11,6 +11,7 @@ const Error = @import("Error.zig");
 const AudioSplixer = @import("audio/AudioSplixer.zig");
 const AudioConfig = @import("audio/Config.zig");
 const Flags = @import("flags.zig").Flags;
+const Config = @import("audio/Config.zig");
 
 err: Error,
 gui_state: GuiState,
@@ -35,7 +36,7 @@ pub fn init(allocator: std.mem.Allocator) Context {
 pub fn connect(self: *Context, process_id: []const u8, allocator: std.mem.Allocator) !void {
     const config: AudioConfig = .{ .process_id = process_id };
     self.capturer = try AudioCapturer.init(config, allocator);
-    self.splixer = try AudioSplixer.init(config.windowSize(), allocator);
+    self.splixer = try AudioSplixer.init(Config.windowSize(), allocator);
     self.fft = try FFT.init(std.math.log2_int(usize, 4096), 2, .blackman_nuttall, 0.5, allocator);
     try self.capturer.?.start();
 }

@@ -50,7 +50,7 @@ pub const LinuxImpl = struct {
         const sink_input_info = try SinkInputInfo.init(config, mainloop, context);
         log.info("sink input info initialized...", .{});
 
-        const stream = try Stream.init(config, &sink_input_info, mainloop, context);
+        const stream = try Stream.init(&sink_input_info, mainloop, context);
         errdefer {
             pulse.pa_threaded_mainloop_lock(mainloop);
             _ = pulse.pa_stream_disconnect(stream);
@@ -58,7 +58,7 @@ pub const LinuxImpl = struct {
         }
         log.info("stream connected...", .{});
 
-        var ring_buffer = try RingBuffer.init(config.windowSize() / @sizeOf(f32), allocator);
+        var ring_buffer = try RingBuffer.init(Config.windowSize() / @sizeOf(f32), allocator);
         errdefer ring_buffer.deinit(allocator);
 
         return LinuxImpl{
@@ -237,7 +237,7 @@ pub const LinuxImpl = struct {
         ok: bool,
         mainloop: *pulse.pa_threaded_mainloop,
 
-        pub fn init(config: Config, sink_input_info: *const pulse.pa_sink_input_info, mainloop: *pulse.pa_threaded_mainloop, context: *pulse.pa_context) !*pulse.pa_stream {
+        pub fn init(sink_input_info: *const pulse.pa_sink_input_info, mainloop: *pulse.pa_threaded_mainloop, context: *pulse.pa_context) !*pulse.pa_stream {
             const proplist = pulse.pa_proplist_new() orelse {
                 return error.fail;
             };
@@ -266,7 +266,7 @@ pub const LinuxImpl = struct {
                 .tlength = ~@as(u32, 0),
                 .prebuf = ~@as(u32, 0),
                 .minreq = ~@as(u32, 0),
-                .fragsize = config.windowSize(),
+                .fragsize = Config.windowSize(),
             };
 
             pulse.pa_threaded_mainloop_lock(mainloop);
