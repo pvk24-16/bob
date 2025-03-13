@@ -117,6 +117,7 @@ pub fn main() !void {
             defer client_list.freeClientPath(path);
 
             std.log.info("loading visualizer {s}", .{current_name.?});
+
             context.client = Client.load(path) catch |e| blk: {
                 std.log.err("failed to load {s}: {s}", .{ path, @errorName(e) });
                 break :blk null;

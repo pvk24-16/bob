@@ -46,10 +46,14 @@ pub fn deinit(self: *GuiState) void {
 }
 
 pub fn registerElement(self: *GuiState, element: GuiElement) !InternalIndexType {
-    if (self.elements.items.len == max_elements)
+    if (self.elements.items.len == max_elements) {
         return error.MaxElementsRegistered;
+    }
+
     const id: InternalIndexType = @intCast(self.elements.items.len);
+
     try self.elements.append(element);
+
     return id;
 }
 
