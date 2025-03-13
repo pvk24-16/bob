@@ -141,6 +141,7 @@ pub fn main() !void {
                 context.client = null;
                 context.gui_state.clear();
                 current_name = null;
+                context.flags = Flags{};
             } else {
                 context.gui_state.update();
                 imgui.SeparatorText("Description");

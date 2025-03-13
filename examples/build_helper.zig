@@ -37,6 +37,8 @@ pub fn buildExample(
     lib.addIncludePath(b.path("deps/include"));
     lib.addIncludePath(b.path("api"));
 
+    lib.linkSystemLibrary("m");
+
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     // defer _ = gpa.deinit();
 

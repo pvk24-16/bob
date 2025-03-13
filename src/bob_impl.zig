@@ -70,7 +70,20 @@ pub fn get_frequency_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob
 }
 
 pub fn get_chromagram(context: ?*anyopaque, buf: [*c]f32, channel: c_int) callconv(.C) void {
-    _ = .{ context, buf, channel };
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const data = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.chroma_center.chroma,
+        bob.BOB_LEFT_CHANNEL => &ctx.analyzer.chroma_left.chroma,
+        bob.BOB_RIGHT_CHANNEL => &ctx.analyzer.chroma_right.chroma,
+        else => @panic("Bad API call"),
+    };
+
+    var buf_slice: []f32 = undefined;
+    buf_slice.ptr = @ptrCast(buf);
+    buf_slice.len = 12;
+
+    @memcpy(buf_slice, data);
 }
 
 pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
