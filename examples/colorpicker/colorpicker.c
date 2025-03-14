@@ -46,4 +46,3 @@ EXPORT void destroy(void *userdata)
 {
   (void) userdata;
 }
-

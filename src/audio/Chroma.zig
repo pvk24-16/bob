@@ -19,8 +19,8 @@ samplerate: u32,
 pub fn init(allocator: std.mem.Allocator, window_size: usize) !Chroma {
     var self: Chroma = .{
         .window_size = window_size,
-        .fft = FastFourierTransform.init(
-            std.math.log2_int_ceil(window_size),
+        .fft = try FastFourierTransform.init(
+            std.math.log2_int_ceil(usize, window_size),
             padding_factor_log2,
             .blackman_harris,
             1.0,
@@ -54,10 +54,11 @@ fn binIdFromFrequency(self: *Chroma, freq: f32, size: usize) usize {
     return @intFromFloat(@round(fi));
 }
 
-pub fn execute(self: *Chroma, samples: []const u8) usize {
+pub fn execute(self: *Chroma, samples: []const f32) void {
 
     // Apply FFT
     self.fft.write(samples);
+    self.fft.evaluate();
     const spect = self.fft.read();
 
     // Apply square root
@@ -73,7 +74,7 @@ pub fn execute(self: *Chroma, samples: []const u8) usize {
             for (1..self.num_partials + 1) |h| {
                 const hf: f32 = @floatFromInt(h);
                 const freq = fund * hf;
-                const bin_center = self.binIdFromFrequency(freq, spect.size());
+                const bin_center = self.binIdFromFrequency(freq, spect.len);
                 const bins = spect[bin_center - self.num_bins .. bin_center + self.num_bins];
                 const peak = std.mem.max(f32, bins);
                 c.* += peak / hf / hf;
@@ -83,7 +84,7 @@ pub fn execute(self: *Chroma, samples: []const u8) usize {
 
     // Normalize chromagram
     const max = std.mem.max(f32, &self.chroma);
-    if (max > 0.001) {
+    if (max > 0.1) {
         for (&self.chroma) |*c| {
             c.* /= max;
         }

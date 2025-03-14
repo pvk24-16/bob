@@ -56,6 +56,9 @@ pub fn build(b: *std.Build) !void {
             exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
             exe.linkFramework("OpenGL");
             exe.linkSystemLibrary("glfw");
+            exe.linkFramework("CoreAudio");
+            exe.linkFramework("AudioUnit");
+            exe.linkFramework("CoreFoundation");
         },
         else => @panic("Unsupported platform"),
     }
@@ -140,6 +143,7 @@ pub fn build(b: *std.Build) !void {
     try helper.buildExample(b, target, optimize, "checkboxes", &.{"examples/checkboxes/checkboxes.c"});
     try helper.buildExample(b, target, optimize, "colorpicker", &.{"examples/colorpicker/colorpicker.c"});
     try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
+    try helper.buildExample(b, target, optimize, "cof", &.{"examples/cof/cof.c"});
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");

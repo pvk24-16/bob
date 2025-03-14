@@ -28,6 +28,7 @@ pub const GuiElement = struct {
     update: bool = false,
     data: union(enum) {
         float_slider: Slider(f32),
+        int_slider: Slider(c_int),
         checkbox: Checkbox,
         colorpicker: ColorPicker,
     },
@@ -65,6 +66,7 @@ pub fn update(self: *GuiState) void {
     for (self.getElements()) |*elem| {
         elem.update = switch (elem.data) {
             .float_slider => |*e| imgui.SliderFloat(elem.name, &e.value, e.min, e.max),
+            .int_slider => |*e| imgui.SliderInt(elem.name, &e.value, e.min, e.max),
             .checkbox => |*e| imgui.Checkbox(elem.name, &e.value),
             .colorpicker => |*e| imgui.ColorPicker3(elem.name, &e.rgb),
         };

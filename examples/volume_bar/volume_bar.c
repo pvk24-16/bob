@@ -42,7 +42,7 @@ static float vertex_data[] = {
 static struct bob_visualization_info info = {
     .name = "Volume bar",
     .description = "A really cool volume bar to test audio capture",
-    .enabled = BOB_AUDIO_TIME_DOMAIN_MONO | BOB_AUDIO_FREQUENCY_DOMAIN_MONO,
+    .enabled = BOB_AUDIO_TIME_DOMAIN_MONO | BOB_AUDIO_FREQUENCY_DOMAIN_MONO | BOB_AUDIO_FREQUENCY_DOMAIN_STEREO ,
 };
 
 const struct bob_visualization_info *get_info(void) {
@@ -102,9 +102,10 @@ void update(void *userdata) {
     glUseProgram(program);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    const struct bob_float_buffer spec = api.get_frequency_data(api.context, BOB_MONO_CHANNEL);
+    const struct bob_float_buffer left = api.get_frequency_data(api.context, BOB_LEFT_CHANNEL);
+    // const struct bob_float_buffer spec = api.get_frequency_data(api.context, BOB_RIGHT_CHANNEL);
     const size_t N = 32;
-    const size_t step = spec.size / N;
+    const size_t step = left.size / N;
     const float stepx = 2.0 / (float)N;
     
     float px = -1;
@@ -115,7 +116,7 @@ void update(void *userdata) {
     glClear(GL_COLOR_BUFFER_BIT);
     
     for (size_t i = 0; i < N; i++) {
-        const float vol = 40 * sum_freqs(&spec, t, h) - 0.9;
+        const float vol = 40 * sum_freqs(&left, t, h) - 0.9;
 
         vertex_data[1] = vol;
         vertex_data[9] = vol;

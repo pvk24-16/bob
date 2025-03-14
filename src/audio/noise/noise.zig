@@ -6,9 +6,10 @@ pub const RandomNoiseImpl = struct {
     buffer: []f32,
 
     pub fn init(config: Config, allocator: std.mem.Allocator) !RandomNoiseImpl {
+        _ = config;
         return RandomNoiseImpl{
             .rand = std.Random.DefaultPrng.init(42),
-            .buffer = try allocator.alloc(f32, config.windowSize()),
+            .buffer = try allocator.alloc(f32, Config.windowSize()),
         };
     }
 
