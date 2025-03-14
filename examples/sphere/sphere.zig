@@ -29,7 +29,8 @@ const Vertex = struct { pos: Vec3 };
 /// If you do not need any user data you can remove this struct.
 // const UserData = extern struct {};
 
-var my_float_handle: c_int = undefined;
+var radius_handle: c_int = undefined;
+var num_pts_handle: c_int = undefined;
 
 /// Export api variable, it will be populated with information by the API
 export var api: BobAPI = undefined;
@@ -51,7 +52,8 @@ export fn get_info() *VisualizationInfo {
 /// Return a pointer to user data, or NULL.
 export fn create() ?*anyopaque {
     _ = g.gl.gladLoadGLLoader(api.get_proc_address);
-    my_float_handle = api.register_float_slider.?(api.context, "Radius", 0.0, 1.0, 0.5);
+    radius_handle = api.register_float_slider.?(api.context, "Radius", 0.0, 2.0, 1.0);
+    num_pts_handle = api.register_float_slider.?(api.context, "Num pts", 0.0, 10000.0, 1000.0);
     return null;
 }
 
@@ -67,11 +69,14 @@ export fn update(_: *anyopaque) void {
 
     // Generate vertex/index buffers
 
-    const num_pts = 1000;
+    const r = api.get_ui_float_value.?(api.context, radius_handle);
+    const pts = api.get_ui_float_value.?(api.context, num_pts_handle);
+
+    const num_pts: u32 = @intFromFloat(std.math.round(pts));
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
     const allocator = gpa.allocator();
-    const vertices = fibo_sphere(num_pts, allocator);
+    const vertices = fibo_sphere(num_pts, r, allocator);
     defer allocator.free(vertices);
 
     // var vertices = [_]Vec3{
@@ -114,10 +119,8 @@ export fn update(_: *anyopaque) void {
 
     // "main loop"
 
-    const c = api.get_ui_float_value.?(api.context, my_float_handle);
-
     default_shader.setF32("time", @floatCast(g.glfw.glfwGetTime()));
-    g.gl.glClearColor(c, c, c, 1.0);
+    g.gl.glClearColor(0.3, 0.5, 0.7, 1.0);
     g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
     g.gl.glClear(g.gl.GL_DEPTH_BUFFER_BIT);
 
@@ -146,23 +149,23 @@ export fn destroy(user_data: *anyopaque) void {
     _ = user_data; // Avoid unused variable error
 }
 
-fn fibo_sphere(n: u32, allocator: std.mem.Allocator) []Vec3 {
+fn fibo_sphere(n: u32, radius: f32, allocator: std.mem.Allocator) []Vec3 {
     const n_f: f32 = @floatFromInt(n);
 
     var pts = allocator.alloc(Vec3, n) catch unreachable;
-    const phi = std.math.pi * (std.math.sqrt(n_f) - 1.0);
+    const phi = std.math.pi * (std.math.sqrt(5.0) - 1.0);
 
     for (0..n) |i| {
         const i_f: f32 = @floatFromInt(i);
-        const y = 1 - (i_f / n_f) * 2.0;
-        const radius = std.math.sqrt(1 - y * y);
+        const y = 1.0 - (i_f / (n_f - 1.0)) * 2.0;
+        const r = std.math.sqrt(1 - y * y);
 
         const theta = phi * i_f;
 
-        const x = std.math.cos(theta) * radius;
-        const z = std.math.sin(theta) * radius;
+        const x = std.math.cos(theta) * r;
+        const z = std.math.sin(theta) * r;
 
-        pts[i] = .{ .x = x, .y = y, .z = z };
+        pts[i] = .{ .x = radius * x, .y = radius * y, .z = radius * z };
     }
     return pts;
 }
