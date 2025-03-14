@@ -26,6 +26,7 @@ var radius_handle: c_int = undefined;
 var num_pts_handle: c_int = undefined;
 var shader_program: Shader = undefined;
 var vertex_buffer: VertexBuffer(Vec3) = undefined;
+var num_vertices: u32 = undefined;
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const gpa_allocator = gpa.allocator();
 
@@ -73,7 +74,7 @@ export fn create() ?*anyopaque {
 
     vertex_buffer = VertexBuffer(Vec3).init();
 
-    update_vertices(1000, 1.0);
+    num_vertices = update_vertices();
 
     return null;
 }
@@ -84,14 +85,8 @@ export fn update(_: *anyopaque) void {
 
     // Generate vertex/index buffers
 
-    const radius_or_pts_changed = is_updated(radius_handle) or is_updated(num_pts_handle);
-
-    const r = api.get_ui_float_value.?(api.context, radius_handle);
-    const pts = api.get_ui_float_value.?(api.context, num_pts_handle);
-    const num_pts: u32 = @intFromFloat(std.math.round(pts));
-
-    if (radius_or_pts_changed) {
-        update_vertices(num_pts, r);
+    if (is_updated(radius_handle) or is_updated(num_pts_handle)) {
+        num_vertices = update_vertices();
     }
 
     // "main loop"
@@ -109,7 +104,7 @@ export fn update(_: *anyopaque) void {
     g.gl.glDrawArrays(
         g.gl.GL_POINTS,
         0,
-        @intCast(num_pts),
+        @intCast(num_vertices),
     );
 
     vertex_buffer.unbind();
@@ -128,7 +123,11 @@ fn is_updated(ui_element_handle: c_int) bool {
     return false;
 }
 
-fn update_vertices(num_pts: u32, radius: f32) void {
+fn update_vertices() u32 {
+    const radius = api.get_ui_float_value.?(api.context, radius_handle);
+    const pts = api.get_ui_float_value.?(api.context, num_pts_handle);
+    const num_pts: u32 = @intFromFloat(std.math.round(pts));
+
     const vertices = fibo_sphere(num_pts, radius, gpa_allocator);
     defer gpa_allocator.free(vertices);
     vertex_buffer.bind();
@@ -137,6 +136,8 @@ fn update_vertices(num_pts: u32, radius: f32) void {
     vertex_buffer.enableAttribute(0, 3, .float, false, 0);
 
     vertex_buffer.unbind();
+
+    return num_pts;
 }
 
 fn fibo_sphere(n: u32, radius: f32, allocator: std.mem.Allocator) []Vec3 {
