@@ -261,6 +261,5 @@ pub fn parseObj(
             );
         }
     }
-
     return create_buffers(&vertex_data, &index_data);
 }
