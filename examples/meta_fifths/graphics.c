@@ -1,4 +1,5 @@
 #include "graphics.h"
+#include "params.h"
 
 #include <bob.h>
 #include <glad/glad.h>
@@ -67,6 +68,9 @@ void graphics_deinit(void)
 
 void draw_buffer(struct buffer *b)
 {
+  float *bg = get_bg_color();
+  glClearColor(bg[0], bg[1], bg[2], 1.f);
+  glClear(GL_COLOR_BUFFER_BIT);
   glBindVertexArray(s_vao);
   glUseProgram(s_program);
   glBindBuffer(GL_ARRAY_BUFFER, s_vbo);
