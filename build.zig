@@ -144,6 +144,15 @@ pub fn build(b: *std.Build) !void {
     try helper.buildExample(b, target, optimize, "colorpicker", &.{"examples/colorpicker/colorpicker.c"});
     try helper.buildExample(b, target, optimize, "cof", &.{"examples/cof/cof.c"});
     try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
+    try helper.buildExample(b, target, optimize, "meta_fifths", &.{
+        "examples/meta_fifths/buffer.c",
+        "examples/meta_fifths/graphics.c",
+        "examples/meta_fifths/lattice.c",
+        "examples/meta_fifths/marching.c",
+        "examples/meta_fifths/meta_fifths.c",
+        "examples/meta_fifths/params.c",
+        "examples/meta_fifths/chroma.c",
+    });
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
