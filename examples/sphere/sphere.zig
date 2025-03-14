@@ -21,16 +21,13 @@ const AudioFlags = bob.bob_audio_flags;
 const Channels = bob.bob_channel;
 const BobAPI = bob.bob_api;
 
-const Vertex = struct { pos: Vec3 };
-
-/// Struct for storing user data.
-/// Define "global" values needed by the visualizer.
-/// Create an instance of `UserData` in `create()`, and use it in `update()` and `destroy()`.
-/// If you do not need any user data you can remove this struct.
-// const UserData = extern struct {};
-
+// Global variables
 var radius_handle: c_int = undefined;
 var num_pts_handle: c_int = undefined;
+var shader_program: Shader = undefined;
+var vertex_buffer: VertexBuffer(Vec3) = undefined;
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const gpa_allocator = gpa.allocator();
 
 /// Export api variable, it will be populated with information by the API
 export var api: BobAPI = undefined;
@@ -54,99 +51,92 @@ export fn create() ?*anyopaque {
     _ = g.gl.gladLoadGLLoader(api.get_proc_address);
     radius_handle = api.register_float_slider.?(api.context, "Radius", 0.0, 2.0, 1.0);
     num_pts_handle = api.register_float_slider.?(api.context, "Num pts", 0.0, 10000.0, 1000.0);
+
+    // Initialize shaders
+    shader_program = Shader.init(
+        @embedFile("shaders/sphere.vert"),
+        @embedFile("shaders/sphere.frag"),
+    ) catch unreachable;
+
+    shader_program.bind();
+
+    shader_program.setMat4(
+        "perspectiveMatrix",
+        Mat4.perspective(90, 0.1, 10.0),
+    );
+    shader_program.setMat4(
+        "transformMatrix",
+        Mat4.identity().translate(0.0, 0.0, -2.0),
+    );
+
+    shader_program.unbind();
+
+    vertex_buffer = VertexBuffer(Vec3).init();
+
+    update_vertices(1000, 1.0);
+
     return null;
 }
 
 /// Update called each frame.
 /// Audio analysis data is passed in `data`.
 export fn update(_: *anyopaque) void {
-    var default_shader = Shader.init(
-        @embedFile("shaders/sphere.vert"),
-        @embedFile("shaders/sphere.frag"),
-    ) catch unreachable;
-
-    default_shader.bind();
 
     // Generate vertex/index buffers
 
+    const radius_or_pts_changed = is_updated(radius_handle) or is_updated(num_pts_handle);
+
     const r = api.get_ui_float_value.?(api.context, radius_handle);
     const pts = api.get_ui_float_value.?(api.context, num_pts_handle);
-
     const num_pts: u32 = @intFromFloat(std.math.round(pts));
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
-    const vertices = fibo_sphere(num_pts, r, allocator);
-    defer allocator.free(vertices);
 
-    // var vertices = [_]Vec3{
-    //     .{ .x = 0.8, .y = 0.8, .z = -1.0 },
-    //     .{ .x = 0.8, .y = -0.8, .z = -1.0 },
-    //     .{ .x = -0.8, .y = -0.8, .z = -1.0 },
-    //     .{ .x = -0.8, .y = 0.8, .z = -1.0 },
-    // };
+    if (radius_or_pts_changed) {
+        update_vertices(num_pts, r);
+    }
 
-    var vertex_buffer = VertexBuffer(Vec3).init();
-    defer vertex_buffer.deinit();
+    // "main loop"
 
+    shader_program.bind();
+
+    shader_program.setF32("time", @floatCast(g.glfw.glfwGetTime()));
+    g.gl.glClearColor(0.3, 0.5, 0.7, 1.0);
+    g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
+    g.gl.glClear(g.gl.GL_DEPTH_BUFFER_BIT);
+
+    vertex_buffer.bind();
+
+    g.gl.glPointSize(2.0);
+    g.gl.glDrawArrays(
+        g.gl.GL_POINTS,
+        0,
+        @intCast(num_pts),
+    );
+
+    vertex_buffer.unbind();
+    shader_program.unbind();
+}
+
+/// Perform potential visualization cleanup.
+export fn destroy(_: *anyopaque) void {
+    _ = gpa.deinit();
+}
+
+fn is_updated(ui_element_handle: c_int) bool {
+    if (api.ui_element_is_updated.?(api.context, ui_element_handle) > 0) {
+        return true;
+    }
+    return false;
+}
+
+fn update_vertices(num_pts: u32, radius: f32) void {
+    const vertices = fibo_sphere(num_pts, radius, gpa_allocator);
+    defer gpa_allocator.free(vertices);
     vertex_buffer.bind();
 
     vertex_buffer.write(vertices, .static);
     vertex_buffer.enableAttribute(0, 3, .float, false, 0);
 
-    var indices: [6]u32 = .{ 0, 1, 2, 0, 2, 3 };
-
-    var index_buffer = IndexBuffer(u32).init();
-    defer index_buffer.deinit();
-    index_buffer.bind();
-    index_buffer.write(&indices, .static);
-    index_buffer.unbind();
-
-    default_shader.bind();
-
-    default_shader.setMat4(
-        "perspectiveMatrix",
-        Mat4.perspective(90, 0.1, 10.0),
-    );
-    default_shader.setMat4(
-        "transformMatrix",
-        Mat4.identity().translate(0.0, 0.0, -2.0),
-    );
-
-    g.gl.glEnable(g.gl.GL_DEPTH_TEST);
-    g.gl.glEnable(g.gl.GL_CULL_FACE);
-    g.gl.glCullFace(g.gl.GL_BACK);
-
-    // "main loop"
-
-    default_shader.setF32("time", @floatCast(g.glfw.glfwGetTime()));
-    g.gl.glClearColor(0.3, 0.5, 0.7, 1.0);
-    g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
-    g.gl.glClear(g.gl.GL_DEPTH_BUFFER_BIT);
-
-    index_buffer.bind();
-    vertex_buffer.bind();
-
-    // g.gl.glDrawElements(
-    //     g.gl.GL_TRIANGLES,
-    //     @intCast(indices.len),
-    //     index_buffer.indexType(),
-    //     null,
-    // );
-    g.gl.glPointSize(2.0);
-    g.gl.glDrawArrays(
-        g.gl.GL_POINTS,
-        0,
-        @intCast(vertices.len),
-    );
-
-    index_buffer.unbind();
     vertex_buffer.unbind();
-}
-
-/// Perform potential visualization cleanup.
-export fn destroy(user_data: *anyopaque) void {
-    _ = user_data; // Avoid unused variable error
 }
 
 fn fibo_sphere(n: u32, radius: f32, allocator: std.mem.Allocator) []Vec3 {
