@@ -119,6 +119,12 @@ EXPORT void update(void *userdata)
 
   push_gl_state();
 
+  int w, h;
+  if (api.get_window_size(api.context, &w, &h)) {
+    int min = w < h ? w : h;
+    glViewport((w - min) / 2, (h - min) / 2, min, min);
+  }
+
   static float chroma[12] = {0};
   float target_chroma[12];
   api.get_chromagram(api.context, target_chroma, BOB_MONO_CHANNEL);

@@ -15,6 +15,7 @@ fn checkSignature(comptime name: []const u8) void {
 }
 
 const api_fn_names: []const []const u8 = &.{
+    "get_window_size",
     "get_time_data",
     "get_frequency_data",
     "get_chromagram",
@@ -36,6 +37,16 @@ const api_fn_names: []const []const u8 = &.{
 
 comptime {
     for (api_fn_names) |name| checkSignature(name);
+}
+
+pub fn get_window_size(context: ?*anyopaque, x: [*c]c_int, y: [*c]c_int) callconv(.C) c_int {
+    const context_: *Context = @ptrCast(@alignCast(context.?));
+    x.?.* = context_.window_width;
+    y.?.* = context_.window_height;
+    if (!context_.window_did_resize)
+        return 0;
+    context_.window_did_resize = false;
+    return 1;
 }
 
 pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {

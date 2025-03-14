@@ -10,6 +10,14 @@ const Flags = @import("flags.zig").Flags;
 
 const os_tag = @import("builtin").os.tag;
 
+fn resizeCallback(window: ?*glfw.GLFWwindow, x: c_int, y: c_int) callconv(.C) void {
+    const userdata = glfw.glfwGetWindowUserPointer(window);
+    const context: *Context = @ptrCast(@alignCast(userdata));
+    context.window_width = x;
+    context.window_height = y;
+    context.window_did_resize = true;
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -64,6 +72,16 @@ pub fn main() !void {
 
     var context = try Context.init(allocator);
     defer context.deinit(allocator);
+
+    glfw.glfwSetWindowUserPointer(window, @ptrCast(&context));
+    _ = glfw.glfwSetWindowSizeCallback(window, resizeCallback);
+
+    var x: c_int = undefined;
+    var y: c_int = undefined;
+    glfw.glfwGetWindowSize(window, &x, &y);
+    context.window_width = x;
+    context.window_height = y;
+    context.window_did_resize = true;
 
     var current_name: ?[*:0]const u8 = null;
     var pid_str = [_]u8{0} ** 32;
@@ -122,6 +140,7 @@ pub fn main() !void {
 
             context.client = Client.load(path) catch |e| blk: {
                 std.log.err("failed to load {s}: {s}", .{ path, @errorName(e) });
+                try context.err.setMessage("Failed to load visualizer: {s}", .{@errorName(e)}, allocator);
                 break :blk null;
             };
             if (context.client) |*client| {

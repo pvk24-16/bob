@@ -78,6 +78,11 @@ struct bob_api {
     float (*get_deltatime)(void *context);
 
     /**
+     * Get window size. Returns non zero if window was resized since last call.
+     */
+    int (*get_window_size)(void *context, int *x, int *y);
+
+    /**
      * Get time domain data for specified channel.
      */
     struct bob_float_buffer (*get_time_data)(void *context, int channel);

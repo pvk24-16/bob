@@ -20,6 +20,9 @@ client: ?Client,
 capturer: ?AudioCapturer,
 analyzer: AudioAnalyzer,
 flags: Flags,
+window_width: i32,
+window_height: i32,
+window_did_resize: bool,
 
 pub fn init(allocator: std.mem.Allocator) !Context {
     return .{
@@ -29,6 +32,9 @@ pub fn init(allocator: std.mem.Allocator) !Context {
         .capturer = null,
         .analyzer = try AudioAnalyzer.init(allocator),
         .flags = Flags{},
+        .window_width = 0,
+        .window_height = 0,
+        .window_did_resize = false,
     };
 }
 
