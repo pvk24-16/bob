@@ -30,7 +30,13 @@ const char *const fsource =
   "}\n";
 
 static int radius_handle;
+static int base_octave_handle;
+static int num_partials_handle;
+static int num_octaves_handle;
 static float radius = .8f;
+static size_t base_octave = 3;
+static size_t num_partials = 3;
+static size_t num_octaves = 2;
 static GLuint vbo;
 static GLuint ibo;
 static GLuint vao;
@@ -60,6 +66,9 @@ EXPORT void *create(void)
 
   /* Register GUI elements */
   radius_handle = api.register_float_slider(api.context, "Radius", .2f, .9f, radius);
+  base_octave_handle = api.register_int_slider(api.context, "Base octave", 3, 6, base_octave);
+  num_octaves_handle = api.register_int_slider(api.context, "Number of octaves", 1, 6, num_octaves);
+  num_partials_handle = api.register_int_slider(api.context, "Number of partials", 0, 5, num_partials);
 
   /* Create vertex buffer and vertex array */
   glGenBuffers(1, &vbo);
@@ -125,16 +134,6 @@ EXPORT void update(void *userdata)
     chroma[i] = -snap < diff && diff < snap ? target : chroma[i] + speed * diff;
   }
 
-  for (size_t i = 0; i < 12; ++i) {
-    printf("%.2f ", target_chroma[i]);
-  }
-  printf("\n");
-
-  for (size_t i = 0; i < 12; ++i) {
-    printf("%.2f ", chroma[i]);
-  }
-  printf("\n");
-
   radius = api.get_ui_float_value(api.context, radius_handle);
 
   /* Compute vertex data */
@@ -164,6 +163,14 @@ EXPORT void update(void *userdata)
   glDrawElements(GL_LINES, sizeof(index_data), GL_UNSIGNED_INT, index_data);
 
   pop_gl_state();
+
+  base_octave = api.get_ui_int_value(api.context, base_octave_handle);
+  num_partials = api.get_ui_int_value(api.context, num_partials_handle);
+  num_octaves = api.get_ui_int_value(api.context, num_octaves_handle);
+
+  api.set_chromagram_c3(api.context, 130.81f * powf(2.f, (float) base_octave));
+  api.set_chromagram_num_partials(api.context, num_partials);
+  api.set_chromagram_num_octaves(api.context, num_octaves);
 }
 
 EXPORT void destroy(void *userdata)

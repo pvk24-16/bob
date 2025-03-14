@@ -109,6 +109,11 @@ struct bob_api {
     int (*register_float_slider)(void *context, const char *name, float min, float max, float default_value);
 
     /**
+     * Register a int slider.
+     */
+    int (*register_int_slider)(void *context, const char *name, int min, int max, int default_value);
+
+    /**
      * Register a checkbox.
      */
     int (*register_checkbox)(void *context, const char *name, int default_value);
@@ -129,6 +134,11 @@ struct bob_api {
     float (*get_ui_float_value)(void *context, int handle);
 
     /**
+     * Get int value from a UI element.
+     */
+    int (*get_ui_int_value)(void *context, int handle);
+
+    /**
      * Get boolean value from a UI element.
      */
     int (*get_ui_bool_value)(void *context, int handle);
@@ -137,6 +147,21 @@ struct bob_api {
      * Get RGB values from a colorpicker.
      */
     void (*get_ui_colorpicker_value)(void *context, int handle, float *color);
+
+    /**
+     * Set the referenc pitch for C3 used in chromagram computation.
+     */
+    void (*set_chromagram_c3)(void *context, float pitch);
+
+    /**
+     * Set the number of octaves to consider during chromagram computation.
+     */
+    void (*set_chromagram_num_octaves)(void *context, size_t num);
+
+    /**
+     * Set the number of partials to consider during chromagram computation.
+     */
+    void (*set_chromagram_num_partials)(void *context, size_t num);
 };
 
 /********************************************
