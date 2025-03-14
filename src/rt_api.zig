@@ -11,7 +11,7 @@ fn checkSignature(comptime name: []const u8) void {
     const t2 = ?*const @TypeOf(@field(@This(), name));
     if (t1 != t2) {
         @compileError("API signature mismatch for '" ++ name ++ "': "
-            //
+        //
         ++ @typeName(t1) ++ " and " ++ @typeName(t2));
     }
 }
