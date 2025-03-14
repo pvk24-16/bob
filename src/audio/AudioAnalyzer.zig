@@ -60,12 +60,11 @@ pub fn deinit(self: *AudioAnalyzer, allocator: std.mem.Allocator) void {
 }
 
 pub fn analyze(self: *AudioAnalyzer, stereo: []const f32, flags: Flags) void {
-    self.splixer.mix(stereo);
+    self.splixer.splix(stereo);
 
     if (flags.frequency_mono) {
         self.spectral_analyzer_center.write(self.splixer.getCenter());
         self.spectral_analyzer_center.evaluate();
-        // std.log.debug("Mono result {any}", .{self.spectral_analyzer_center.read()[100..116]});
     }
 
     if (flags.chromagram_mono) {

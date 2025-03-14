@@ -219,10 +219,6 @@ pub const LinuxImpl = struct {
             if (std.mem.eql(u8, data.process_id, ptr[0..len])) {
                 data.ok = true;
                 data.sink_input_info = info.*;
-                if (info.sample_spec.rate != Config.sample_rate) {
-                    std.log.err("sink input samplerate {d} does not match hardcoded value {d}", .{ info.sample_spec.rate, Config.sample_rate });
-                    data.ok = false;
-                }
             }
         }
     };
