@@ -7,7 +7,7 @@ const win = @cImport({
     @cInclude("windows.h");
 });
 
- fn windowDetected(hwnd: win.HWND, list_raw: win.LPARAM) callconv(.C) win.BOOL {
+fn windowDetected(hwnd: win.HWND, list_raw: win.LPARAM) callconv(.C) win.BOOL {
     // We are only interested in Windows that want to show themselves.
     if (win.IsWindowVisible(hwnd) == 0) {
         // If this line is removed, you'll get a bunch of Default IME entries.
@@ -16,7 +16,7 @@ const win = @cImport({
 
     const ex_style = win.GetWindowLongA(hwnd, win.GWL_EXSTYLE);
 
-    // The Windows docs says that NOACTIVE and TOOLWINDOW are 
+    // The Windows docs says that NOACTIVE and TOOLWINDOW are
     // two common ways to prevent an icon from showing up.
     // We also use NOREDIRECTIONBITMAP since the UWP Media Player and Settings background
     // processes set those to true. The docs confirm that NOREDIRECTIONBITMAP is to be used for
@@ -58,7 +58,6 @@ const win = @cImport({
         return win.FALSE;
     };
     return win.TRUE;
-
 }
 
 pub fn scanForAudioProducers(list: *AudioProducerEntry.List) void {

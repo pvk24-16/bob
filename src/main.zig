@@ -127,7 +127,6 @@ pub fn main() !void {
                 possible_audio_producers.clearRetainingCapacity();
                 scanner_for_audio_producers.scan(&possible_audio_producers);
             }
-
         }
 
         if (ui.selectClient(&client_list, current_name)) |index| {

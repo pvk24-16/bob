@@ -5,7 +5,7 @@ fn scannerNotImplementedForPlatform(_: *AudioProducerEntry.List) void {
     // TODO: Maybe we should log this somehow?
 }
 
-pub const scan = switch(os_tag) {
+pub const scan = switch (os_tag) {
     .windows => @import("./windows.zig").scanForAudioProducers,
     else => scannerNotImplementedForPlatform,
 };
