@@ -63,12 +63,27 @@ pub fn getElements(self: *GuiState) []GuiElement {
 }
 
 pub fn update(self: *GuiState) void {
+
+    // Make the color picker less meaty
+    const color_edit_flags: imgui.ColorEditFlags = .{
+        .NoSidePreview = true,
+        .NoAlpha = true,
+        .NoPicker = true,
+        .NoOptions = true,
+        .NoSmallPreview = true,
+    };
+
     for (self.getElements()) |*elem| {
         elem.update = switch (elem.data) {
             .float_slider => |*e| imgui.SliderFloat(elem.name, &e.value, e.min, e.max),
             .int_slider => |*e| imgui.SliderInt(elem.name, &e.value, e.min, e.max),
             .checkbox => |*e| imgui.Checkbox(elem.name, &e.value),
-            .colorpicker => |*e| imgui.ColorPicker3(elem.name, &e.rgb),
+            .colorpicker => |*e| blk: {
+                imgui.PushItemWidth(200);
+                const update_ = imgui.ColorPicker3Ext(elem.name, &e.rgb, color_edit_flags);
+                imgui.PopItemWidth();
+                break :blk update_;
+            },
         };
     }
 }
