@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const helper = @import("examples/build_helper.zig");
 
 fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
@@ -153,6 +154,8 @@ pub fn build(b: *std.Build) !void {
         "examples/meta_fifths/params.c",
         "examples/meta_fifths/chroma.c",
     });
+
+    try @import("examples/logvol/build.zig").buildLib(b, "logvol", "examples/logvol/", target, optimize);
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
@@ -233,4 +236,30 @@ fn createImguiGLFWStaticLib(
     });
 
     return imgui_glfw;
+}
+
+// Build a standalone Zig dll
+pub fn buildLib(b: *std.Build, comptime path: []const u8) !void {
+    if (true) @compileError("Unimplemented");
+
+    const folder = path ++ "/";
+    const file = switch (builtin.os.tag) {
+        .windows => path ++ ".os",
+        .linux => path ++ ".os",
+        .macos => path ++ ".os",
+    };
+
+    const lib = b.addSystemCommand(&.{ "zig", "build" });
+
+    // Set directory to that of lib
+    lib.setCwd(b.path(folder));
+
+    // Fail if lib cannot compile
+    lib.addCheck(.{ .expect_term = .{ .Exited = 0 } });
+
+    // Ensure lib is rebuilt every compilation
+    lib.has_side_effects = true;
+
+    // Install library in a separate folder
+    b.installLibFile(folder ++ "zig-out/lib/" ++ file, file);
 }

@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <bob.h>
-
 #include "glad/glad.h"
 
 static const char *vertex_source =
@@ -102,10 +101,10 @@ void update(void *userdata) {
     glUseProgram(program);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    const struct bob_float_buffer left = api.get_frequency_data(api.context, BOB_LEFT_CHANNEL);
+    const struct bob_float_buffer mono = api.get_frequency_data(api.context, BOB_MONO_CHANNEL);
     // const struct bob_float_buffer spec = api.get_frequency_data(api.context, BOB_RIGHT_CHANNEL);
     const size_t N = 32;
-    const size_t step = left.size / N;
+    const size_t step = mono.size / N;
     const float stepx = 2.0 / (float)N;
     
     float px = -1;
@@ -116,7 +115,7 @@ void update(void *userdata) {
     glClear(GL_COLOR_BUFFER_BIT);
     
     for (size_t i = 0; i < N; i++) {
-        const float vol = 40 * sum_freqs(&left, t, h) - 0.9;
+        const float vol = 40 * sum_freqs(&mono, t, h) - 0.9;
 
         vertex_data[1] = vol;
         vertex_data[9] = vol;

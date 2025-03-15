@@ -19,13 +19,13 @@ pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
     var splixer = try AudioSplixer.init(Config.windowSize(), allocator);
     errdefer splixer.deinit(allocator);
 
-    var spectral_analyzer_left = try FFT.init(std.math.log2_int_ceil(usize, 4096), 2, .blackman_nuttall, 0.2, allocator);
+    var spectral_analyzer_left = try FFT.init(std.math.log2_int_ceil(usize, 4096), 2, .blackman_nuttall, 0.5, allocator);
     errdefer spectral_analyzer_left.deinit(allocator);
 
-    var spectral_analyzer_right = try FFT.init(std.math.log2_int_ceil(usize, 4096), 2, .blackman_nuttall, 0.2, allocator);
+    var spectral_analyzer_right = try FFT.init(std.math.log2_int_ceil(usize, 4096), 2, .blackman_nuttall, 0.5, allocator);
     errdefer spectral_analyzer_right.deinit(allocator);
 
-    var spectral_analyzer_center = try FFT.init(std.math.log2_int_ceil(usize, 4096), 2, .blackman_nuttall, 0.2, allocator);
+    var spectral_analyzer_center = try FFT.init(std.math.log2_int_ceil(usize, 4096), 2, .blackman_nuttall, 0.5, allocator);
     errdefer spectral_analyzer_center.deinit(allocator);
 
     var chroma_left = try Chroma.init(allocator, 4096);
