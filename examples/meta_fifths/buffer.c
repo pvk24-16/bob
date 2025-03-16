@@ -1,6 +1,6 @@
 #include "buffer.h"
 
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
 

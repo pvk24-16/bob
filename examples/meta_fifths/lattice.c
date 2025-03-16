@@ -34,12 +34,12 @@ int lattice_h(void)
 
 float lattice_x(int i)
 {
-  return 2.f * ((float) i / (float) s_width) - 1.f;
+  return 2.f * ((float) i / (float) (s_width - 1)) - 1.f;
 }
 
 float lattice_y(int j)
 {
-  return 2.f * ((float) j / (float) s_height) - 1.f;
+  return 2.f * ((float) j / (float) (s_height - 1)) - 1.f;
 }
 
 void lattice_set_size(int w, int h, int h_res)
@@ -54,11 +54,15 @@ void set_lattice_values(float *chroma)
   const float r = get_radius();
   const float s = get_scale();
 
+  const float min = s_width < s_height ? s_width : s_height;
+  const float sx = (float) s_width / min;
+  const float sy = (float) s_height / min;
+
   for (int li = 0; li < s_width; ++li) {
     for (int lj = 0; lj < s_height; ++lj) {
 
-      const float lx = lattice_x(li);
-      const float ly = lattice_y(lj);
+      const float lx = sx * lattice_x(li);
+      const float ly = sy * lattice_y(lj);
 
       float v = 0.f;
 
