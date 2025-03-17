@@ -16,7 +16,9 @@ pub const Impl = switch (builtin.os.tag) {
 impl: Impl,
 
 pub fn init(config: Config, allocator: std.mem.Allocator) !AudioCapturer {
-    return AudioCapturer{ .impl = try Impl.init(config, allocator) };
+    return AudioCapturer{
+        .impl = try Impl.init(config, allocator),
+    };
 }
 
 pub fn deinit(self: *AudioCapturer, allocator: std.mem.Allocator) void {

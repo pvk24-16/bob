@@ -25,7 +25,7 @@ window_height: i32,
 window_did_resize: bool,
 
 pub fn init(allocator: std.mem.Allocator) !Context {
-    return .{
+    return Context{
         .err = Error{},
         .gui_state = GuiState.init(allocator),
         .client = null,
@@ -39,6 +39,10 @@ pub fn init(allocator: std.mem.Allocator) !Context {
 }
 
 pub fn connect(self: *Context, process_id: []const u8, allocator: std.mem.Allocator) !void {
+    if (self.capturer) |_| {
+        unreachable;
+    }
+
     const config: AudioConfig = .{ .process_id = process_id };
     self.capturer = try AudioCapturer.init(config, allocator);
     try self.capturer.?.start();
@@ -59,14 +63,18 @@ pub fn processAudio(self: *Context) void {
 
 pub fn deinit(self: *Context, allocator: std.mem.Allocator) void {
     self.gui_state.deinit();
-    if (self.client) |*client|
+
+    if (self.client) |*client| {
         client.unload();
+    }
+
     if (self.capturer) |*capturer| {
         capturer.stop() catch {
             std.debug.print("Failed to stop capturer.", .{});
         };
         capturer.deinit(allocator);
     }
+
     self.err.clear(allocator);
     self.analyzer.deinit(allocator);
 }

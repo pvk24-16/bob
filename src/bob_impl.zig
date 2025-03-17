@@ -7,6 +7,7 @@ const GuiState = @import("GuiState.zig");
 fn checkSignature(comptime name: []const u8) void {
     const t1 = @TypeOf(@field(bob.api, name));
     const t2 = ?*const @TypeOf(@field(@This(), name));
+
     if (t1 != t2) {
         @compileError("API signature mismatch for '" ++ name ++ "': "
         //
@@ -36,21 +37,27 @@ const api_fn_names: []const []const u8 = &.{
 };
 
 comptime {
-    for (api_fn_names) |name| checkSignature(name);
+    for (api_fn_names) |name| {
+        checkSignature(name);
+    }
 }
 
 pub fn get_window_size(context: ?*anyopaque, x: [*c]c_int, y: [*c]c_int) callconv(.C) c_int {
     const context_: *Context = @ptrCast(@alignCast(context.?));
     x.?.* = context_.window_width;
     y.?.* = context_.window_height;
-    if (!context_.window_did_resize)
+
+    if (!context_.window_did_resize) {
         return 0;
+    }
+
     context_.window_did_resize = false;
     return 1;
 }
 
 pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
     const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
     const data = switch (channel) {
         bob.BOB_MONO_CHANNEL => ctx.analyzer.splixer.getCenter(),
         bob.BOB_LEFT_CHANNEL => ctx.analyzer.splixer.getLeft(),
@@ -114,7 +121,8 @@ pub fn get_tempo(context: ?*anyopaque, channel: c_int) callconv(.C) f32 {
 }
 
 pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32, max: f32, default_value: f32) callconv(.C) c_int {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+
     const element: GuiState.GuiElement = .{
         .name = name,
         .data = .{ .float_slider = .{
@@ -124,12 +132,14 @@ pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32,
             .default = default_value,
         } },
     };
-    const result = context_.gui_state.registerElement(element);
+
+    const result = ctx.gui_state.registerElement(element);
     return result catch -1;
 }
 
 pub fn register_int_slider(context: ?*anyopaque, name: [*c]const u8, min: c_int, max: c_int, default_value: c_int) callconv(.C) c_int {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+
     const element: GuiState.GuiElement = .{
         .name = name,
         .data = .{ .int_slider = .{
@@ -139,12 +149,14 @@ pub fn register_int_slider(context: ?*anyopaque, name: [*c]const u8, min: c_int,
             .default = default_value,
         } },
     };
-    const result = context_.gui_state.registerElement(element);
+
+    const result = ctx.gui_state.registerElement(element);
     return result catch -1;
 }
 
 pub fn register_checkbox(context: ?*anyopaque, name: [*c]const u8, default_value: c_int) callconv(.C) c_int {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+
     const element: GuiState.GuiElement = .{
         .name = name,
         .data = .{ .checkbox = .{
@@ -152,12 +164,14 @@ pub fn register_checkbox(context: ?*anyopaque, name: [*c]const u8, default_value
             .default = default_value != 0,
         } },
     };
-    const result = context_.gui_state.registerElement(element);
+
+    const result = ctx.gui_state.registerElement(element);
     return result catch -1;
 }
 
 pub fn register_colorpicker(context: ?*anyopaque, name: [*c]const u8, default_color: [*c]f32) callconv(.C) c_int {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+
     var element: GuiState.GuiElement = .{
         .name = name,
         .data = .{ .colorpicker = .{
@@ -170,61 +184,68 @@ pub fn register_colorpicker(context: ?*anyopaque, name: [*c]const u8, default_co
     default_slice.len = 3;
     @memcpy(&element.data.colorpicker.rgb, default_slice);
 
-    const result = context_.gui_state.registerElement(element);
+    const result = ctx.gui_state.registerElement(element);
     return result catch -1;
 }
 
 pub fn ui_element_is_updated(context: ?*anyopaque, handle: c_int) callconv(.C) c_int {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = context_.gui_state.getElements();
+    const elems = ctx.gui_state.getElements();
     return @intFromBool(elems[id].update);
 }
 
 pub fn get_ui_float_value(context: ?*anyopaque, handle: c_int) callconv(.C) f32 {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = context_.gui_state.getElements();
+    const elems = ctx.gui_state.getElements();
     const elem = &elems[id];
+
     const value: f32 = switch (elem.data) {
         .float_slider => |s| s.value,
         else => return 0.0, // TODO: some error code?
     };
+
     elem.update = false;
     return value;
 }
 
 pub fn get_ui_int_value(context: ?*anyopaque, handle: c_int) callconv(.C) c_int {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = context_.gui_state.getElements();
+    const elems = ctx.gui_state.getElements();
     const elem = &elems[id];
+
     const value: c_int = switch (elem.data) {
         .int_slider => |s| s.value,
         else => return 0.0, // TODO: some error code?
     };
+
     elem.update = false;
     return value;
 }
 
 pub fn get_ui_bool_value(context: ?*anyopaque, handle: c_int) callconv(.C) c_int {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = context_.gui_state.getElements();
+    const elems = ctx.gui_state.getElements();
     const elem = &elems[id];
+
     const value = switch (elem.data) {
         .checkbox => |b| b.value,
         else => return 0, // TODO: some error code?
     };
+
     elem.update = false;
     return @intFromBool(value);
 }
 
 pub fn get_ui_colorpicker_value(context: ?*anyopaque, handle: c_int, color: [*c]f32) callconv(.C) void {
-    const context_: *Context = @alignCast(@ptrCast(context orelse unreachable));
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = context_.gui_state.getElements();
+    const elems = ctx.gui_state.getElements();
     const elem = &elems[id];
+
     const value = switch (elem.data) {
         .colorpicker => |b| &b.rgb,
         else => return, // TODO: some error code?
@@ -238,24 +259,24 @@ pub fn get_ui_colorpicker_value(context: ?*anyopaque, handle: c_int, color: [*c]
     elem.update = false;
 }
 pub fn set_chromagram_c3(context: ?*anyopaque, pitch: f32) callconv(.C) void {
-    const context_: *Context = @alignCast(@ptrCast(context.?));
-    context_.analyzer.chroma_left.c3 = pitch;
-    context_.analyzer.chroma_right.c3 = pitch;
-    context_.analyzer.chroma_center.c3 = pitch;
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+    ctx.analyzer.chroma_left.c3 = pitch;
+    ctx.analyzer.chroma_right.c3 = pitch;
+    ctx.analyzer.chroma_center.c3 = pitch;
 }
 
 pub fn set_chromagram_num_octaves(context: ?*anyopaque, num: usize) callconv(.C) void {
-    const context_: *Context = @alignCast(@ptrCast(context.?));
-    context_.analyzer.chroma_left.num_octaves = num;
-    context_.analyzer.chroma_right.num_octaves = num;
-    context_.analyzer.chroma_center.num_octaves = num;
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+    ctx.analyzer.chroma_left.num_octaves = num;
+    ctx.analyzer.chroma_right.num_octaves = num;
+    ctx.analyzer.chroma_center.num_octaves = num;
 }
 
 pub fn set_chromagram_num_partials(context: ?*anyopaque, num: usize) callconv(.C) void {
-    const context_: *Context = @alignCast(@ptrCast(context.?));
-    context_.analyzer.chroma_left.num_partials = num;
-    context_.analyzer.chroma_right.num_partials = num;
-    context_.analyzer.chroma_center.num_partials = num;
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+    ctx.analyzer.chroma_left.num_partials = num;
+    ctx.analyzer.chroma_right.num_partials = num;
+    ctx.analyzer.chroma_center.num_partials = num;
 }
 
 pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(bob.api)) void {
