@@ -5,48 +5,68 @@ const std = @import("std");
 const win = @cImport({
     @cDefine("WIN32_LEAN_AND_MEAN", {});
     @cInclude("windows.h");
+    @cInclude("dwmapi.h");
 });
 
 fn windowDetected(hwnd: win.HWND, list_raw: win.LPARAM) callconv(.C) win.BOOL {
-    // We are only interested in Windows that want to show themselves.
-    if (win.IsWindowVisible(hwnd) == 0) {
-        // If this line is removed, you'll get a bunch of Default IME entries.
-        return win.TRUE;
-    }
+    // This code is inspired by window_capture_utils.cc from WebRTC.
+    var pid: win.DWORD = 0;
 
-    const ex_style = win.GetWindowLongA(hwnd, win.GWL_EXSTYLE);
-
-    // The Windows docs says that NOACTIVE and TOOLWINDOW are
-    // two common ways to prevent an icon from showing up.
-    // We also use NOREDIRECTIONBITMAP since the UWP Media Player and Settings background
-    // processes set those to true. The docs confirm that NOREDIRECTIONBITMAP is to be used for
-    // windows that are not rendered to the main desktop conventionally.
-    if (ex_style & win.WS_EX_NOACTIVATE == win.WS_EX_NOACTIVATE) {
-        return win.TRUE;
-    }
-    if (ex_style & win.WS_EX_TOOLWINDOW == win.WS_EX_TOOLWINDOW) {
-        return win.TRUE;
-    }
-    if (ex_style & win.WS_EX_NOREDIRECTIONBITMAP == win.WS_EX_NOREDIRECTIONBITMAP) {
-        return win.TRUE;
-    }
-
-    var list: *AudioProducerEntry.List = @ptrFromInt(@as(usize, @bitCast(list_raw)));
-    const tid = win.GetWindowThreadProcessId(hwnd, 0);
-
-    const thread_handle = win.OpenThread(win.THREAD_QUERY_INFORMATION, win.FALSE, tid);
-
-    const pid = win.GetProcessIdOfThread(thread_handle);
+    // The return value is a thread ID, we are not interested in this. We'd
+    // rather have the PID.
+    _ = win.GetWindowThreadProcessId(hwnd, &pid);
 
     if (pid == win.GetCurrentProcessId()) {
         // Don't add this window or child windows to the list.
         return win.TRUE;
     }
 
+    const ex_style = win.GetWindowLongA(hwnd, win.GWL_EXSTYLE);
+
+    const owner = win.GetWindow(hwnd, win.GW_OWNER);
+
+    if (owner != 0 and (ex_style & win.WS_EX_APPWINDOW) == 0) {
+        // Not a real top window.
+        return win.TRUE;
+    }
+
+    // We are only interested in Windows that want to show themselves.
+    if (win.IsWindowVisible(hwnd) == win.FALSE or win.IsIconic(hwnd) == win.TRUE) {
+        // If this line is removed, you'll get a bunch of Default IME entries.
+        return win.TRUE;
+    }
+
+    if (win.SendMessageTimeoutA(hwnd, win.WM_NULL, 0, 0, win.SMTO_ABORTIFHUNG, 50, 0) == 0) {
+        // We have found a suspended (or even hung) program. It is likely we do not want
+        // to present it to the user.
+        return win.TRUE;
+    }
+
+    var is_cloaked: i32 = 0;
+    if (win.DwmGetWindowAttribute(hwnd, win.DWMWA_CLOAKED, &is_cloaked, @sizeOf(@TypeOf(is_cloaked))) == win.S_OK) {
+        // UWP apps that are running but not visible become cloaked by DWM. So even
+        // if WM_VISIBLE is set and all that, the window may still be invisible.
+        // DWM knows better than the window style.
+        if (is_cloaked != 0) {
+            return win.TRUE;
+        }
+    }
+
+    var list: *AudioProducerEntry.List = @ptrFromInt(@as(usize, @bitCast(list_raw)));
+
     var result: AudioProducerEntry = undefined;
     _ = std.fmt.bufPrint(&result.process_id, "{d}\x00", .{pid}) catch {};
-    if (win.GetWindowTextA(hwnd, &result.name, result.name.len) == 0) {
+    const title_len = win.GetWindowTextA(hwnd, &result.name, result.name.len);
+    if (title_len == 0) {
         // We are not interested in windows that don't even have a title.
+        return win.TRUE;
+    }
+
+    var class_name: [256]u8 = undefined;
+    const class_name_len: u32 = @bitCast(win.GetClassNameA(hwnd, &class_name, class_name.len));
+    const class_name_slice = class_name[0..class_name_len];
+
+    if (std.mem.eql(u8, class_name_slice, "Progman")) {
         return win.TRUE;
     }
 
