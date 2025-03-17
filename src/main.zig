@@ -8,7 +8,7 @@ const gl = @import("graphics/gui.zig").gl;
 const Context = @import("Context.zig");
 const AudioCapturer = @import("audio/capture.zig").AudioCapturer;
 
-const scanner_for_audio_producers = @import("producers/scanner.zig");
+const audio_producer_enumerator = @import("producers/enumerator.zig");
 
 const os_tag = @import("builtin").os.tag;
 
@@ -66,10 +66,10 @@ pub fn main() !void {
     var current_name: ?[*:0]const u8 = null;
     var pid_str = [_]u8{0} ** 32;
 
-    var possible_audio_producers = scanner_for_audio_producers.AudioProducerEntry.List.init(gpa.allocator());
+    var possible_audio_producers = audio_producer_enumerator.AudioProducerEntry.List.init(gpa.allocator());
     defer possible_audio_producers.deinit();
 
-    scanner_for_audio_producers.scan(&possible_audio_producers);
+    audio_producer_enumerator.enumerate(&possible_audio_producers);
     //for (list.items) |producer| {
     //    const len = std.mem.indexOfScalar(u8, &producer.name, 0) orelse producer.name.len;
     //    const len_pid = std.mem.indexOfScalar(u8, &producer.process_id, 0) orelse producer.process_id.len;
@@ -125,7 +125,7 @@ pub fn main() !void {
             }
             if (imgui.Button("Refresh")) {
                 possible_audio_producers.clearRetainingCapacity();
-                scanner_for_audio_producers.scan(&possible_audio_producers);
+                audio_producer_enumerator.enumerate(&possible_audio_producers);
             }
         }
 
