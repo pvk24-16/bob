@@ -37,6 +37,7 @@ pub const MacOSImpl = struct {
         instance: *c.AudioComponentInstance,
         buffer_list: *c.AudioBufferList,
         ring_buffer: RingBuffer,
+        mutex: std.Thread.Mutex,
     };
     data: *UserData,
 
@@ -239,6 +240,7 @@ pub const MacOSImpl = struct {
             .instance = instance_ptr,
             .buffer_list = buffer_list,
             .ring_buffer = ring_buffer,
+            .mutex = .{},
         };
         const input_callback = c.AURenderCallbackStruct{
             .inputProc = read_callback_ca,
@@ -291,6 +293,8 @@ pub const MacOSImpl = struct {
     }
 
     pub fn sample(self: *MacOSImpl) []const f32 {
+        self.data.mutex.lock();
+        defer self.data.mutex.unlock();
         return self.data.ring_buffer.receive();
     }
 
@@ -308,7 +312,9 @@ pub const MacOSImpl = struct {
             const buf = userdata.buffer_list.mBuffers[i];
             const data: [*]f32 = @ptrCast(@alignCast(buf.mData));
             const length = buf.mDataByteSize / @sizeOf(f32);
+            userdata.mutex.lock();
             userdata.ring_buffer.send(data[0..length]);
+            userdata.mutex.unlock();
             // log.info("Got data with length = {}", .{length});
             // std.debug.print("Buffer %d has %zu floats with %d channels.\n", i, length, buf.mNumberChannels);
             // for (0..length) |j| {
