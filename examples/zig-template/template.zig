@@ -1,3 +1,5 @@
+// Build with `zig build-lib -Iapi -dynamic examples/zig-template/template.zig`
+
 const std = @import("std");
 const bob = @cImport({
     @cInclude("bob.h");
@@ -18,7 +20,7 @@ const UserData = extern struct {
 export var api: BobAPI = undefined;
 
 /// Include information about your visualization here
-export fn get_info() *VisualizationInfo {
+export fn get_info() callconv(.C) [*c]const VisualizationInfo {
     const info = std.heap.page_allocator.create(VisualizationInfo) catch unreachable;
     info.* = VisualizationInfo{
         .name = "Instert name here",
@@ -32,7 +34,7 @@ export fn get_info() *VisualizationInfo {
 /// Audio analysis should be enabled here.
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
-export fn create() ?*anyopaque {
+export fn create() callconv(.C) ?*anyopaque {
     // Initialize user data
     // If you do not need user data remove this and return null
     var data = UserData{
@@ -42,8 +44,7 @@ export fn create() ?*anyopaque {
 }
 
 /// Update called each frame.
-/// Audio analysis data is passed in `data`.
-export fn update(user_data: *anyopaque) void {
+export fn update(user_data: ?*anyopaque) callconv(.C) void {
     // Access user data
     const data: *UserData = @ptrCast(user_data);
     const my_rgb = data.my_rgb;
@@ -52,6 +53,19 @@ export fn update(user_data: *anyopaque) void {
 }
 
 /// Perform potential visualization cleanup.
-export fn destroy(user_data: *anyopaque) void {
+export fn destroy(user_data: ?*anyopaque) callconv(.C) void {
     _ = user_data; // Avoid unused variable error
+}
+
+// Verify that type signatures are correct
+comptime {
+    for (&.{ "api", "get_info", "create", "update", "destroy" }) |name| {
+        const A = @TypeOf(@field(bob, name));
+        const B = @TypeOf(@field(@This(), name));
+        if (A != B) {
+            @compileError("Type mismatch for '" ++ name ++ "': "
+            //
+            ++ @typeName(A) ++ " and " ++ @typeName(B));
+        }
+    }
 }
