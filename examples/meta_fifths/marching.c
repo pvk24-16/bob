@@ -8,8 +8,6 @@
 static inline float interp(float x1, float x2, float f1, float f2)
 {
   return x1 + f1 * (x2 - x1) / (f1 - f2);
-  // return x2 - f2 * (x2 - x1) / (f2 - f1);
-  // return (x1 + x2) / 2.f;
 }
 
 static void add_triangle(struct buffer *b,
@@ -22,9 +20,9 @@ static void add_triangle(struct buffer *b,
   i3 = i3 < .0f ? .0f : (i3 > 1.f ? 1.f : i3);
 
   if (get_smooth()) {
-    i1 = powf(i1, .25f);
-    i2 = powf(i2, .25f);
-    i3 = powf(i3, .25f);
+    // i1 = powf(i1, .25f);
+    // i2 = powf(i2, .25f);
+    // i3 = powf(i3, .25f);
   } else {
     i1 = i2 = i3 = 1.f;
   }

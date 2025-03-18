@@ -12,11 +12,11 @@ static int s_resolution = 128;
 static int s_resolution_handle = -1;
 static int s_resolution_changed = 0;
 static int s_bg_color_handle = -1;
-static float s_bg_color[3] = { .8f, .0f, .8f, };
+static float s_bg_color[3] = { .0f, .0f, .0f, };
 static int s_border_color_handle = -1;
-static float s_border_color[3] = { .0f, .0f, .0f, };
+static float s_border_color[3] = { 1.f, .0f, .0f, };
 static int s_center_color_handle = -1;
-static float s_center_color[3] = { 1.f, 1.f, 1.f, };
+static float s_center_color[3] = { .2f, 0.f, 0.f, };
 
 void register_params(void)
 {

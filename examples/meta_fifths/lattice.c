@@ -49,6 +49,21 @@ void lattice_set_size(int w, int h, int h_res)
   s_lattice = realloc(s_lattice, s_width * s_height * sizeof (*s_lattice));
 }
 
+static void precompute_trigs(float *coss, float *sins)
+{
+  static int done = 0;
+  if (done)
+    return;
+
+  for (int i = 0; i < 12; ++i) {
+    float a = 2.f * M_PI * (float) i * 7.f / 12.f;
+    coss[i] = cosf(a);
+    sins[i] = sinf(a);
+  }
+
+  done = 1;
+}
+
 void set_lattice_values(float *chroma)
 {
   const float r = get_radius();
@@ -57,6 +72,9 @@ void set_lattice_values(float *chroma)
   const float min = s_width < s_height ? s_width : s_height;
   const float sx = (float) s_width / min;
   const float sy = (float) s_height / min;
+
+  static float coss[12], sins[12];
+  precompute_trigs(coss, sins);
 
   for (int li = 0; li < s_width; ++li) {
     for (int lj = 0; lj < s_height; ++lj) {
@@ -69,14 +87,13 @@ void set_lattice_values(float *chroma)
       for (int ci = 0; ci < 12; ++ci) {
 
         const float cv = s * chroma[ci];
-        const float a = 2.f * M_PI * (float) ci * 7.f / 12.f;
 
-        const float cx = r * cosf(a);
-        const float cy = r * sinf(a);
+        const float cx = r * coss[ci];
+        const float cy = r * sins[ci];
 
         const float dx = lx - cx;
         const float dy = ly - cy;
-        const float d = sqrtf(dx * dx + dy * dy);
+        const float d = dx * dx + dy * dy;
 
         v += cv * cv / d;
       }

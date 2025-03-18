@@ -37,11 +37,12 @@ EXPORT void *create(void)
 {
   register_params();
 
+  graphics_init();
+
   int w, h;
   (void) api.get_window_size(api.context, &w, &h);
+  glViewport(0, 0, w, h);
   lattice_set_size(w, h, get_resolution());
-
-  graphics_init();
 
   return NULL;
 }
