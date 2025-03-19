@@ -47,6 +47,7 @@ pub fn build(b: *std.Build) !void {
             exe.linkSystemLibrary("ole32");
             exe.linkSystemLibrary("opengl32");
             exe.linkSystemLibrary("glfw3");
+            exe.linkSystemLibrary("dwmapi");
         },
         .linux => {
             exe.linkSystemLibrary("glfw");
