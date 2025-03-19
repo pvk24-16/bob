@@ -18,6 +18,7 @@ fn resizeCallback(window: ?*glfw.GLFWwindow, x: c_int, y: c_int) callconv(.C) vo
     context.window_width = x;
     context.window_height = y;
     context.window_did_resize = true;
+    gl.glViewport(0, 0, 800, 600);
 }
 
 pub fn main() !void {
