@@ -129,15 +129,15 @@ export fn update(_: *anyopaque) void {
             volume += x;
         }
 
-        volume /= @floatFromInt(b - a);
+        // volume /= @floatFromInt(b - a);
 
         const step = 2.0 / @as(comptime_float, bars);
         const left = @as(comptime_float, @floatFromInt(i)) * step - 1.0;
         const right = @as(comptime_float, @floatFromInt(i + 1)) * step - 1.0;
 
-        vertices[1] = 18 * volume - 0.9;
-        vertices[9] = 18 * volume - 0.9;
-        vertices[11] = 18 * volume - 0.9;
+        vertices[1] = volume - 0.9;
+        vertices[9] = volume - 0.9;
+        vertices[11] = volume - 0.9;
 
         vertices[0] = right;
         vertices[2] = right;

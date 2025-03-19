@@ -157,6 +157,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     try @import("examples/logvol/build.zig").buildLib(b, "logvol", "examples/logvol/", target, optimize);
+    try @import("examples/logvol/build.zig").buildLib(b, "debug", "examples/debug/", target, optimize);
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");

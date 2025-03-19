@@ -282,6 +282,7 @@ pub fn set_chromagram_num_partials(context: ?*anyopaque, num: usize) callconv(.C
 pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(bob.api)) void {
     client_api_ptr.context = context;
     client_api_ptr.get_proc_address = @ptrCast(&glfw.glfwGetProcAddress);
+
     inline for (api_fn_names) |name| {
         @field(client_api_ptr.*, name) = @field(@This(), name);
     }
