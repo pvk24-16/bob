@@ -54,15 +54,20 @@ fn windowDetected(hwnd: win.HWND, list_raw: win.LPARAM) callconv(.C) win.BOOL {
 
     var list: *AudioProducerEntry.List = @ptrFromInt(@as(usize, @bitCast(list_raw)));
 
-    var result: AudioProducerEntry = undefined;
+    var result = std.mem.zeroes(AudioProducerEntry);
     _ = std.fmt.bufPrint(&result.process_id, "{d}\x00", .{pid}) catch {};
-    const title_len = win.GetWindowTextA(hwnd, &result.name, result.name.len);
-    if (title_len == 0) {
+
+    // We want the wide char one because GetWindowTextA won't get us correct encoding for ÖÄÅ.
+    // So instead we just run a conversion procedure to UTF-8 later down.
+    var wide_title = std.mem.zeroes([256]u16);
+    const wide_title_len = win.GetWindowTextW(hwnd, &wide_title, result.name.len);
+
+    if (wide_title_len == 0) {
         // We are not interested in windows that don't even have a title.
         return win.TRUE;
     }
 
-    var class_name: [256]u8 = undefined;
+    var class_name = std.mem.zeroes([256]u8);
     const class_name_len: u32 = @bitCast(win.GetClassNameA(hwnd, &class_name, class_name.len));
     const class_name_slice = class_name[0..class_name_len];
 
@@ -70,7 +75,12 @@ fn windowDetected(hwnd: win.HWND, list_raw: win.LPARAM) callconv(.C) win.BOOL {
         return win.TRUE;
     }
 
+    // UTF-16 to UTF-8. The builtin Zig ones crash. Probably there are some Windows quirks that it
+    // is not used to.
+    const title_len: u32 = @bitCast(win.WideCharToMultiByte(win.CP_UTF8, 0, &wide_title, wide_title_len, &result.name, result.name.len, 0, 0));
+
     // Make sure things are null-terminated.
+    result.name[title_len] = 0;
     result.name[result.name.len - 1] = 0;
     result.process_id[result.process_id.len - 1] = 0;
 

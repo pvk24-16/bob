@@ -3,6 +3,8 @@ const imgui = @import("imgui");
 const glfw = @import("graphics/glfw.zig");
 const ClientList = @import("ClientList.zig");
 
+const comicJensFreeProRegular = @embedFile("assets/ComicJensFreePro-Regular.ttf");
+
 const ui_window_title = "bob";
 
 pub fn init(window: *glfw.GLFWwindow) !@This() {
@@ -18,7 +20,16 @@ pub fn init(window: *glfw.GLFWwindow) !@This() {
         // For bringing GUI outside of main window
         .ViewportsEnable = true,
     });
+    if (io.Fonts) |fonts| {
+        const glyph_range = imgui.FontGlyphRangesBuilder.init_ImFontGlyphRangesBuilder();
+        imgui.FontGlyphRangesBuilder.AddRanges(glyph_range, imgui.FontAtlas.GetGlyphRangesDefault(fonts));
 
+        var built_range = std.mem.zeroes(imgui.Vector(imgui.Wchar));
+        imgui.FontGlyphRangesBuilder.BuildRanges(glyph_range, &built_range);
+
+        _ = imgui.FontAtlas.AddFontFromMemoryTTFExt(fonts, @constCast(@ptrCast(comicJensFreeProRegular.ptr)), comicJensFreeProRegular.len, 20.0, null, built_range.items()[0 .. built_range.Size - 1 :0]);
+        _ = imgui.raw.ImFontAtlas_Build(fonts); // TODO: assert?
+    }
     imgui.StyleColorsLight();
 
     _ = ImGui_ImplGlfw_InitForOpenGL(window, true);

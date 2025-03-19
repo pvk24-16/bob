@@ -92,11 +92,6 @@ pub fn main() !void {
     defer possible_audio_producers.deinit();
 
     audio_producer_enumerator.enumerate(&possible_audio_producers);
-    //for (list.items) |producer| {
-    //    const len = std.mem.indexOfScalar(u8, &producer.name, 0) orelse producer.name.len;
-    //    const len_pid = std.mem.indexOfScalar(u8, &producer.process_id, 0) orelse producer.process_id.len;
-    //    std.debug.print("Found a window ({s}): {s}\n", .{producer.process_id[0..len_pid], producer.name[0..len]});
-    //}
 
     var running = true;
 
@@ -115,6 +110,10 @@ pub fn main() !void {
         }
 
         ui.beginFrame();
+
+        // Make the default window a bit bigger. As it is too small with
+        // the new font otherwise.
+        imgui.SetWindowSize_Vec2Ext(imgui.Vec2{ .x = 600, .y = 300 }, imgui.CondFlags{ .Once = true });
 
         if (context.capturer) |_| {
             if (imgui.Button("Disconnect")) {
@@ -137,7 +136,7 @@ pub fn main() !void {
                 for (possible_audio_producers.items) |producer| {
                     if (imgui.Selectable_Bool(&producer.name)) {
                         const pid_len = std.mem.indexOfScalar(u8, &producer.process_id, 0) orelse producer.process_id.len;
-                        std.debug.print("PID: {s}\n", .{producer.process_id[0..pid_len]});
+                        std.log.info("PID: {s}\n", .{producer.process_id[0..pid_len]});
                         context.connect(producer.process_id[0..pid_len], gpa.allocator()) catch |e| {
                             std.log.err("Failed to connect to application with PID {s}: {s}", .{ producer.process_id[0..pid_len], @errorName(e) });
                             try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
