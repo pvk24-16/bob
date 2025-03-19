@@ -140,7 +140,7 @@ pub fn main() !void {
                         std.debug.print("PID: {s}\n", .{producer.process_id[0..pid_len]});
                         context.connect(producer.process_id[0..pid_len], gpa.allocator()) catch |e| {
                             std.log.err("Failed to connect to application with PID {s}: {s}", .{ producer.process_id[0..pid_len], @errorName(e) });
-                            try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)});
+                            try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
                         };
                     }
                 }
