@@ -9,5 +9,6 @@ fn enumeratorNotImplementedForPlatform(_: *AudioProducerEntry.List) void {
 
 pub const enumerate = switch (os_tag) {
     .windows => @import("./windows.zig").enumerateAudioProducers,
+    .macos => @import("./mac.zig").enumerateAudioProducers,
     else => enumeratorNotImplementedForPlatform,
 };
