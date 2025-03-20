@@ -44,8 +44,6 @@ static GLuint program;
 static float vertex_data[12 * 6] = {0};
 static unsigned int index_data[2 * 66 /* 12 chose 2 */] = {0};
 
-EXPORT struct bob_api api;
-
 static struct bob_visualization_info info = {
   .name = "Circle of fifths",
   .description = "Visualizes the pitch class content of the audio source in the form of a circle of fifths.",
@@ -62,13 +60,13 @@ static void pop_gl_state(void);
 
 EXPORT void *create(void)
 {
-  gladLoadGLLoader(api.get_proc_address);
+  gladLoadGLLoader(bob_get_proc_address);
 
   /* Register GUI elements */
-  radius_handle = api.register_float_slider(api.context, "Radius", .2f, .9f, radius);
-  base_octave_handle = api.register_int_slider(api.context, "Base octave", 3, 6, base_octave);
-  num_octaves_handle = api.register_int_slider(api.context, "Number of octaves", 1, 6, num_octaves);
-  num_partials_handle = api.register_int_slider(api.context, "Number of partials", 0, 5, num_partials);
+  radius_handle = bob_register_float_slider("Radius", .2f, .9f, radius);
+  base_octave_handle = bob_register_int_slider("Base octave", 3, 6, base_octave);
+  num_octaves_handle = bob_register_int_slider("Number of octaves", 1, 6, num_octaves);
+  num_partials_handle = bob_register_int_slider("Number of partials", 0, 5, num_partials);
 
   /* Create vertex buffer and vertex array */
   glGenBuffers(1, &vbo);
@@ -120,14 +118,14 @@ EXPORT void update(void *userdata)
   push_gl_state();
 
   int w, h;
-  if (api.get_window_size(api.context, &w, &h)) {
+  if (bob_get_window_size(&w, &h)) {
     int min = w < h ? w : h;
     glViewport((w - min) / 2, (h - min) / 2, min, min);
   }
 
   static float chroma[12] = {0};
   float target_chroma[12];
-  api.get_chromagram(api.context, target_chroma, BOB_MONO_CHANNEL);
+  bob_get_chromagram(target_chroma, BOB_MONO_CHANNEL);
 
   const float snap = .001f;
   const float threshold = .8f;
@@ -140,7 +138,7 @@ EXPORT void update(void *userdata)
     chroma[i] = -snap < diff && diff < snap ? target : chroma[i] + speed * diff;
   }
 
-  radius = api.get_ui_float_value(api.context, radius_handle);
+  radius = bob_get_ui_float_value(radius_handle);
 
   /* Compute vertex data */
   for (size_t i = 0; i < 12; ++i) {
@@ -170,13 +168,13 @@ EXPORT void update(void *userdata)
 
   pop_gl_state();
 
-  base_octave = api.get_ui_int_value(api.context, base_octave_handle);
-  num_partials = api.get_ui_int_value(api.context, num_partials_handle);
-  num_octaves = api.get_ui_int_value(api.context, num_octaves_handle);
+  base_octave = bob_get_ui_int_value(base_octave_handle);
+  num_partials = bob_get_ui_int_value(num_partials_handle);
+  num_octaves = bob_get_ui_int_value(num_octaves_handle);
 
-  api.set_chromagram_c3(api.context, 130.81f * powf(2.f, (float) base_octave));
-  api.set_chromagram_num_partials(api.context, num_partials);
-  api.set_chromagram_num_octaves(api.context, num_octaves);
+  bob_set_chromagram_c3(130.81f * powf(2.f, (float) base_octave));
+  bob_set_chromagram_num_partials(num_partials);
+  bob_set_chromagram_num_octaves(num_octaves);
 }
 
 EXPORT void destroy(void *userdata)

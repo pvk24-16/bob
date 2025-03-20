@@ -2,9 +2,6 @@ const std = @import("std");
 const c = @import("c.zig");
 
 const Info = c.bob.bob_visualization_info;
-const Bob = c.bob.bob_api;
-
-export var api: Bob = undefined;
 
 const vsource: [*]const u8 = @ptrCast(@alignCast(@embedFile("vertex.glsl")));
 const fsource: [*]const u8 = @ptrCast(@alignCast(@embedFile("fragment.glsl")));
@@ -25,7 +22,7 @@ export fn get_info() *Info {
 
 export fn create() ?*anyopaque {
     // Initialize
-    if (c.glad.gladLoadGLLoader(api.get_proc_address) == 0) {
+    if (c.glad.gladLoadGLLoader(c.bob.bob_get_proc_address) == 0) {
         @panic("could not load gl loader");
     }
 
@@ -72,7 +69,7 @@ export fn update(_: *anyopaque) void {
     c.glad.glUseProgram(program);
     c.glad.glBindBuffer(c.glad.GL_ARRAY_BUFFER, vbo);
 
-    const data = api.get_frequency_data.?(api.context, c.bob.BOB_MONO_CHANNEL);
+    const data = c.bob.bob_get_frequency_data(c.bob.BOB_MONO_CHANNEL);
     const bins: []const f32 = data.ptr[0 .. data.size / 4];
     const step: f32 = 2.0 / @as(f32, @floatFromInt(data.size / 4));
 

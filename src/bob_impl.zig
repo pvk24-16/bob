@@ -3,10 +3,13 @@ const bob = @import("bob.zig");
 const glfw = @import("graphics/glfw.zig");
 const Context = @import("Context.zig");
 const GuiState = @import("GuiState.zig");
+const context = &@import("Context.zig").context;
+
+pub var get_proc_address: *const anyopaque = @ptrCast(&glfw.glfwGetProcAddress);
 
 fn checkSignature(comptime name: []const u8) void {
-    const t1 = @TypeOf(@field(bob.api, name));
-    const t2 = ?*const @TypeOf(@field(@This(), name));
+    const t1 = @TypeOf(@field(bob, "bob_" ++ name));
+    const t2 = @TypeOf(@field(@This(), name));
 
     if (t1 != t2) {
         @compileError("API signature mismatch for '" ++ name ++ "': "
@@ -15,53 +18,82 @@ fn checkSignature(comptime name: []const u8) void {
     }
 }
 
-const api_fn_names: []const []const u8 = &.{
-    "get_window_size",
-    "get_time_data",
-    "get_frequency_data",
-    "get_chromagram",
-    "get_pulse_data",
-    "get_tempo",
-    "register_float_slider",
-    "register_int_slider",
-    "register_checkbox",
-    "ui_element_is_updated",
-    "get_ui_float_value",
-    "get_ui_int_value",
-    "get_ui_bool_value",
-    "register_colorpicker",
-    "get_ui_colorpicker_value",
-    "set_chromagram_c3",
-    "set_chromagram_num_octaves",
-    "set_chromagram_num_partials",
-};
-
 comptime {
-    for (api_fn_names) |name| {
-        checkSignature(name);
-    }
+    checkSignature("get_window_size");
+    @export(get_window_size, .{ .name = "bob_get_window_size", .linkage = .strong });
+
+    // checkSignature("get_proc_address");
+    @export(get_proc_address, .{ .name = "bob_get_proc_address", .linkage = .strong });
+
+    checkSignature("get_time_data");
+    @export(get_time_data, .{ .name = "bob_get_time_data", .linkage = .strong });
+
+    checkSignature("get_frequency_data");
+    @export(get_frequency_data, .{ .name = "bob_get_frequency_data", .linkage = .strong });
+
+    checkSignature("get_chromagram");
+    @export(get_chromagram, .{ .name = "bob_get_chromagram", .linkage = .strong });
+
+    checkSignature("get_pulse_data");
+    @export(get_pulse_data, .{ .name = "bob_get_pulse_data", .linkage = .strong });
+
+    checkSignature("get_tempo");
+    @export(get_tempo, .{ .name = "bob_get_tempo", .linkage = .strong });
+
+    checkSignature("register_float_slider");
+    @export(register_float_slider, .{ .name = "bob_register_float_slider", .linkage = .strong });
+
+    checkSignature("register_int_slider");
+    @export(register_int_slider, .{ .name = "bob_register_int_slider", .linkage = .strong });
+
+    checkSignature("register_checkbox");
+    @export(register_checkbox, .{ .name = "bob_register_checkbox", .linkage = .strong });
+
+    checkSignature("register_colorpicker");
+    @export(register_colorpicker, .{ .name = "bob_register_colorpicker", .linkage = .strong });
+
+    checkSignature("ui_element_is_updated");
+    @export(ui_element_is_updated, .{ .name = "bob_ui_element_is_updated", .linkage = .strong });
+
+    checkSignature("get_ui_float_value");
+    @export(get_ui_float_value, .{ .name = "bob_get_ui_float_value", .linkage = .strong });
+
+    checkSignature("get_ui_int_value");
+    @export(get_ui_int_value, .{ .name = "bob_get_ui_int_value", .linkage = .strong });
+
+    checkSignature("get_ui_bool_value");
+    @export(get_ui_bool_value, .{ .name = "bob_get_ui_bool_value", .linkage = .strong });
+
+    checkSignature("get_ui_colorpicker_value");
+    @export(get_ui_colorpicker_value, .{ .name = "bob_get_ui_colorpicker_value", .linkage = .strong });
+
+    checkSignature("set_chromagram_c3");
+    @export(set_chromagram_c3, .{ .name = "bob_set_chromagram_c3", .linkage = .strong });
+
+    checkSignature("set_chromagram_num_octaves");
+    @export(set_chromagram_num_octaves, .{ .name = "bob_set_chromagram_num_octaves", .linkage = .strong });
+
+    checkSignature("set_chromagram_num_partials");
+    @export(set_chromagram_num_partials, .{ .name = "bob_set_chromagram_num_partials", .linkage = .strong });
 }
 
-pub fn get_window_size(context: ?*anyopaque, x: [*c]c_int, y: [*c]c_int) callconv(.C) c_int {
-    const context_: *Context = @ptrCast(@alignCast(context.?));
-    x.?.* = context_.window_width;
-    y.?.* = context_.window_height;
+pub fn get_window_size(x: [*c]c_int, y: [*c]c_int) callconv(.C) c_int {
+    x.?.* = context.window_width;
+    y.?.* = context.window_height;
 
-    if (!context_.window_did_resize) {
+    if (!context.window_did_resize) {
         return 0;
     }
 
-    context_.window_did_resize = false;
+    context.window_did_resize = false;
     return 1;
 }
 
-pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
-    const ctx: *const Context = @ptrCast(@alignCast(context.?));
-
+pub fn get_time_data(channel: c_int) callconv(.C) bob.bob_float_buffer {
     const data = switch (channel) {
-        bob.BOB_MONO_CHANNEL => ctx.analyzer.splixer.getCenter(),
-        bob.BOB_LEFT_CHANNEL => ctx.analyzer.splixer.getLeft(),
-        bob.BOB_RIGHT_CHANNEL => ctx.analyzer.splixer.getRight(),
+        bob.BOB_MONO_CHANNEL => context.analyzer.splixer.getCenter(),
+        bob.BOB_LEFT_CHANNEL => context.analyzer.splixer.getLeft(),
+        bob.BOB_RIGHT_CHANNEL => context.analyzer.splixer.getRight(),
         else => @panic("API function called with invalid BOB_*_CHANNEL"),
     };
 
@@ -73,15 +105,14 @@ pub fn get_time_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_
     return buffer;
 }
 
-pub fn get_frequency_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
+pub fn get_frequency_data(channel: c_int) callconv(.C) bob.bob_float_buffer {
     // _ = .{ context, channel };
     // const buffer: bob.bob_float_buffer = std.mem.zeroes(bob.bob_float_buffer);
-    const ctx: *const Context = @ptrCast(@alignCast(context.?));
 
     const data = switch (channel) {
-        bob.BOB_MONO_CHANNEL => ctx.analyzer.spectral_analyzer_center.read(),
-        bob.BOB_LEFT_CHANNEL => ctx.analyzer.spectral_analyzer_left.read(),
-        bob.BOB_RIGHT_CHANNEL => ctx.analyzer.spectral_analyzer_right.read(),
+        bob.BOB_MONO_CHANNEL => context.analyzer.spectral_analyzer_center.read(),
+        bob.BOB_LEFT_CHANNEL => context.analyzer.spectral_analyzer_left.read(),
+        bob.BOB_RIGHT_CHANNEL => context.analyzer.spectral_analyzer_right.read(),
         else => @panic("Bad API call"),
     };
 
@@ -92,13 +123,11 @@ pub fn get_frequency_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob
     return buffer;
 }
 
-pub fn get_chromagram(context: ?*anyopaque, buf: [*c]f32, channel: c_int) callconv(.C) void {
-    const ctx: *const Context = @ptrCast(@alignCast(context.?));
-
+pub fn get_chromagram(buf: [*c]f32, channel: c_int) callconv(.C) void {
     const data = switch (channel) {
-        bob.BOB_MONO_CHANNEL => &ctx.analyzer.chroma_center.chroma,
-        bob.BOB_LEFT_CHANNEL => &ctx.analyzer.chroma_left.chroma,
-        bob.BOB_RIGHT_CHANNEL => &ctx.analyzer.chroma_right.chroma,
+        bob.BOB_MONO_CHANNEL => &context.analyzer.chroma_center.chroma,
+        bob.BOB_LEFT_CHANNEL => &context.analyzer.chroma_left.chroma,
+        bob.BOB_RIGHT_CHANNEL => &context.analyzer.chroma_right.chroma,
         else => @panic("Bad API call"),
     };
 
@@ -109,20 +138,18 @@ pub fn get_chromagram(context: ?*anyopaque, buf: [*c]f32, channel: c_int) callco
     @memcpy(buf_slice, data);
 }
 
-pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
+pub fn get_pulse_data(channel: c_int) callconv(.C) bob.bob_float_buffer {
     _ = .{ context, channel };
     const buffer: bob.bob_float_buffer = std.mem.zeroes(bob.bob_float_buffer);
     return buffer;
 }
 
-pub fn get_tempo(context: ?*anyopaque, channel: c_int) callconv(.C) f32 {
+pub fn get_tempo(channel: c_int) callconv(.C) f32 {
     _ = .{ context, channel };
     return 0.0;
 }
 
-pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32, max: f32, default_value: f32) callconv(.C) c_int {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
-
+pub fn register_float_slider(name: [*c]const u8, min: f32, max: f32, default_value: f32) callconv(.C) c_int {
     const element: GuiState.GuiElement = .{
         .name = name,
         .data = .{ .float_slider = .{
@@ -133,13 +160,11 @@ pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32,
         } },
     };
 
-    const result = ctx.gui_state.registerElement(element);
+    const result = context.gui_state.registerElement(element);
     return result catch -1;
 }
 
-pub fn register_int_slider(context: ?*anyopaque, name: [*c]const u8, min: c_int, max: c_int, default_value: c_int) callconv(.C) c_int {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
-
+pub fn register_int_slider(name: [*c]const u8, min: c_int, max: c_int, default_value: c_int) callconv(.C) c_int {
     const element: GuiState.GuiElement = .{
         .name = name,
         .data = .{ .int_slider = .{
@@ -150,13 +175,11 @@ pub fn register_int_slider(context: ?*anyopaque, name: [*c]const u8, min: c_int,
         } },
     };
 
-    const result = ctx.gui_state.registerElement(element);
+    const result = context.gui_state.registerElement(element);
     return result catch -1;
 }
 
-pub fn register_checkbox(context: ?*anyopaque, name: [*c]const u8, default_value: c_int) callconv(.C) c_int {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
-
+pub fn register_checkbox(name: [*c]const u8, default_value: c_int) callconv(.C) c_int {
     const element: GuiState.GuiElement = .{
         .name = name,
         .data = .{ .checkbox = .{
@@ -165,13 +188,11 @@ pub fn register_checkbox(context: ?*anyopaque, name: [*c]const u8, default_value
         } },
     };
 
-    const result = ctx.gui_state.registerElement(element);
+    const result = context.gui_state.registerElement(element);
     return result catch -1;
 }
 
-pub fn register_colorpicker(context: ?*anyopaque, name: [*c]const u8, default_color: [*c]f32) callconv(.C) c_int {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
-
+pub fn register_colorpicker(name: [*c]const u8, default_color: [*c]f32) callconv(.C) c_int {
     var element: GuiState.GuiElement = .{
         .name = name,
         .data = .{ .colorpicker = .{
@@ -184,21 +205,19 @@ pub fn register_colorpicker(context: ?*anyopaque, name: [*c]const u8, default_co
     default_slice.len = 3;
     @memcpy(&element.data.colorpicker.rgb, default_slice);
 
-    const result = ctx.gui_state.registerElement(element);
+    const result = context.gui_state.registerElement(element);
     return result catch -1;
 }
 
-pub fn ui_element_is_updated(context: ?*anyopaque, handle: c_int) callconv(.C) c_int {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
+pub fn ui_element_is_updated(handle: c_int) callconv(.C) c_int {
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = ctx.gui_state.getElements();
+    const elems = context.gui_state.getElements();
     return @intFromBool(elems[id].update);
 }
 
-pub fn get_ui_float_value(context: ?*anyopaque, handle: c_int) callconv(.C) f32 {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
+pub fn get_ui_float_value(handle: c_int) callconv(.C) f32 {
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = ctx.gui_state.getElements();
+    const elems = context.gui_state.getElements();
     const elem = &elems[id];
 
     const value: f32 = switch (elem.data) {
@@ -210,10 +229,9 @@ pub fn get_ui_float_value(context: ?*anyopaque, handle: c_int) callconv(.C) f32 
     return value;
 }
 
-pub fn get_ui_int_value(context: ?*anyopaque, handle: c_int) callconv(.C) c_int {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
+pub fn get_ui_int_value(handle: c_int) callconv(.C) c_int {
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = ctx.gui_state.getElements();
+    const elems = context.gui_state.getElements();
     const elem = &elems[id];
 
     const value: c_int = switch (elem.data) {
@@ -225,10 +243,9 @@ pub fn get_ui_int_value(context: ?*anyopaque, handle: c_int) callconv(.C) c_int 
     return value;
 }
 
-pub fn get_ui_bool_value(context: ?*anyopaque, handle: c_int) callconv(.C) c_int {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
+pub fn get_ui_bool_value(handle: c_int) callconv(.C) c_int {
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = ctx.gui_state.getElements();
+    const elems = context.gui_state.getElements();
     const elem = &elems[id];
 
     const value = switch (elem.data) {
@@ -240,10 +257,9 @@ pub fn get_ui_bool_value(context: ?*anyopaque, handle: c_int) callconv(.C) c_int
     return @intFromBool(value);
 }
 
-pub fn get_ui_colorpicker_value(context: ?*anyopaque, handle: c_int, color: [*c]f32) callconv(.C) void {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
+pub fn get_ui_colorpicker_value(handle: c_int, color: [*c]f32) callconv(.C) void {
     const id: GuiState.InternalIndexType = @intCast(handle);
-    const elems = ctx.gui_state.getElements();
+    const elems = context.gui_state.getElements();
     const elem = &elems[id];
 
     const value = switch (elem.data) {
@@ -258,32 +274,20 @@ pub fn get_ui_colorpicker_value(context: ?*anyopaque, handle: c_int, color: [*c]
 
     elem.update = false;
 }
-pub fn set_chromagram_c3(context: ?*anyopaque, pitch: f32) callconv(.C) void {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
-    ctx.analyzer.chroma_left.c3 = pitch;
-    ctx.analyzer.chroma_right.c3 = pitch;
-    ctx.analyzer.chroma_center.c3 = pitch;
+pub fn set_chromagram_c3(pitch: f32) callconv(.C) void {
+    context.analyzer.chroma_left.c3 = pitch;
+    context.analyzer.chroma_right.c3 = pitch;
+    context.analyzer.chroma_center.c3 = pitch;
 }
 
-pub fn set_chromagram_num_octaves(context: ?*anyopaque, num: usize) callconv(.C) void {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
-    ctx.analyzer.chroma_left.num_octaves = num;
-    ctx.analyzer.chroma_right.num_octaves = num;
-    ctx.analyzer.chroma_center.num_octaves = num;
+pub fn set_chromagram_num_octaves(num: usize) callconv(.C) void {
+    context.analyzer.chroma_left.num_octaves = num;
+    context.analyzer.chroma_right.num_octaves = num;
+    context.analyzer.chroma_center.num_octaves = num;
 }
 
-pub fn set_chromagram_num_partials(context: ?*anyopaque, num: usize) callconv(.C) void {
-    const ctx: *Context = @alignCast(@ptrCast(context.?));
-    ctx.analyzer.chroma_left.num_partials = num;
-    ctx.analyzer.chroma_right.num_partials = num;
-    ctx.analyzer.chroma_center.num_partials = num;
-}
-
-pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(bob.api)) void {
-    client_api_ptr.context = context;
-    client_api_ptr.get_proc_address = @ptrCast(&glfw.glfwGetProcAddress);
-
-    inline for (api_fn_names) |name| {
-        @field(client_api_ptr.*, name) = @field(@This(), name);
-    }
+pub fn set_chromagram_num_partials(num: usize) callconv(.C) void {
+    context.analyzer.chroma_left.num_partials = num;
+    context.analyzer.chroma_right.num_partials = num;
+    context.analyzer.chroma_center.num_partials = num;
 }

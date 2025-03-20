@@ -28,7 +28,7 @@ const char *const s_fsource =
 
 void graphics_init(void)
 {
-  gladLoadGLLoader(api.get_proc_address);
+  gladLoadGLLoader(bob_get_proc_address);
 
   glGenBuffers(1, &s_vbo);
   glBindBuffer(GL_ARRAY_BUFFER, s_vbo);

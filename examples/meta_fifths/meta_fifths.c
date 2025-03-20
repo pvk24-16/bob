@@ -19,8 +19,6 @@
 
 static struct buffer s_buffer = {0};
 
-EXPORT struct bob_api api;
-
 static struct bob_visualization_info info = {
   .name = "Meta fifths",
   .description =
@@ -40,7 +38,7 @@ EXPORT void *create(void)
   graphics_init();
 
   int w, h;
-  (void) api.get_window_size(api.context, &w, &h);
+  (void) bob_get_window_size(&w, &h);
   glViewport(0, 0, w, h);
   lattice_set_size(w, h, get_resolution());
 
@@ -52,7 +50,7 @@ EXPORT void update(void *userdata)
   (void) userdata;
 
   int w, h;
-  if (api.get_window_size(api.context, &w, &h) || resolution_changed()) {
+  if (bob_get_window_size(&w, &h) || resolution_changed()) {
     glViewport(0, 0, w, h);
     lattice_set_size(w, h, get_resolution());
   }

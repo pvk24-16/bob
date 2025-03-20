@@ -61,123 +61,112 @@ struct bob_float_buffer {
 /**
  * BoB API.
  */
-struct bob_api {
-    /**
-     * BoB context passed to API functions.
-     */
-    void *context;
 
-    /**
-     * For use with OpenGL loaders.
-     */
-    void *(*get_proc_address)(const char *name);
+/**
+ * For use with OpenGL loaders.
+ */
+extern void *(*bob_get_proc_address)(const char *name);
 
-    /**
-     * Get delta time in seconds.
-     */
-    float (*get_deltatime)(void *context);
+/**
+ * Get delta time in seconds.
+ */
+float bob_get_deltatime(void);
 
-    /**
-     * Get window size. Returns non zero if window was resized since last call.
-     */
-    int (*get_window_size)(void *context, int *x, int *y);
+/**
+ * Get window size. Returns non zero if window was resized since last call.
+ */
+int bob_get_window_size(int *x, int *y);
 
-    /**
-     * Get time domain data for specified channel.
-     */
-    struct bob_float_buffer (*get_time_data)(void *context, int channel);
+/**
+ * Get time domain data for specified channel.
+ */
+struct bob_float_buffer bob_get_time_data(int channel);
 
-    /**
-     * Get frequency domain data for specified channel.
-     */
-    struct bob_float_buffer (*get_frequency_data)(void *context, int channel);
+/**
+ * Get frequency domain data for specified channel.
+ */
+struct bob_float_buffer bob_get_frequency_data(int channel);
 
-    /**
-     * Get chromagram for specified channel.
-     * `buf` should point to an array of 12 floats.
-     */
-    void (*get_chromagram)(void *context, float *buf, int channel);
+/**
+ * Get chromagram for specified channel.
+ * `buf` should point to an array of 12 floats.
+ */
+void bob_get_chromagram(float *buf, int channel);
 
-    /**
-     * Get pulse data for specified channel.
-     */
-    struct bob_float_buffer (*get_pulse_data)(void *context, int channel);
+/**
+ * Get pulse data for specified channel.
+ */
+struct bob_float_buffer bob_get_pulse_data(int channel);
 
-    /**
-     * Get tempo for specified channel.
-     */
-    float (*get_tempo)(void *context, int channel);
+/**
+ * Get tempo for specified channel.
+ */
+float bob_get_tempo(int channel);
 
-    /**
-     * Register a float slider.
-     */
-    int (*register_float_slider)(void *context, const char *name, float min, float max, float default_value);
+/**
+ * Register a float slider.
+ */
+int bob_register_float_slider(const char *name, float min, float max, float default_value);
 
-    /**
-     * Register a int slider.
-     */
-    int (*register_int_slider)(void *context, const char *name, int min, int max, int default_value);
+/**
+ * Register a int slider.
+ */
+int bob_register_int_slider(const char *name, int min, int max, int default_value);
 
-    /**
-     * Register a checkbox.
-     */
-    int (*register_checkbox)(void *context, const char *name, int default_value);
+/**
+ * Register a checkbox.
+ */
+int bob_register_checkbox(const char *name, int default_value);
 
-    /**
-     * Register a color picker.
-     */
-    int (*register_colorpicker)(void *context, const char *name, float *default_color);
+/**
+ * Register a color picker.
+ */
+int bob_register_colorpicker(const char *name, float *default_color);
 
-    /**
-     * Check if a UI element is updated since last read.
-     */
-    int (*ui_element_is_updated)(void *context, int handle);
+/**
+ * Check if a UI element is updated since last read.
+ */
+int bob_ui_element_is_updated(int handle);
 
-    /**
-     * Get float value from a UI element.
-     */
-    float (*get_ui_float_value)(void *context, int handle);
+/**
+ * Get float value from a UI element.
+ */
+float bob_get_ui_float_value(int handle);
 
-    /**
-     * Get int value from a UI element.
-     */
-    int (*get_ui_int_value)(void *context, int handle);
+/**
+ * Get int value from a UI element.
+ */
+int bob_get_ui_int_value(int handle);
 
-    /**
-     * Get boolean value from a UI element.
-     */
-    int (*get_ui_bool_value)(void *context, int handle);
+/**
+ * Get boolean value from a UI element.
+ */
+int bob_get_ui_bool_value(int handle);
 
-    /**
-     * Get RGB values from a colorpicker.
-     */
-    void (*get_ui_colorpicker_value)(void *context, int handle, float *color);
+/**
+ * Get RGB values from a colorpicker.
+ */
+void bob_get_ui_colorpicker_value(int handle, float *color);
 
-    /**
-     * Set the referenc pitch for C3 used in chromagram computation.
-     */
-    void (*set_chromagram_c3)(void *context, float pitch);
+/**
+ * Set the referenc pitch for C3 used in chromagram computation.
+ */
+void bob_set_chromagram_c3(float pitch);
 
-    /**
-     * Set the number of octaves to consider during chromagram computation.
-     */
-    void (*set_chromagram_num_octaves)(void *context, size_t num);
+/**
+ * Set the number of octaves to consider during chromagram computation.
+ */
+void bob_set_chromagram_num_octaves(size_t num);
 
-    /**
-     * Set the number of partials to consider during chromagram computation.
-     */
-    void (*set_chromagram_num_partials)(void *context, size_t num);
-};
+/**
+ * Set the number of partials to consider during chromagram computation.
+ */
+void bob_set_chromagram_num_partials(size_t num);
 
 /********************************************
  * The following symbols need to be defined *
  * in the visualization instance.           *
  ********************************************/
-
-/**
- * Filled out by BoB runtime before `create` is called.
- */
-extern struct bob_api api;
 
 /**
  * Return some info about this visualization.

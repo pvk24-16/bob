@@ -49,7 +49,7 @@ const struct bob_visualization_info *get_info(void) {
 }
 
 void *create(void) {
-    gladLoadGLLoader(api.get_proc_address);
+    gladLoadGLLoader(bob_get_proc_address);
     
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
@@ -101,8 +101,8 @@ void update(void *userdata) {
     glUseProgram(program);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    const struct bob_float_buffer mono = api.get_frequency_data(api.context, BOB_MONO_CHANNEL);
-    // const struct bob_float_buffer spec = api.get_frequency_data(api.context, BOB_RIGHT_CHANNEL);
+    const struct bob_float_buffer mono = bob_get_frequency_data(BOB_MONO_CHANNEL);
+    // const struct bob_float_buffer spec = bob_get_frequency_data(BOB_RIGHT_CHANNEL);
     const size_t N = 32;
     const size_t step = mono.size / N;
     const float stepx = 2.0 / (float)N;

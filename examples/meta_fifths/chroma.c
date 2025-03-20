@@ -12,7 +12,7 @@ void update_chroma(void)
   const float snap = .001f;
   const float threshold = .8f;
 
-  api.get_chromagram(api.context, s_target_chroma, BOB_MONO_CHANNEL);
+  bob_get_chromagram(s_target_chroma, BOB_MONO_CHANNEL);
 
   for (size_t i = 0; i < 12; ++i) {
     const float v = s_target_chroma[i];

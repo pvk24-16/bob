@@ -13,8 +13,6 @@
 int slider = -1;
 int checkbox = -1;
 
-EXPORT struct bob_api api;
-
 static struct bob_visualization_info info = {
   .name = "Simple example",
   .description = "This is a description that is not very useful",
@@ -28,20 +26,20 @@ EXPORT const struct bob_visualization_info *get_info(void)
 
 EXPORT void *create(void)
 {
-  gladLoadGLLoader(api.get_proc_address);
-  slider = api.register_float_slider(api.context, "Floatiness", 0.0, 1.0, 0.5);
-  checkbox = api.register_checkbox(api.context, "Enable booleans", 0);
+  gladLoadGLLoader(bob_get_proc_address);
+  slider = bob_register_float_slider("Floatiness", 0.0, 1.0, 0.5);
+  checkbox = bob_register_checkbox("Enable booleans", 0);
   return NULL;
 }
 
 EXPORT void update(void *userdata)
 {
   (void) userdata;
-  float value = api.get_ui_float_value(api.context, slider);
+  float value = bob_get_ui_float_value(slider);
   glClearColor(value, value / 2.0f, 1.0f-value, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
-  if (api.ui_element_is_updated(api.context, checkbox)) {
-    const char *value = api.get_ui_bool_value(api.context, checkbox) ? "enabled" : "disabled";
+  if (bob_ui_element_is_updated(checkbox)) {
+    const char *value = bob_get_ui_bool_value(checkbox) ? "enabled" : "disabled";
     printf("visualizer: booleans are %s\n", value);
   }
 }

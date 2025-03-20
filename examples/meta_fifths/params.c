@@ -20,34 +20,34 @@ static float s_center_color[3] = { .2f, 0.f, 0.f, };
 
 void register_params(void)
 {
-  s_smooth_handle = api.register_checkbox(api.context, "Smooth", 0);
-  s_radius_handle = api.register_float_slider(api.context, "Radius", .1f, 1.f, s_radius);
-  s_scale_handle = api.register_float_slider(api.context, "Scale", .01f, 1.5f, s_scale);
-  s_resolution_handle = api.register_int_slider(api.context, "Resolution", 16, 512, s_resolution);
-  s_bg_color_handle = api.register_colorpicker(api.context, "Background", &s_bg_color);
-  s_border_color_handle = api.register_colorpicker(api.context, "Border", &s_border_color);
-  s_center_color_handle = api.register_colorpicker(api.context, "Center", &s_center_color);
+  s_smooth_handle = bob_register_checkbox("Smooth", 0);
+  s_radius_handle = bob_register_float_slider("Radius", .1f, 1.f, s_radius);
+  s_scale_handle = bob_register_float_slider("Scale", .01f, 1.5f, s_scale);
+  s_resolution_handle = bob_register_int_slider("Resolution", 16, 512, s_resolution);
+  s_bg_color_handle = bob_register_colorpicker("Background", &s_bg_color);
+  s_border_color_handle = bob_register_colorpicker("Border", &s_border_color);
+  s_center_color_handle = bob_register_colorpicker("Center", &s_center_color);
 }
 
 void update_params(void)
 {
   s_resolution_changed = 0;
-  if (api.ui_element_is_updated(api.context, s_radius_handle))
-    s_radius = api.get_ui_float_value(api.context, s_radius_handle);
-  if (api.ui_element_is_updated(api.context, s_smooth_handle))
-    s_smooth = api.get_ui_bool_value(api.context, s_smooth_handle);
-  if (api.ui_element_is_updated(api.context, s_scale_handle))
-    s_scale = api.get_ui_float_value(api.context, s_scale_handle);
-  if (api.ui_element_is_updated(api.context, s_resolution_handle)) {
-    s_resolution = api.get_ui_int_value(api.context, s_resolution_handle);
+  if (bob_ui_element_is_updated(s_radius_handle))
+    s_radius = bob_get_ui_float_value(s_radius_handle);
+  if (bob_ui_element_is_updated(s_smooth_handle))
+    s_smooth = bob_get_ui_bool_value(s_smooth_handle);
+  if (bob_ui_element_is_updated(s_scale_handle))
+    s_scale = bob_get_ui_float_value(s_scale_handle);
+  if (bob_ui_element_is_updated(s_resolution_handle)) {
+    s_resolution = bob_get_ui_int_value(s_resolution_handle);
     s_resolution_changed = 1;
   }
-  if (api.ui_element_is_updated(api.context, s_bg_color_handle))
-    api.get_ui_colorpicker_value(api.context, s_bg_color_handle, s_bg_color);
-  if (api.ui_element_is_updated(api.context, s_border_color_handle))
-    api.get_ui_colorpicker_value(api.context, s_border_color_handle, s_border_color);
-  if (api.ui_element_is_updated(api.context, s_center_color_handle))
-    api.get_ui_colorpicker_value(api.context, s_center_color_handle, s_center_color);
+  if (bob_ui_element_is_updated(s_bg_color_handle))
+    bob_get_ui_colorpicker_value(s_bg_color_handle, s_bg_color);
+  if (bob_ui_element_is_updated(s_border_color_handle))
+    bob_get_ui_colorpicker_value(s_border_color_handle, s_border_color);
+  if (bob_ui_element_is_updated(s_center_color_handle))
+    bob_get_ui_colorpicker_value(s_center_color_handle, s_center_color);
 }
 
 float get_radius(void)

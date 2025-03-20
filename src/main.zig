@@ -6,15 +6,19 @@ const imgui = @import("imgui");
 const glfw = @import("graphics/glfw.zig");
 const gl = @import("graphics/glad.zig");
 const Context = @import("Context.zig");
+const context = &Context.context;
 const Flags = @import("flags.zig").Flags;
+
+comptime {
+    _ = std.testing.refAllDecls(@import("bob_impl.zig"));
+}
 
 const audio_producer_enumerator = @import("producers/enumerator.zig");
 
 const os_tag = @import("builtin").os.tag;
 
 fn resizeCallback(window: ?*glfw.GLFWwindow, x: c_int, y: c_int) callconv(.C) void {
-    const userdata = glfw.glfwGetWindowUserPointer(window);
-    const context: *Context = @ptrCast(@alignCast(userdata));
+    _ = window;
     context.window_width = x;
     context.window_height = y;
     context.window_did_resize = true;
@@ -73,10 +77,9 @@ pub fn main() !void {
     var ui = try @import("UI.zig").init(window);
     defer ui.deinit();
 
-    var context = try Context.init(allocator);
+    context.* = try Context.init(allocator);
     defer context.deinit(allocator);
 
-    glfw.glfwSetWindowUserPointer(window, @ptrCast(&context));
     _ = glfw.glfwSetWindowSizeCallback(window, resizeCallback);
 
     var x: c_int = undefined;
@@ -174,7 +177,6 @@ pub fn main() !void {
                 break :blk null;
             };
             if (context.client) |*client| {
-                bob_impl.fill(@ptrCast(&context), client.api.api);
                 client.create();
                 context.flags = Flags.init(client.info.enabled);
                 context.flags.log();

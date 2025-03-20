@@ -3,6 +3,8 @@
 const std = @import("std");
 const Context = @This();
 
+pub var context: Context = undefined;
+
 const AudioAnalyzer = @import("audio/AudioAnalyzer.zig");
 const AudioConfig = @import("audio/Config.zig");
 const AudioCapturer = @import("audio/AudioCapturer.zig");

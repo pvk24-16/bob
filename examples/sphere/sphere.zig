@@ -19,7 +19,6 @@ const Vec4 = math.Vec4;
 const VisualizationInfo = bob.bob_visualization_info;
 const AudioFlags = bob.bob_audio_flags;
 const Channels = bob.bob_channel;
-const BobAPI = bob.bob_api;
 
 // Global variables
 var radius_handle: c_int = undefined;
@@ -29,9 +28,6 @@ var vertex_buffer: VertexBuffer(Vec3) = undefined;
 var num_vertices: u32 = undefined;
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const gpa_allocator = gpa.allocator();
-
-/// Export api variable, it will be populated with information by the API
-export var api: BobAPI = undefined;
 
 /// Include information about your visualization here
 export fn get_info() *VisualizationInfo {
@@ -49,9 +45,9 @@ export fn get_info() *VisualizationInfo {
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
 export fn create() ?*anyopaque {
-    _ = g.gl.gladLoadGLLoader(api.get_proc_address);
-    radius_handle = api.register_float_slider.?(api.context, "Radius", 0.0, 2.0, 1.0);
-    num_pts_handle = api.register_float_slider.?(api.context, "Num pts", 0.0, 10000.0, 1000.0);
+    _ = g.gl.gladLoadGLLoader(bob.bob_get_proc_address);
+    radius_handle = bob.bob_register_float_slider("Radius", 0.0, 2.0, 1.0);
+    num_pts_handle = bob.bob_register_float_slider("Num pts", 0.0, 10000.0, 1000.0);
 
     // Initialize shaders
     shader_program = Shader.init(
@@ -117,15 +113,15 @@ export fn destroy(_: *anyopaque) void {
 }
 
 fn is_updated(ui_element_handle: c_int) bool {
-    if (api.ui_element_is_updated.?(api.context, ui_element_handle) > 0) {
+    if (bob.bob_ui_element_is_updated(ui_element_handle) > 0) {
         return true;
     }
     return false;
 }
 
 fn update_vertices() u32 {
-    const radius = api.get_ui_float_value.?(api.context, radius_handle);
-    const pts = api.get_ui_float_value.?(api.context, num_pts_handle);
+    const radius = bob.bob_get_ui_float_value(radius_handle);
+    const pts = bob.bob_get_ui_float_value(num_pts_handle);
     const num_pts: u32 = @intFromFloat(std.math.round(pts));
 
     const vertices = fibo_sphere(num_pts, radius, gpa_allocator);

@@ -4,7 +4,6 @@ const bob = @import("bob.zig");
 const Client = @This();
 
 const ClientApi = struct {
-    api: *@TypeOf(bob.api),
     get_info: *const @TypeOf(bob.get_info),
     create: *const @TypeOf(bob.create),
     update: *const @TypeOf(bob.update),
