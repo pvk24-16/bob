@@ -7,6 +7,7 @@ const FFT = @import("fft.zig").FastFourierTransform;
 const Flags = @import("../flags.zig").Flags;
 const Chroma = @import("Chroma.zig");
 const Breaks = @import("Breaks.zig");
+const Beat = @import("Beat.zig");
 
 splixer: AudioSplixer,
 spectral_analyzer_left: FFT,
@@ -18,6 +19,7 @@ chroma_center: Chroma,
 breaks_left: Breaks,
 breaks_right: Breaks,
 breaks_center: Breaks,
+beat_center: Beat,
 
 pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
     var splixer = try AudioSplixer.init(Config.windowSize(), allocator);
@@ -41,6 +43,9 @@ pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
     var chroma_center = try Chroma.init(allocator, 4096);
     errdefer chroma_center.deinit(allocator);
 
+    var beat_center = try Beat.init(allocator);
+    errdefer beat_center.deinit(allocator);
+
     return AudioAnalyzer{
         .splixer = splixer,
         .spectral_analyzer_left = spectral_analyzer_left,
@@ -52,6 +57,7 @@ pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
         .breaks_left = .{},
         .breaks_right = .{},
         .breaks_center = .{},
+        .beat_center = beat_center,
     };
 }
 
@@ -63,6 +69,7 @@ pub fn deinit(self: *AudioAnalyzer, allocator: std.mem.Allocator) void {
     self.chroma_left.deinit(allocator);
     self.chroma_right.deinit(allocator);
     self.chroma_center.deinit(allocator);
+    self.beat_center.deinit(allocator);
     self.* = undefined;
 }
 
@@ -84,6 +91,10 @@ pub fn analyze(self: *AudioAnalyzer, stereo: []const f32, flags: Flags) void {
 
     if (flags.breaks_mono) {
         self.breaks_center.execute(center);
+    }
+
+    if (flags.pulse_mono) {
+        self.beat_center.execute(self.splixer.getCenter());
     }
 
     if (flags.frequency_stereo) {

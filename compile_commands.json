@@ -1,0 +1,7 @@
+[
+	{
+		"directory": "/home/glank/prog/cdate/pvk/bob",
+		"file": "examples/beat/beat.c",
+		"arguments": ["gcc", "-Ideps/include", "-Iapi"]
+	}
+]

@@ -2,3 +2,5 @@
 zig-out/
 examples/**/*.so
 examples/**/*.dll
+.cache/
+compile_commmands.json

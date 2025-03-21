@@ -111,8 +111,18 @@ pub fn get_chromagram(context: ?*anyopaque, buf: [*c]f32, channel: c_int) callco
 }
 
 pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
-    _ = .{ context, channel };
-    const buffer: bob.bob_float_buffer = std.mem.zeroes(bob.bob_float_buffer);
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const beat = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.beat_center,
+        else => @panic("Bad API call"),
+    };
+
+    const buffer: bob.bob_float_buffer = .{
+        .ptr = @ptrCast(&beat.bin_vals),
+        .size = beat.num_bins,
+    };
+
     return buffer;
 }
 
