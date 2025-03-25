@@ -153,6 +153,7 @@ pub fn build(b: *std.Build) !void {
         "examples/meta_fifths/params.c",
         "examples/meta_fifths/chroma.c",
     });
+    try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "fountain", "examples/fountain/fountain.zig");
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
