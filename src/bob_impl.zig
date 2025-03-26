@@ -1,5 +1,5 @@
 const std = @import("std");
-const bob = @import("bob.zig");
+const bob = @import("bob_api.zig");
 const glfw = @import("graphics/glfw.zig");
 const Context = @import("Context.zig");
 const GuiState = @import("GuiState.zig");

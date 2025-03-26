@@ -1,5 +1,5 @@
 const std = @import("std");
-const bob = @import("bob.zig");
+const bob = @import("bob_api.zig");
 
 const Client = @This();
 
