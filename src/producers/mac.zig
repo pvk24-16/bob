@@ -100,6 +100,6 @@ pub fn getAudioInputs(list: *AudioProducerEntry.List) !void {
     log.info("", .{});
 }
 
-pub fn enumerateAudioProducers(list: *AudioProducerEntry.List) void {
+pub fn enumerateAudioProducers(list: *AudioProducerEntry.List) !void {
     getAudioInputs(list) catch {};
 }

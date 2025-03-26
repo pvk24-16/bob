@@ -92,7 +92,9 @@ pub fn main() !void {
     var possible_audio_producers = audio_producer_enumerator.AudioProducerEntry.List.init(gpa.allocator());
     defer possible_audio_producers.deinit();
 
-    audio_producer_enumerator.enumerate(&possible_audio_producers);
+    audio_producer_enumerator.enumerate(&possible_audio_producers) catch |e| {
+        try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
+    };
 
     var running = true;
 
@@ -148,7 +150,9 @@ pub fn main() !void {
             }
             if (imgui.Button("Refresh")) {
                 possible_audio_producers.clearRetainingCapacity();
-                audio_producer_enumerator.enumerate(&possible_audio_producers);
+                audio_producer_enumerator.enumerate(&possible_audio_producers) catch |e| {
+                    try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
+                };
             }
         }
 

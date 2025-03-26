@@ -90,6 +90,6 @@ fn windowDetected(hwnd: win.HWND, list_raw: win.LPARAM) callconv(.C) win.BOOL {
     return win.TRUE;
 }
 
-pub fn enumerateAudioProducers(list: *AudioProducerEntry.List) void {
+pub fn enumerateAudioProducers(list: *AudioProducerEntry.List) !void {
     _ = win.EnumWindows(windowDetected, @bitCast(@intFromPtr(list)));
 }

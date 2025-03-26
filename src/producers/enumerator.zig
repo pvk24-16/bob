@@ -3,7 +3,7 @@ pub const AudioProducerEntry = @import("./AudioProducerEntry.zig");
 
 // TODO: Chrome source refers to this type of code as "window enumerator". Maybe that is a better name?
 
-fn enumeratorNotImplementedForPlatform(_: *AudioProducerEntry.List) void {
+fn enumeratorNotImplementedForPlatform(_: *AudioProducerEntry.List) !void {
     // TODO: Maybe we should log this somehow?
 }
 
