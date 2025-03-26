@@ -1,13 +1,10 @@
 const std = @import("std");
+const pulse = @import("pulse.zig");
 
 const RingBuffer = @import("../buffer.zig").RingBuffer;
 const Config = @import("../Config.zig");
 
 pub const LinuxImpl = struct {
-    const pulse = @cImport({
-        @cInclude("pulse/pulseaudio.h");
-    });
-
     const log = std.log.scoped(.pulseaudio);
 
     const Error = error{
