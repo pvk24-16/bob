@@ -187,20 +187,20 @@ const struct bob_visualization_info *get_info(void);
 /**
  * Initialize visualization.
  * UI parameters should be registered here.
- * Return a pointer to user data, or NULL.
+ * Return NULL, or an error string in case of failure
+ * to initialize.
  */
-void *create(void);
+const char *create(void);
 
 /**
  * Called for each frame.
- * Audio analysis data is passed in `data`.
  */
-void update(void *userdata);
+void update(void);
 
 /**
  * Perform potential visualization cleanup.
  */
-void destroy(void *userdata);
+void destroy(void);
 
 #ifdef __cplusplus
 }

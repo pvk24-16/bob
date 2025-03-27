@@ -28,11 +28,11 @@ var vertices: [12]f32 = .{
     1,  1,
 };
 
-export fn get_info() *Info {
+export fn get_info() [*c]const Info {
     return &info;
 }
 
-export fn create() ?*anyopaque {
+export fn create() [*c]const u8 {
     // Initialize
     if (c.glad.gladLoadGLLoader(api.get_proc_address) == 0) {
         @panic("could not load gl loader");
@@ -86,7 +86,7 @@ export fn create() ?*anyopaque {
     return null;
 }
 
-export fn update(_: *anyopaque) void {
+export fn update() void {
     c.glad.glBindVertexArray(vao);
     c.glad.glUseProgram(program);
     c.glad.glBindBuffer(c.glad.GL_ARRAY_BUFFER, vbo);
@@ -165,7 +165,7 @@ export fn update(_: *anyopaque) void {
 }
 
 /// Perform potential visualization cleanup.
-export fn destroy(_: *anyopaque) void {
+export fn destroy() void {
     c.glad.glDeleteBuffers(1, &vbo);
     c.glad.glDeleteVertexArrays(1, &vao);
     c.glad.glDeleteProgram(program);
@@ -182,3 +182,16 @@ fn melToFreq(mel: f64) f64 {
 }
 
 fn volumeBars() void {}
+
+// Verify that type signatures are correct
+comptime {
+    for (&.{ "api", "get_info", "create", "update", "destroy" }) |name| {
+        const A = @TypeOf(@field(c.bob, name));
+        const B = @TypeOf(@field(@This(), name));
+        if (A != B) {
+            @compileError("Type mismatch for '" ++ name ++ "': "
+            //
+            ++ @typeName(A) ++ " and " ++ @typeName(B));
+        }
+    }
+}

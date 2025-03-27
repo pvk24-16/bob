@@ -183,9 +183,19 @@ pub fn main() !void {
             };
             if (context.client) |*client| {
                 bob_impl.fill(@ptrCast(&context), client.api.api);
-                client.create();
-                context.flags = Flags.init(client.info.enabled);
-                context.flags.log();
+                if (client.create()) |err| {
+                    try context.err.setMessage("Failed to initialize visualizer: {s}", .{err}, allocator);
+                    std.log.info("unloading visualizer", .{});
+                    client.destroy();
+                    client.unload();
+                    context.client = null;
+                    context.gui_state.clear();
+                    current_name = null;
+                    context.flags = Flags{};
+                } else {
+                    context.flags = Flags.init(client.info.enabled);
+                    context.flags.log();
+                }
             }
         }
 

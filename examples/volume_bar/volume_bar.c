@@ -48,7 +48,7 @@ const struct bob_visualization_info *get_info(void) {
     return &info;
 }
 
-void *create(void) {
+const char *create(void) {
     gladLoadGLLoader(api.get_proc_address);
     
     glGenVertexArrays(1, &vao);
@@ -94,7 +94,7 @@ static float sum_freqs(const struct bob_float_buffer *buf, const size_t start, c
     return acc;
 }
 
-void update(void *userdata) {
+void update(void) {
     (void) userdata;
     
     glBindVertexArray(vao);
@@ -140,7 +140,7 @@ void update(void *userdata) {
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void destroy(void *userdata) {
+void destroy(void) {
     (void) userdata;
 
     glDeleteBuffers(1, &vbo);

@@ -33,7 +33,7 @@ EXPORT const struct bob_visualization_info *get_info(void)
   return &info;
 }
 
-EXPORT void *create(void)
+EXPORT const char *create(void)
 {
   register_params();
 
@@ -47,10 +47,8 @@ EXPORT void *create(void)
   return NULL;
 }
 
-EXPORT void update(void *userdata)
+EXPORT void update(void)
 {
-  (void) userdata;
-
   int w, h;
   if (api.get_window_size(api.context, &w, &h) || resolution_changed()) {
     glViewport(0, 0, w, h);
@@ -67,10 +65,8 @@ EXPORT void update(void *userdata)
   draw_buffer(&s_buffer);
 }
 
-EXPORT void destroy(void *userdata)
+EXPORT void destroy(void)
 {
-  (void) userdata;
-
   buf_free(&s_buffer);
   graphics_deinit();
   lattice_destroy();
