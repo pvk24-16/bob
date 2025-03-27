@@ -124,7 +124,7 @@ pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32,
     const ctx: *Context = @alignCast(@ptrCast(context.?));
 
     const element: GuiState.GuiElement = .{
-        .name = name,
+        .name = std.mem.span(name),
         .data = .{ .float_slider = .{
             .value = default_value,
             .min = min,
@@ -141,7 +141,7 @@ pub fn register_int_slider(context: ?*anyopaque, name: [*c]const u8, min: c_int,
     const ctx: *Context = @alignCast(@ptrCast(context.?));
 
     const element: GuiState.GuiElement = .{
-        .name = name,
+        .name = std.mem.span(name),
         .data = .{ .int_slider = .{
             .value = default_value,
             .min = min,
@@ -158,7 +158,7 @@ pub fn register_checkbox(context: ?*anyopaque, name: [*c]const u8, default_value
     const ctx: *Context = @alignCast(@ptrCast(context.?));
 
     const element: GuiState.GuiElement = .{
-        .name = name,
+        .name = std.mem.span(name),
         .data = .{ .checkbox = .{
             .value = default_value != 0,
             .default = default_value != 0,
@@ -173,7 +173,7 @@ pub fn register_colorpicker(context: ?*anyopaque, name: [*c]const u8, default_co
     const ctx: *Context = @alignCast(@ptrCast(context.?));
 
     var element: GuiState.GuiElement = .{
-        .name = name,
+        .name = std.mem.span(name),
         .data = .{ .colorpicker = .{
             .rgb = undefined,
         } },

@@ -87,6 +87,7 @@ pub fn main() !void {
     context.window_did_resize = true;
 
     var current_name: ?[*:0]const u8 = null;
+    var current_index: ?usize = null;
     var pid_str = [_]u8{0} ** 32;
 
     var possible_audio_producers = audio_producer_enumerator.AudioProducerEntry.List.init(gpa.allocator());
@@ -171,7 +172,7 @@ pub fn main() !void {
 
             current_name = client_list.list.items[index];
             const path = try client_list.getClientPath(index);
-            defer client_list.freeClientPath(path);
+            defer client_list.freePath(path);
 
             std.log.info("loading visualizer {s}", .{current_name.?});
 
@@ -194,6 +195,7 @@ pub fn main() !void {
                 } else {
                     context.flags = Flags.init(client.info.enabled);
                     context.flags.log();
+                    current_index = index;
                 }
             }
         }
@@ -209,9 +211,37 @@ pub fn main() !void {
                 current_name = null;
                 context.flags = Flags{};
             } else {
+                const path = client_list.getClientParentPath(current_index.?) catch |e| blk: {
+                    std.log.err("failed to create parent path for client: {s}", .{@errorName(e)});
+                    break :blk null;
+                };
+                defer if (path) |path_| client_list.freePath(path_);
+
+                var load_preset = false;
+                var save_preset = false;
+                if (path) |_| {
+                    imgui.SameLine();
+                    load_preset = imgui.Button("Load preset");
+                    imgui.SameLine();
+                    save_preset = imgui.Button("Save preset");
+                }
+
                 context.gui_state.update();
                 imgui.SeparatorText("Description");
                 imgui.Text(client.info.description);
+
+                if (path) |path_| {
+                    if (load_preset) {
+                        context.gui_state.loadPreset(path_) catch |e| {
+                            try context.err.setMessage("Failed to load preset: {s}", .{@errorName(e)}, allocator);
+                        };
+                    }
+                    if (save_preset) {
+                        context.gui_state.savePreset(path_) catch |e| {
+                            try context.err.setMessage("Failed to save preset: {s}", .{@errorName(e)}, allocator);
+                        };
+                    }
+                }
             }
         }
 
