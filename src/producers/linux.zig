@@ -80,15 +80,23 @@ pub fn enumerateAudioProducers(list: *AudioProducerEntry.List) !void {
 
             key = pulse.PA_PROP_APPLICATION_NAME;
             value = pulse.pa_proplist_gets(info.?.proplist, key);
-            const name = std.mem.span(value);
+            var name = std.mem.span(value);
+
+            key = pulse.PA_PROP_MEDIA_NAME;
+            value = pulse.pa_proplist_gets(info.?.proplist, key);
+            if (value) |media_name| {
+                name = std.mem.span(media_name);
+            }
 
             var entry: AudioProducerEntry = undefined;
 
-            @memcpy(entry.name[0..name.len], name);
-            @memcpy(entry.process_id[0..process_id.len], process_id);
+            const name_len = @min(name.len, entry.name.len - 1);
+            const process_id_len = @min(process_id.len, entry.process_id.len - 1);
+            @memcpy(entry.name[0..name_len], name);
+            @memcpy(entry.process_id[0..process_id_len], process_id);
 
-            entry.name[name.len] = 0;
-            entry.process_id[process_id.len] = 0;
+            entry.name[name_len] = 0;
+            entry.process_id[process_id_len] = 0;
 
             data_ptr.list.append(entry) catch {
                 data_ptr.ok = false;
