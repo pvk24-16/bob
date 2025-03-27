@@ -98,6 +98,8 @@ pub fn main() !void {
 
     var running = true;
 
+    var audio_source_list_is_open = false;
+
     while (running) {
         glfw.glfwPollEvents();
 
@@ -136,6 +138,14 @@ pub fn main() !void {
             }
 
             if (imgui.BeginCombo("Window Select", "Click for list")) {
+                if (!audio_source_list_is_open) {
+                    std.log.info("clicked!", .{});
+                    possible_audio_producers.clearRetainingCapacity();
+                    audio_producer_enumerator.enumerate(&possible_audio_producers) catch |e| {
+                        try context.err.setMessage("Unable to list audio sources: {s}", .{@errorName(e)}, allocator);
+                    };
+                }
+                audio_source_list_is_open = true;
                 for (possible_audio_producers.items) |producer| {
                     if (imgui.Selectable_Bool(&producer.name)) {
                         const pid_len = std.mem.indexOfScalar(u8, &producer.process_id, 0) orelse producer.process_id.len;
@@ -147,13 +157,7 @@ pub fn main() !void {
                     }
                 }
                 imgui.EndCombo();
-            }
-            if (imgui.Button("Refresh")) {
-                possible_audio_producers.clearRetainingCapacity();
-                audio_producer_enumerator.enumerate(&possible_audio_producers) catch |e| {
-                    try context.err.setMessage("Unable to list audio sources: {s}", .{@errorName(e)}, allocator);
-                };
-            }
+            } else audio_source_list_is_open = false;
         }
 
         if (ui.selectClient(&client_list, current_name)) |index| {
