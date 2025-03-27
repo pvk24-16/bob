@@ -14,23 +14,48 @@ pub fn enumerateAudioProducers(list: *AudioProducerEntry.List) !void {
     if (pulse.pa_threaded_mainloop_start(mainloop) < 0) {
         return error.@"Failed to start mainloop";
     }
+    defer pulse.pa_threaded_mainloop_stop(mainloop);
 
     const api = pulse.pa_threaded_mainloop_get_api(mainloop);
     const context = pulse.pa_context_new(api, "bob-list-clients-context") orelse {
         return error.@"Failed to create context";
     };
 
-    if (pulse.pa_context_connect(context, null, pulse.PA_CONTEXT_NOAUTOSPAWN, null) < 0) {
-        return error.@"Failed to connect to PulseAudio server";
-    }
-    defer {
-        pulse.pa_threaded_mainloop_lock(mainloop);
-        pulse.pa_context_disconnect(context);
-        pulse.pa_threaded_mainloop_unlock(mainloop);
-        pulse.pa_threaded_mainloop_wait(mainloop);
-    }
+    const ConnectData = struct {
+        mainloop: @TypeOf(mainloop),
+        ok: bool = false,
 
-    const Data = struct {
+        fn callback(
+            ctx: ?*pulse.pa_context,
+            userdata: ?*anyopaque,
+        ) callconv(.C) void {
+            const data_ptr: *@This() = @ptrCast(@alignCast(userdata.?));
+            const state = pulse.pa_context_get_state(ctx);
+
+            switch (state) {
+                pulse.PA_CONTEXT_READY => data_ptr.ok = true,
+                pulse.PA_CONTEXT_FAILED => {},
+                else => return,
+            }
+
+            pulse.pa_threaded_mainloop_signal(data_ptr.mainloop, 0);
+        }
+    };
+
+    var connect_data: ConnectData = .{ .mainloop = mainloop };
+
+    pulse.pa_threaded_mainloop_lock(mainloop);
+    pulse.pa_context_set_state_callback(context, ConnectData.callback, @ptrCast(&connect_data));
+    _ = pulse.pa_context_connect(context, null, pulse.PA_CONTEXT_NOAUTOSPAWN, null);
+    pulse.pa_threaded_mainloop_wait(mainloop);
+    pulse.pa_threaded_mainloop_unlock(mainloop);
+
+    if (!connect_data.ok)
+        return error.@"Failed to connect to PulseAudio server";
+
+    defer pulse.pa_context_disconnect(context);
+
+    const ListData = struct {
         list: @TypeOf(list),
         mainloop: @TypeOf(mainloop),
         ok: bool = true,
@@ -71,13 +96,13 @@ pub fn enumerateAudioProducers(list: *AudioProducerEntry.List) !void {
         }
     };
 
-    var data: Data = .{ .list = list, .mainloop = mainloop };
+    var list_data: ListData = .{ .list = list, .mainloop = mainloop };
 
     pulse.pa_threaded_mainloop_lock(mainloop);
-    _ = pulse.pa_context_get_sink_input_info_list(context, Data.callback, @ptrCast(&data));
-    pulse.pa_threaded_mainloop_unlock(mainloop);
+    _ = pulse.pa_context_get_sink_input_info_list(context, ListData.callback, @ptrCast(&list_data));
     pulse.pa_threaded_mainloop_wait(mainloop);
+    pulse.pa_threaded_mainloop_unlock(mainloop);
 
-    if (!data.ok)
+    if (!list_data.ok)
         return error.@"Failed to list PulseAudio sink inputs";
 }
