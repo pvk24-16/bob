@@ -25,7 +25,7 @@ static struct bob_visualization_info info = {
   .name = "Meta fifths",
   .description =
     "A circle of fifths made from metaballs.",
-  .enabled = BOB_AUDIO_CHROMAGRAM_MONO,
+  .enabled = BOB_AUDIO_CHROMAGRAM_MONO | BOB_AUDIO_BREAKS_MONO,
 };
 
 EXPORT const struct bob_visualization_info *get_info(void)
