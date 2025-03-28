@@ -76,11 +76,11 @@ pub fn enumerateAudioProducers(list: *AudioProducerEntry.List) !void {
 
             var key: [*c]const u8 = pulse.PA_PROP_APPLICATION_PROCESS_ID;
             var value = pulse.pa_proplist_gets(info.?.proplist, key);
-            const process_id = std.mem.span(value);
+            const process_id = std.mem.span(value orelse return);
 
             key = pulse.PA_PROP_APPLICATION_NAME;
             value = pulse.pa_proplist_gets(info.?.proplist, key);
-            var name = std.mem.span(value);
+            var name = std.mem.span(value orelse return);
 
             key = pulse.PA_PROP_MEDIA_NAME;
             value = pulse.pa_proplist_gets(info.?.proplist, key);
