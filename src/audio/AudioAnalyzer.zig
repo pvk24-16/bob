@@ -6,6 +6,7 @@ const AudioSplixer = @import("AudioSplixer.zig");
 const FFT = @import("fft.zig").FastFourierTransform;
 const Flags = @import("../flags.zig").Flags;
 const Chroma = @import("Chroma.zig");
+const Breaks = @import("Breaks.zig");
 
 splixer: AudioSplixer,
 spectral_analyzer_left: FFT,
@@ -14,6 +15,9 @@ spectral_analyzer_center: FFT,
 chroma_left: Chroma,
 chroma_right: Chroma,
 chroma_center: Chroma,
+breaks_left: Breaks,
+breaks_right: Breaks,
+breaks_center: Breaks,
 
 pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
     var splixer = try AudioSplixer.init(Config.windowSize(), allocator);
@@ -45,6 +49,9 @@ pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
         .chroma_left = chroma_left,
         .chroma_right = chroma_right,
         .chroma_center = chroma_center,
+        .breaks_left = .{},
+        .breaks_right = .{},
+        .breaks_center = .{},
     };
 }
 
@@ -62,24 +69,37 @@ pub fn deinit(self: *AudioAnalyzer, allocator: std.mem.Allocator) void {
 pub fn analyze(self: *AudioAnalyzer, stereo: []const f32, flags: Flags) void {
     self.splixer.splix(stereo);
 
+    const center = self.splixer.getCenter();
+    const left = self.splixer.getLeft();
+    const right = self.splixer.getRight();
+
     if (flags.frequency_mono) {
-        self.spectral_analyzer_center.write(self.splixer.getCenter());
+        self.spectral_analyzer_center.write(center);
         self.spectral_analyzer_center.evaluate();
     }
 
     if (flags.chromagram_mono) {
-        self.chroma_center.execute(self.splixer.getCenter());
+        self.chroma_center.execute(center);
+    }
+
+    if (flags.breaks_mono) {
+        self.breaks_center.execute(center);
     }
 
     if (flags.frequency_stereo) {
-        self.spectral_analyzer_left.write(self.splixer.getLeft());
-        self.spectral_analyzer_right.write(self.splixer.getRight());
+        self.spectral_analyzer_left.write(left);
+        self.spectral_analyzer_right.write(right);
         self.spectral_analyzer_left.evaluate();
         self.spectral_analyzer_right.evaluate();
     }
 
     if (flags.chromagram_stereo) {
-        self.chroma_left.execute(self.splixer.getLeft());
-        self.chroma_right.execute(self.splixer.getRight());
+        self.chroma_left.execute(left);
+        self.chroma_right.execute(right);
+    }
+
+    if (flags.breaks_stereo) {
+        self.breaks_left.execute(left);
+        self.breaks_right.execute(right);
     }
 }

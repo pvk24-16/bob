@@ -1,7 +1,7 @@
 const std = @import("std");
 const bob = @import("bob_api.zig");
 
-pub const Flags = packed struct(u10) {
+pub const Flags = struct {
     time_mono: bool = false,
     time_stereo: bool = false,
     frequency_mono: bool = false,
@@ -12,6 +12,8 @@ pub const Flags = packed struct(u10) {
     pulse_stereo: bool = false,
     tempo_mono: bool = false,
     tempo_stereo: bool = false,
+    breaks_mono: bool = false,
+    breaks_stereo: bool = false,
 
     pub fn init(flags: c_int) Flags {
         return Flags{
@@ -25,6 +27,8 @@ pub const Flags = packed struct(u10) {
             .pulse_stereo = flags & bob.BOB_AUDIO_PULSE_STEREO != 0,
             .tempo_mono = flags & bob.BOB_AUDIO_TEMPO_MONO != 0,
             .tempo_stereo = flags & bob.BOB_AUDIO_TEMPO_STEREO != 0,
+            .breaks_mono = flags & bob.BOB_AUDIO_BREAKS_MONO != 0,
+            .breaks_stereo = flags & bob.BOB_AUDIO_BREAKS_STEREO != 0,
         };
     }
 
