@@ -139,7 +139,6 @@ pub fn main() !void {
 
             if (imgui.BeginCombo("Window Select", "Click for list")) {
                 if (!audio_source_list_is_open) {
-                    std.log.info("clicked!", .{});
                     possible_audio_producers.clearRetainingCapacity();
                     audio_producer_enumerator.enumerate(&possible_audio_producers) catch |e| {
                         try context.err.setMessage("Unable to list audio sources: {s}", .{@errorName(e)}, allocator);
