@@ -142,6 +142,7 @@ pub fn build(b: *std.Build) !void {
 
     // Examples
     try helper.buildExample(b, target, optimize, "simple", &.{"examples/simple/simple.c"});
+    try helper.buildExample(b, target, optimize, "breaks", &.{"examples/breaks/breaks.c"});
     try helper.buildExample(b, target, optimize, "error", &.{"examples/error/error.c"});
     try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
     try helper.buildExample(b, target, optimize, "meta_fifths", &.{
