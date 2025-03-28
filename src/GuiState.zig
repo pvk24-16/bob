@@ -24,7 +24,7 @@ pub const ColorPicker = struct {
 };
 
 pub const GuiElement = struct {
-    name: [*c]const u8,
+    name: [:0]const u8,
     update: bool = false,
     data: union(enum) {
         float_slider: Slider(f32),
@@ -32,6 +32,11 @@ pub const GuiElement = struct {
         checkbox: Checkbox,
         colorpicker: ColorPicker,
     },
+
+    pub fn eql(self: *const GuiElement, other: *const GuiElement) bool {
+        const activeTag = std.meta.activeTag;
+        return activeTag(self.data) == activeTag(other.data) and std.mem.eql(u8, self.name, other.name);
+    }
 };
 
 elements: std.ArrayList(GuiElement),
@@ -43,6 +48,7 @@ pub fn init(allocator: std.mem.Allocator) GuiState {
 }
 
 pub fn deinit(self: *GuiState) void {
+    self.clear();
     self.elements.deinit();
 }
 
@@ -53,7 +59,9 @@ pub fn registerElement(self: *GuiState, element: GuiElement) !InternalIndexType 
 
     const id: InternalIndexType = @intCast(self.elements.items.len);
 
-    try self.elements.append(element);
+    var copy = element;
+    copy.name = try self.elements.allocator.dupeZ(u8, copy.name);
+    try self.elements.append(copy);
 
     return id;
 }
@@ -89,5 +97,49 @@ pub fn update(self: *GuiState) void {
 }
 
 pub fn clear(self: *GuiState) void {
+    for (self.elements.items) |element| {
+        self.elements.allocator.free(element.name);
+    }
     self.elements.clearRetainingCapacity();
+}
+
+pub fn loadPreset(self: *GuiState, parent_dir: []const u8) !void {
+    const allocator = self.elements.allocator;
+
+    const path = try std.fs.path.join(allocator, &.{ parent_dir, "preset.json" });
+    defer allocator.free(path);
+
+    const file = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
+    defer file.close();
+
+    const data = try file.readToEndAlloc(allocator, std.math.maxInt(usize));
+    defer allocator.free(data);
+
+    const parsed = try std.json.parseFromSlice([]GuiElement, allocator, data, .{});
+    defer parsed.deinit();
+
+    const default_elements = parsed.value;
+
+    for (self.elements.items, default_elements) |element, default_element| {
+        if (!element.eql(&default_element))
+            return error.@"Incompatible GUI configuration";
+    }
+
+    for (self.elements.items, default_elements) |*element, default_element| {
+        element.data = default_element.data;
+        element.update = true;
+    }
+}
+
+pub fn savePreset(self: *GuiState, parent_dir: []const u8) !void {
+    const allocator = self.elements.allocator;
+
+    const path = try std.fs.path.join(allocator, &.{ parent_dir, "preset.json" });
+    defer allocator.free(path);
+
+    const file = try std.fs.cwd().createFile(path, .{});
+    defer file.close();
+
+    const options: std.json.StringifyOptions = .{ .whitespace = .indent_2 };
+    try std.json.stringify(self.elements.items, options, file.writer());
 }
