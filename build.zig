@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const helper = @import("examples/build_helper.zig");
 
 fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
     add_to.addIncludePath(.{ .cwd_relative = "deps/include/" });
@@ -136,22 +135,8 @@ pub fn build(b: *std.Build) !void {
     b.installArtifact(exe);
 
     // Examples
-    try helper.buildExample(b, target, optimize, "simple", &.{"examples/simple/simple.c"});
-    try helper.buildExample(b, target, optimize, "perf", &.{"examples/perf/perf.c"});
-    try helper.buildExample(b, target, optimize, "breaks", &.{"examples/breaks/breaks.c"});
-    try helper.buildExample(b, target, optimize, "error", &.{"examples/error/error.c"});
-    try helper.buildExample(b, target, optimize, "beat", &.{"examples/beat/beat.c"});
+    try @import("examples/build_c_examples.zig").build_c_examples(b, target, optimize);
     try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
-    try helper.buildExample(b, target, optimize, "meta_fifths", &.{
-        "examples/meta_fifths/buffer.c",
-        "examples/meta_fifths/graphics.c",
-        "examples/meta_fifths/lattice.c",
-        "examples/meta_fifths/marching.c",
-        "examples/meta_fifths/meta_fifths.c",
-        "examples/meta_fifths/params.c",
-        "examples/meta_fifths/chroma.c",
-    });
-
     try @import("examples/logvol/build.zig").buildLib(b, "logvol", "examples/logvol/", target, optimize);
     try @import("examples/logvol/build.zig").buildLib(b, "debug", "examples/debug/", target, optimize);
 }

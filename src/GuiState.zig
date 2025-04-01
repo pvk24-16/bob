@@ -103,11 +103,10 @@ pub fn clear(self: *GuiState) void {
     self.elements.clearRetainingCapacity();
 }
 
-pub fn loadPreset(self: *GuiState, parent_dir: []const u8) !void {
+pub fn loadPreset(self: *GuiState) !void {
     const allocator = self.elements.allocator;
 
-    const path = try std.fs.path.join(allocator, &.{ parent_dir, "preset.json" });
-    defer allocator.free(path);
+    const path = "preset.json";
 
     const file = try std.fs.cwd().openFile(path, .{ .mode = .read_only });
     defer file.close();
@@ -131,11 +130,8 @@ pub fn loadPreset(self: *GuiState, parent_dir: []const u8) !void {
     }
 }
 
-pub fn savePreset(self: *GuiState, parent_dir: []const u8) !void {
-    const allocator = self.elements.allocator;
-
-    const path = try std.fs.path.join(allocator, &.{ parent_dir, "preset.json" });
-    defer allocator.free(path);
+pub fn savePreset(self: *GuiState) !void {
+    const path = "preset.json";
 
     const file = try std.fs.cwd().createFile(path, .{});
     defer file.close();

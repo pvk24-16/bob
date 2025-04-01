@@ -101,6 +101,9 @@ pub fn main() !void {
 
     var audio_source_list_is_open = false;
 
+    var bob_dir_buf: [std.fs.max_path_bytes]u8 = undefined;
+    const bob_dir = try std.process.getCwd(&bob_dir_buf);
+
     while (running) {
         glfw.glfwPollEvents();
 
@@ -168,6 +171,7 @@ pub fn main() !void {
                 context.client = null;
                 context.gui_state.clear();
                 current_name = null;
+                std.process.changeCurDir(bob_dir) catch {};
             }
 
             current_name = client_list.list.items[index];
@@ -181,7 +185,11 @@ pub fn main() !void {
                 try context.err.setMessage("Failed to load visualizer: {s}", .{@errorName(e)}, allocator);
                 break :blk null;
             };
+
             if (context.client) |*client| {
+                const client_dir = std.fs.path.dirname(path) orelse unreachable;
+                std.process.changeCurDir(client_dir) catch {};
+
                 bob_impl.fill(@ptrCast(&context), client.api.api);
                 if (client.create()) |err| {
                     try context.err.setMessage("Failed to initialize visualizer: {s}", .{err}, allocator);
@@ -192,6 +200,7 @@ pub fn main() !void {
                     context.gui_state.clear();
                     current_name = null;
                     context.flags = Flags{};
+                    std.process.changeCurDir(bob_dir) catch {};
                 } else {
                     context.flags = Flags.init(client.info.enabled);
                     context.flags.log();
@@ -210,6 +219,7 @@ pub fn main() !void {
                 context.gui_state.clear();
                 current_name = null;
                 context.flags = Flags{};
+                std.process.changeCurDir(bob_dir) catch {};
             } else {
                 const path = client_list.getClientParentPath(current_index.?) catch |e| blk: {
                     std.log.err("failed to create parent path for client: {s}", .{@errorName(e)});
@@ -230,14 +240,14 @@ pub fn main() !void {
                 imgui.SeparatorText("Description");
                 imgui.Text(client.info.description);
 
-                if (path) |path_| {
+                if (path) |_| {
                     if (load_preset) {
-                        context.gui_state.loadPreset(path_) catch |e| {
+                        context.gui_state.loadPreset() catch |e| {
                             try context.err.setMessage("Failed to load preset: {s}", .{@errorName(e)}, allocator);
                         };
                     }
                     if (save_preset) {
-                        context.gui_state.savePreset(path_) catch |e| {
+                        context.gui_state.savePreset() catch |e| {
                             try context.err.setMessage("Failed to save preset: {s}", .{@errorName(e)}, allocator);
                         };
                     }
