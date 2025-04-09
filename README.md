@@ -5,7 +5,7 @@
 <h1>BoB</h1>
 <em>Blinka och Blända</em>
 
-<a href="#running">Running</a>
+<a href="#running">Running</a> | <a href="./api/bob.h">bob.h</a>
 
 ![Tests](https://github.com/pvk24-16/bob/actions/workflows/zig.yml/badge.svg?event=push)
 
