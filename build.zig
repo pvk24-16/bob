@@ -9,9 +9,10 @@ fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
     switch (os_tag) {
         .windows => {
             add_to.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
-            add_to.addObjectFile(.{ .cwd_relative = "deps/lib/windows/glfw3.dll" });
             add_to.linkSystemLibrary("opengl32");
             add_to.linkSystemLibrary("glfw3");
+            add_to.linkSystemLibrary("gdi32");
+            add_to.linkSystemLibrary("user32");
         },
         .linux => {
             add_to.linkSystemLibrary("GL");
@@ -42,12 +43,13 @@ pub fn build(b: *std.Build) !void {
     switch (os_tag) {
         .windows => {
             exe.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
-            exe.addObjectFile(.{ .cwd_relative = "deps/lib/windows/glfw3.dll" });
             exe.linkSystemLibrary("mmdevapi");
             exe.linkSystemLibrary("ole32");
+            exe.linkSystemLibrary("dwmapi");
             exe.linkSystemLibrary("opengl32");
             exe.linkSystemLibrary("glfw3");
-            exe.linkSystemLibrary("dwmapi");
+            exe.linkSystemLibrary("gdi32");
+            exe.linkSystemLibrary("user32");
         },
         .linux => {
             exe.linkSystemLibrary("glfw");
@@ -71,13 +73,6 @@ pub fn build(b: *std.Build) !void {
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
         run_cmd.addArgs(args);
-    }
-
-    switch (os_tag) {
-        .windows => {
-            b.installFile("deps/lib/windows/glfw3.dll", "bin/glfw3.dll");
-        },
-        else => {},
     }
 
     const run_step = b.step("run", "Run the app");

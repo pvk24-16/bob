@@ -7,9 +7,10 @@ fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
     switch (os_tag) {
         .windows => {
             add_to.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
-            add_to.addObjectFile(.{ .cwd_relative = "deps/lib/windows/glfw3.dll" });
             add_to.linkSystemLibrary("opengl32");
             add_to.linkSystemLibrary("glfw3");
+            add_to.linkSystemLibrary("gdi32");
+            add_to.linkSystemLibrary("user32");
         },
         .linux => {
             add_to.linkSystemLibrary("GL");
