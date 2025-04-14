@@ -39,6 +39,21 @@ export fn get_info() *VisualizationInfo {
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
 export fn create() ?*anyopaque {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer if (gpa.deinit() != .ok) @panic("leak");
+    const allocator = gpa.allocator();
+
+    const argv = [_][]const u8{ "python", "startFountain.py" };
+
+    var child = std.process.Child.init(&argv, allocator);
+    child.stdout_behavior = .Pipe;
+    child.stderr_behavior = .Pipe;
+
+    child.spawn() catch |err| {
+        print("error lauching visualization:{}", .{err});
+        return null;
+    };
+
     // Initialize user data
     // If you do not need user data remove this and return null
     return null;
