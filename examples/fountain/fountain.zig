@@ -94,7 +94,7 @@ export fn update(user_data: *anyopaque) void {
     };
 
     defer stream.close();
-    print("Connecting to {}\n", .{peer});
+    //print("Connecting to {}\n", .{peer});
 
     // Sending data to peer
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -110,12 +110,12 @@ export fn update(user_data: *anyopaque) void {
     };
     defer alloc.free(string);
     var writer = stream.writer();
-    const size = writer.write(string) catch |err| {
+    _ = writer.write(string) catch |err| {
         print("error{} writing to socket", .{err});
         return;
     };
 
-    print("Sending '{s}' to peer, total written: {d} bytes\n", .{ string, size });
+    //print("Sending '{s}' to peer, total written: {d} bytes\n", .{ string, size });
     // Or just using `writer.writeAll`
     // try writer.writeAll("hello zig");
     _ = user_data;
@@ -123,5 +123,25 @@ export fn update(user_data: *anyopaque) void {
 
 /// Perform potential visualization cleanup.
 export fn destroy(user_data: *anyopaque) void {
+    const peer = net.Address.parseIp4("127.0.0.1", 8764) catch |err| {
+        print("error creating socket:{}", .{err});
+        return;
+    };
+    // Connect to peer
+    const stream = net.tcpConnectToAddress(peer) catch |err| {
+        print("error connecting to socket:{}", .{err});
+        return;
+    };
+
+    defer stream.close();
+
+    const string = "close";
+
+    var writer = stream.writer();
+    _ = writer.write(string) catch |err| {
+        print("error{} writing to socket", .{err});
+        return;
+    };
+
     _ = user_data; // Avoid unused variable error
 }
