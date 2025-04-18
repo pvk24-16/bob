@@ -127,8 +127,14 @@ pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob
 }
 
 pub fn get_tempo(context: ?*anyopaque, channel: c_int) callconv(.C) f32 {
-    _ = .{ context, channel };
-    return 0.0;
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const tempo = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.tempo_center,
+        else => @panic("Bad API call"),
+    };
+
+    return tempo.get_bpm();
 }
 
 pub fn in_break(context: ?*anyopaque, channel: c_int) callconv(.C) c_int {

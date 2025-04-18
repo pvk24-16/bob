@@ -16,7 +16,7 @@ static struct bob_visualization_info info =
 {
 	.name = "Beat test",
 	.description = "Visualizer for testing beat detection.",
-	.enabled = BOB_AUDIO_PULSE_MONO,
+	.enabled = BOB_AUDIO_PULSE_MONO | BOB_AUDIO_TEMPO_MONO,
 };
 
 static int C_handle;
@@ -221,6 +221,18 @@ EXPORT void update(void)
 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(v_buf), &v_buf, GL_STREAM_DRAW);
 	glDrawArrays(GL_TRIANGLES, 0, 6 * B);
+
+	{
+		static float bpm = 0;
+		float new_bpm = api.get_tempo(api.context, BOB_MONO_CHANNEL);
+
+		if (bpm != new_bpm)
+		{
+			bpm = new_bpm;
+
+			fprintf(stderr, "BPM: %g\n", bpm);
+		}
+	}
 }
 
 EXPORT void destroy(void)
