@@ -2,16 +2,11 @@
 #include <stdio.h>
 #include <bob.h>
 
-#include "glad/glad.h"
-
 #ifdef WIN32
 #define EXPORT __attribute__((dllexport))
 #else
 #define EXPORT
 #endif
-
-int slider = -1;
-int checkbox = -1;
 
 EXPORT struct bob_api api;
 
