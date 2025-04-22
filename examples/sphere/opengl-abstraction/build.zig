@@ -25,9 +25,10 @@ pub fn build(b: *std.Build) void {
     switch (os_tag) {
         .windows => {
             lib.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
-            lib.addObjectFile(.{ .cwd_relative = "deps/lib/windows/glfw3.dll" });
             lib.linkSystemLibrary("opengl32");
             lib.linkSystemLibrary("glfw3");
+            lib.linkSystemLibrary("gdi32");
+            lib.linkSystemLibrary("user32");
         },
         .linux => {
             lib.linkSystemLibrary("GL");
