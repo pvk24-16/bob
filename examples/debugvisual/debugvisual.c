@@ -257,7 +257,7 @@ static void draw_break(enum bob_channel ch)
 
   new_column();
   draw_quad(CHROMAGRAM_SPACING,
-            0,
+            CHROMAGRAM_SPACING,
             CHROMAGRAM_CELL_SIZE,
             height,
             s_break_r[ch],
@@ -265,7 +265,7 @@ static void draw_break(enum bob_channel ch)
             s_break_b[ch]);
 }
 
-EXPORT struct bob_api api;
+struct bob_api api;
 
 static struct bob_visualization_info info = {
   .name = "Debug visualizer",
@@ -279,12 +279,12 @@ static struct bob_visualization_info info = {
     BOB_AUDIO_BREAKS_STEREO,
 };
 
-EXPORT const struct bob_visualization_info *get_info(void)
+const struct bob_visualization_info *get_info(void)
 {
   return &info;
 }
 
-EXPORT const char *create(void)
+const char *create(void)
 {
   init_buffer();
   setup_drawing();
@@ -298,7 +298,7 @@ EXPORT const char *create(void)
   return NULL;
 }
 
-EXPORT void update(void)
+void update(void)
 {
   if (api.ui_element_is_updated(api.context, s_scale_handle))
     s_scale = api.get_ui_float_value(api.context, s_scale_handle);
@@ -326,7 +326,8 @@ EXPORT void update(void)
   do_the_drawing();
 }
 
-EXPORT void destroy(void)
+void destroy(void)
 {
+  stop_drawing();
   destroy_buffer();
 }
