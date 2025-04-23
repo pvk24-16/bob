@@ -18,6 +18,10 @@ const examples: []const Example = &.{
         .sources = &.{"perf.c"},
     },
     .{
+        .name = "debugprint",
+        .sources = &.{"debugprint.c"},
+    },
+    .{
         .name = "breaks",
         .sources = &.{"breaks.c"},
     },
