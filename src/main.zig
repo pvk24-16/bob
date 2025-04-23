@@ -42,6 +42,9 @@ pub fn main() !void {
     }
     defer glfw.glfwTerminate();
 
+    const monitor = glfw.glfwGetPrimaryMonitor();
+    const mode = glfw.glfwGetVideoMode(monitor);
+
     glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
     glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_CORE_PROFILE);
@@ -50,10 +53,10 @@ pub fn main() !void {
     }
 
     const window = glfw.glfwCreateWindow(
-        800,
-        600,
+        mode[0].width,
+        mode[0].height,
         "bob",
-        null,
+        monitor,
         null,
     ) orelse {
         std.log.err("Failed to create window", .{});
@@ -103,6 +106,10 @@ pub fn main() !void {
 
     var bob_dir_buf: [std.fs.max_path_bytes]u8 = undefined;
     const bob_dir = try std.process.getCwd(&bob_dir_buf);
+
+    var prev_time = glfw.glfwGetTime() - 1.0;
+    var prev_fps_update_time = glfw.glfwGetTime() - 1.0;
+    var fps: f64 = 60;
 
     while (running) {
         glfw.glfwPollEvents();
@@ -208,6 +215,17 @@ pub fn main() !void {
                 }
             }
         }
+
+        const current_time = glfw.glfwGetTime();
+        const delta_time = current_time - prev_time;
+        prev_time = current_time;
+
+        if (current_time - prev_fps_update_time > 1.0) {
+            prev_fps_update_time = current_time;
+            fps = 1.0 / delta_time;
+        }
+
+        imgui.Text("FPS: %.2f", fps);
 
         if (context.client) |*client| {
             imgui.SeparatorText(client.info.name);
