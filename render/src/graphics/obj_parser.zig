@@ -1,5 +1,5 @@
 const std = @import("std");
-const g = @import("../lib.zig");
+const g = @import("../root.zig");
 const VertexBuffer = g.buffer.VertexBuffer;
 const IndexBuffer = g.buffer.ElementBuffer;
 const Vec3 = g.math.Vec3;
