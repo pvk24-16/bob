@@ -196,9 +196,9 @@ static void draw_chromagram(enum bob_channel ch)
   float chroma[12];
   api.get_chromagram(api.context, chroma, ch);
 
-  float r = (float) ch == 0;
-  float g = (float) ch == 1;
-  float b = (float) ch == 2;
+  float r = (float) ch == BOB_LEFT_CHANNEL;
+  float g = (float) ch == BOB_MONO_CHANNEL;
+  float b = (float) ch == BOB_RIGHT_CHANNEL;
 
   new_column();
   for (size_t i = 0; i < 12; ++i) {
@@ -223,9 +223,9 @@ static void draw_spectrogram(enum bob_channel ch)
   float size = height / SPECTROGRAM_RESOLUTION;
 
   new_column();
-  float r = (float) ch == 0;
-  float g = (float) ch == 1;
-  float b = (float) ch == 2;
+  float r = (float) ch == BOB_LEFT_CHANNEL;
+  float g = (float) ch == BOB_MONO_CHANNEL;
+  float b = (float) ch == BOB_RIGHT_CHANNEL;
 
 
   for (size_t i = 0; i < SPECTROGRAM_RESOLUTION; ++i) {

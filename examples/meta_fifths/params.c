@@ -27,7 +27,7 @@ void register_params(void)
   s_randomize_handle = api.register_checkbox(api.context, "Randomize colors on song change", 0);
   s_radius_handle = api.register_float_slider(api.context, "Radius", .1f, 1.f, s_radius);
   s_scale_handle = api.register_float_slider(api.context, "Scale", .01f, 1.5f, s_scale);
-  s_resolution_handle = api.register_int_slider(api.context, "Resolution", 16, 512, s_resolution);
+  s_resolution_handle = api.register_int_slider(api.context, "Resolution", 16, 2048, s_resolution);
   s_bg_color_handle = api.register_colorpicker(api.context, "Background", &s_bg_color);
   s_border_color_handle = api.register_colorpicker(api.context, "Border", &s_border_color);
   s_center_color_handle = api.register_colorpicker(api.context, "Center", &s_center_color);

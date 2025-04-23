@@ -18,7 +18,7 @@ fn resizeCallback(window: ?*glfw.GLFWwindow, x: c_int, y: c_int) callconv(.C) vo
     context.window_width = x;
     context.window_height = y;
     context.window_did_resize = true;
-    gl.glViewport(0, 0, 800, 600);
+    gl.glViewport(0, 0, x, y);
 }
 
 pub fn main() !void {
@@ -45,6 +45,7 @@ pub fn main() !void {
     const monitor = glfw.glfwGetPrimaryMonitor();
     const mode = glfw.glfwGetVideoMode(monitor);
 
+    glfw.glfwWindowHint(glfw.GLFW_AUTO_ICONIFY, glfw.GLFW_FALSE);
     glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
     glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_CORE_PROFILE);
