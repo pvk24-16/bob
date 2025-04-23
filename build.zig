@@ -18,7 +18,7 @@ fn linkToGLFW(b: *std.Build, add_to: *std.Build.Step.Compile, os_tag: std.Target
             add_to.linkSystemLibrary("glfw");
         },
         .macos => {
-            add_to.addLibraryPath(b.path("/opt/homebrew/lib"));
+            add_to.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
             add_to.linkFramework("OpenGL");
             add_to.linkSystemLibrary("glfw");
         },
@@ -56,7 +56,7 @@ pub fn build(b: *std.Build) !void {
             exe.linkSystemLibrary("pulse");
         },
         .macos => {
-            exe.addLibraryPath(b.path("/opt/homebrew/lib"));
+            exe.addLibraryPath(.{ .cwd_relative = "/opt/homebrew/lib" });
             exe.linkFramework("OpenGL");
             exe.linkSystemLibrary("glfw");
             exe.linkFramework("CoreAudio");
