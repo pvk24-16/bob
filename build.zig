@@ -1,13 +1,13 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
-    add_to.addIncludePath(.{ .cwd_relative = "deps/include/" });
+fn linkToGLFW(b: *std.Build, add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
+    add_to.addIncludePath(b.path("deps/include/"));
     add_to.addCSourceFiles(.{ .files = &.{"deps/src/glad.c"} });
     add_to.addCSourceFiles(.{ .files = &.{"deps/src/stb_image_fix.c"} });
     switch (os_tag) {
         .windows => {
-            add_to.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
+            add_to.addLibraryPath(b.path("deps/lib/windows"));
             add_to.linkSystemLibrary("opengl32");
             add_to.linkSystemLibrary("glfw3");
             add_to.linkSystemLibrary("gdi32");
@@ -41,7 +41,7 @@ pub fn build(b: *std.Build) !void {
 
     switch (os_tag) {
         .windows => {
-            exe.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
+            exe.addLibraryPath(b.path("deps/lib/windows"));
             exe.linkSystemLibrary("mmdevapi");
             exe.linkSystemLibrary("ole32");
             exe.linkSystemLibrary("dwmapi");
@@ -87,7 +87,7 @@ pub fn build(b: *std.Build) !void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_unit_tests.step);
 
-    linkToGLFW(exe, target.result.os.tag);
+    linkToGLFW(b, exe, target.result.os.tag);
     exe.addIncludePath(b.path("api"));
     exe.linkLibC();
 
@@ -136,7 +136,7 @@ pub fn build(b: *std.Build) !void {
 
     // Examples
     try @import("examples/build_c_examples.zig").build_c_examples(b, target, optimize);
-    try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
+    try @import("examples/sphere/build.zig").buildLib(b, "sphere", "examples/sphere/", target, optimize);
     try @import("examples/logvol/build.zig").buildLib(b, "logvol", "examples/logvol/", target, optimize);
     try @import("examples/logvol/build.zig").buildLib(b, "debug", "examples/debug/", target, optimize);
 }
@@ -210,7 +210,7 @@ fn createImguiGLFWStaticLib(
     imgui_glfw.addIncludePath(imgui_dep.path("backends/"));
     imgui_glfw.addIncludePath(b.path("deps/include/"));
 
-    linkToGLFW(imgui_glfw, target.result.os.tag);
+    linkToGLFW(b, imgui_glfw, target.result.os.tag);
 
     imgui_glfw.addCSourceFile(.{
         .file = imgui_dep.path("backends/imgui_impl_glfw.cpp"),

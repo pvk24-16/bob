@@ -1,5 +1,5 @@
 const std = @import("std");
-const g = @import("opengl-abstraction/src/lib.zig");
+const g = @import("render");
 const bob = @cImport({
     @cInclude("bob.h");
 });
@@ -29,6 +29,7 @@ var vertex_buffer: VertexBuffer(Vec3) = undefined;
 var num_vertices: u32 = undefined;
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const gpa_allocator = gpa.allocator();
+var st: i64 = undefined;
 
 /// Export api variable, it will be populated with information by the API
 export var api: BobAPI = undefined;
@@ -49,6 +50,7 @@ export fn get_info() callconv(.C) [*c]const VisualizationInfo {
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
 export fn create() [*c]const u8 {
+    st = std.time.microTimestamp();
     _ = g.gl.gladLoadGLLoader(api.get_proc_address);
     radius_handle = api.register_float_slider.?(api.context, "Radius", 0.0, 2.0, 1.0);
     num_pts_handle = api.register_float_slider.?(api.context, "Num pts", 0.0, 10000.0, 1000.0);
@@ -93,7 +95,9 @@ export fn update() void {
 
     shader_program.bind();
 
-    shader_program.setF32("time", @floatCast(g.glfw.glfwGetTime()));
+    const t: f32 = @floatCast((@as(f64, @floatFromInt(std.time.microTimestamp() - st))) / 1_000_000.0);
+    shader_program.setF32("time", t);
+
     g.gl.glClearColor(0.3, 0.5, 0.7, 1.0);
     g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
     g.gl.glClear(g.gl.GL_DEPTH_BUFFER_BIT);
