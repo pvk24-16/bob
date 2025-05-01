@@ -46,8 +46,6 @@ export fn create() ?*anyopaque {
     const argv = [_][]const u8{ "python", "startFountain.py" };
 
     var child = std.process.Child.init(&argv, allocator);
-    child.stdout_behavior = .Pipe;
-    child.stderr_behavior = .Pipe;
 
     child.spawn() catch |err| {
         print("error lauching visualization:{}", .{err});
@@ -116,8 +114,6 @@ export fn update(user_data: *anyopaque) void {
     };
 
     //print("Sending '{s}' to peer, total written: {d} bytes\n", .{ string, size });
-    // Or just using `writer.writeAll`
-    // try writer.writeAll("hello zig");
     _ = user_data;
 }
 
