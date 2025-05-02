@@ -8,7 +8,6 @@ pub const Error = error{
     failed_to_init_gl,
     failed_to_create_window,
     max_callbacks_exceeded,
-    borderless_fullscreen,
 };
 
 pub const CallbackKind = enum {
@@ -18,6 +17,8 @@ pub const CallbackKind = enum {
     cursor,
 };
 
+/// NOTE: Window resize records width and height to this struct
+/// NOTE: Window resize also sets the GL viewport
 pub fn Window(comptime max_callbacks: usize) type {
     return struct {
         const Self = @This();
@@ -139,6 +140,8 @@ pub fn Window(comptime max_callbacks: usize) type {
                     @ptrCast(&self.saved_x),
                     @ptrCast(&self.saved_y),
                 );
+                self.saved_width = self.width;
+                self.saved_height = self.height;
 
                 glfw.glfwSetWindowMonitor(
                     self.handle,
@@ -222,6 +225,8 @@ pub fn Window(comptime max_callbacks: usize) type {
             height: c_int,
         ) callconv(.C) void {
             const self: *Self = @alignCast(@ptrCast(glfw.glfwGetWindowUserPointer(h)));
+            self.width = width;
+            self.height = height;
             gl.glViewport(0, 0, width, height);
 
             for (0..self.resize_num) |i| {
