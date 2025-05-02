@@ -9,7 +9,7 @@ const Context = @import("Context.zig");
 const Flags = @import("flags.zig").Flags;
 
 const audio_producer_enumerator = @import("producers/enumerator.zig");
-const Window = @import("graphics/window.zig").Window;
+const Window = @import("graphics/window.zig").Window(8);
 
 const os_tag = @import("builtin").os.tag;
 
@@ -18,6 +18,22 @@ fn resizeCallback(x: i32, y: i32, userdata: ?*anyopaque) void {
     context.window_width = @intCast(x);
     context.window_height = @intCast(y);
     context.window_did_resize = true;
+}
+
+/// Userdata is window
+fn keyboardCallback(key: i32, _: i32, action: i32, _: i32, userdata: ?*anyopaque) void {
+    var window: *Window = @ptrCast(@alignCast(userdata.?)); // This is ok
+
+    switch (key) {
+        glfw.GLFW_KEY_F => {
+            if (action == glfw.GLFW_PRESS) {
+                // For now we reserve key F for toggling borderless fullscreen
+                // TODO: list monitors in GUI somehow, we use the primary monitor for now
+                window.toggleBorderless();
+            }
+        },
+        else => {},
+    }
 }
 
 pub fn main() !void {
@@ -33,10 +49,15 @@ pub fn main() !void {
     var context = try Context.init(allocator);
     defer context.deinit(allocator);
 
-    var window = try Window(8).init();
-    try window.pushCallback(&resizeCallback, @ptrCast(@alignCast(&context)), .resize);
-    defer window.deinit();
+    var window = try Window.init(800, 600, "BoB");
     window.setUserPointer();
+    try window.pushCallback(&resizeCallback, @ptrCast(@alignCast(&context)), .resize);
+    try window.pushCallback(&keyboardCallback, @ptrCast(@alignCast(&window)), .keyboard);
+    defer window.deinit();
+
+    context.window_width = window.width;
+    context.window_height = window.height;
+    context.window_did_resize = true;
 
     var ui = try @import("UI.zig").init(window.handle);
     defer ui.deinit();
@@ -62,27 +83,31 @@ pub fn main() !void {
     while (running) {
         window.update();
         defer window.swap();
+        defer running = window.running();
         defer {
             if (context.window_did_resize) {
                 context.window_did_resize = false;
             }
         }
 
-        running = window.running();
+        // === Input ===
         if (glfw.glfwGetKey(window.handle, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
             break;
         }
 
+        // === Update sate ===
         context.processAudio();
 
+        // === Draw begins here ===
         if (context.client) |client| {
             if (context.capturer != null) {
                 client.update();
             }
+        } else {
+            // Much clearer
+            gl.glClearColor(0.2, 0.2, 0.2, 1.0);
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         }
-
-        gl.glClearColor(0.2, 0.2, 0.2, 1.0);
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
 
         ui.beginFrame();
 
