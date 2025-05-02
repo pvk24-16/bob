@@ -1,6 +1,6 @@
 const std = @import("std");
-const gl = @import("c.zig").gl;
-const glfw = @import("c.zig").glfw;
+const gl = @import("glad.zig");
+const glfw = @import("glfw.zig");
 const os_tag = @import("builtin").os.tag;
 
 pub const Error = error{
@@ -21,11 +21,11 @@ pub fn Window(comptime max_callbacks: usize) type {
     return struct {
         const Self = @This();
 
-        const window_width: u32 = 800;
-        const window_height: u32 = 600;
-        const window_title = "project_name";
+        const width: u32 = 800;
+        const height: u32 = 600;
+        const title = "BoB";
 
-        window_handle: *glfw.GLFWwindow = undefined,
+        handle: *glfw.GLFWwindow = undefined,
 
         resize_callbacks: [max_callbacks]*const fn (i32, i32, ?*anyopaque) void = undefined,
         key_callbacks: [max_callbacks]*const fn (i32, i32, i32, i32, ?*anyopaque) void = undefined,
@@ -55,46 +55,51 @@ pub fn Window(comptime max_callbacks: usize) type {
             }
 
             const window = glfw.glfwCreateWindow(
-                window_width,
-                window_height,
-                window_title[0..],
+                width,
+                height,
+                title[0..],
                 null,
                 null,
             ) orelse return Error.failed_to_create_window;
             glfw.glfwMakeContextCurrent(window);
 
             if (gl.gladLoadGLLoader(@ptrCast(&glfw.glfwGetProcAddress)) == 0) return Error.failed_to_init_gl;
-            gl.glViewport(0, 0, window_width, window_height);
+            gl.glViewport(0, 0, width, height);
 
             glfw.glfwSwapInterval(1);
 
-            return Self{ .window_handle = window };
+            return Self{ .handle = window };
         }
 
         /// Destroy renderer.
         pub fn deinit(self: *Self) void {
-            glfw.glfwDestroyWindow(self.window_handle);
+            glfw.glfwDestroyWindow(self.handle);
             glfw.glfwTerminate();
         }
 
         /// Set user pointer and callbacks.
         pub fn setUserPointer(self: *Self) void {
-            glfw.glfwSetWindowUserPointer(self.window_handle, @ptrCast(self));
-            _ = glfw.glfwSetFramebufferSizeCallback(self.window_handle, resizeCallback);
-            _ = glfw.glfwSetKeyCallback(self.window_handle, keyboardCallback);
-            _ = glfw.glfwSetMouseButtonCallback(self.window_handle, mouseCallback);
-            _ = glfw.glfwSetCursorPosCallback(self.window_handle, cursorPositionCallback);
+            glfw.glfwSetWindowUserPointer(self.handle, @ptrCast(self));
+            _ = glfw.glfwSetFramebufferSizeCallback(self.handle, resizeCallback);
+            _ = glfw.glfwSetKeyCallback(self.handle, keyboardCallback);
+            _ = glfw.glfwSetMouseButtonCallback(self.handle, mouseCallback);
+            _ = glfw.glfwSetCursorPosCallback(self.handle, cursorPositionCallback);
         }
 
-        /// Swap buffers and poll events.
-        pub fn update(self: *Self) void {
-            glfw.glfwSwapBuffers(self.window_handle);
+        /// Poll events.
+        pub inline fn update(self: *Self) void {
+            _ = self;
             glfw.glfwPollEvents();
+        }
+
+        /// Swap buffers.
+        pub inline fn swap(self: *Self) void {
+            glfw.glfwSwapBuffers(self.handle);
         }
 
         /// Returns false if the window should close.
         pub fn running(self: *Self) bool {
-            return glfw.glfwWindowShouldClose(self.window_handle) == glfw.GLFW_FALSE;
+            return glfw.glfwWindowShouldClose(self.handle) == glfw.GLFW_FALSE;
         }
 
         /// Assign function for callback.
@@ -161,16 +166,16 @@ pub fn Window(comptime max_callbacks: usize) type {
         /// Upon window resize, call all registered callbacks.
         fn resizeCallback(
             h: ?*glfw.GLFWwindow,
-            width: c_int,
-            height: c_int,
+            n_width: c_int,
+            n_height: c_int,
         ) callconv(.C) void {
             const self: *Self = @alignCast(@ptrCast(glfw.glfwGetWindowUserPointer(h)));
-            gl.glViewport(0, 0, width, height); // TODO: Maybe the user should decide this?
+            gl.glViewport(0, 0, width, height);
 
             for (0..self.resize_num) |i| {
                 self.resize_callbacks[i](
-                    @intCast(width),
-                    @intCast(height),
+                    @intCast(n_width),
+                    @intCast(n_height),
                     self.resize_userdata[i],
                 );
             }
