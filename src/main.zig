@@ -99,10 +99,8 @@ pub fn main() !void {
         context.processAudio();
 
         // === Draw begins here ===
-        if (context.client) |client| {
-            if (context.capturer != null) {
-                client.update();
-            }
+        if (context.client != null and context.capturer != null) {
+            context.client.?.update();
         } else {
             // Much clearer
             gl.glClearColor(0.2, 0.2, 0.2, 1.0);
