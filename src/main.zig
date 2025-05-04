@@ -9,82 +9,58 @@ const Context = @import("Context.zig");
 const Flags = @import("flags.zig").Flags;
 
 const audio_producer_enumerator = @import("producers/enumerator.zig");
+const Window = @import("graphics/window.zig").Window(8);
 
 const os_tag = @import("builtin").os.tag;
 
-fn resizeCallback(window: ?*glfw.GLFWwindow, x: c_int, y: c_int) callconv(.C) void {
-    const userdata = glfw.glfwGetWindowUserPointer(window);
-    const context: *Context = @ptrCast(@alignCast(userdata));
-    context.window_width = x;
-    context.window_height = y;
+fn resizeCallback(x: i32, y: i32, userdata: ?*anyopaque) void {
+    const context: *Context = @ptrCast(@alignCast(userdata.?)); // This is ok
+    context.window_width = @intCast(x);
+    context.window_height = @intCast(y);
     context.window_did_resize = true;
-    gl.glViewport(0, 0, 800, 600);
+}
+
+/// Userdata is window
+fn keyboardCallback(key: i32, _: i32, action: i32, _: i32, userdata: ?*anyopaque) void {
+    var window: *Window = @ptrCast(@alignCast(userdata.?)); // This is ok
+
+    switch (key) {
+        glfw.GLFW_KEY_F => {
+            if (action == glfw.GLFW_PRESS) {
+                // For now we reserve key F for toggling borderless fullscreen
+                // TODO: list monitors in GUI somehow, we use the primary monitor for now
+                window.toggleBorderless();
+            }
+        },
+        else => {},
+    }
 }
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
-
     const allocator = gpa.allocator();
-
-    var args = try std.process.argsWithAllocator(allocator);
-    defer args.deinit();
 
     // the path to visualizers is currently overridden with the path where buildExample puts them
     var client_list = try @import("ClientList.zig").init(allocator, "zig-out/bob");
     defer client_list.deinit();
     try client_list.readClientDir();
 
-    _ = glfw.glfwSetErrorCallback(errorCallback);
-    if (glfw.glfwInit() == glfw.GLFW_FALSE) {
-        std.log.err("Failed to init GLFW", .{});
-        return;
-    }
-    defer glfw.glfwTerminate();
-
-    glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_CORE_PROFILE);
-    if (os_tag == .macos) {
-        glfw.glfwWindowHint(glfw.GLFW_OPENGL_FORWARD_COMPAT, glfw.GLFW_TRUE);
-    }
-
-    const window = glfw.glfwCreateWindow(
-        800,
-        600,
-        "bob",
-        null,
-        null,
-    ) orelse {
-        std.log.err("Failed to create window", .{});
-        return;
-    };
-    defer glfw.glfwDestroyWindow(window);
-
-    glfw.glfwMakeContextCurrent(window);
-    if (gl.gladLoadGLLoader(@ptrCast(&glfw.glfwGetProcAddress)) == 0) {
-        std.log.err("Failed to load gl", .{});
-        return;
-    }
-
-    gl.glViewport(0, 0, 800, 600);
-    glfw.glfwSwapInterval(1);
-
-    var ui = try @import("UI.zig").init(window);
-    defer ui.deinit();
-
     var context = try Context.init(allocator);
     defer context.deinit(allocator);
 
-    glfw.glfwSetWindowUserPointer(window, @ptrCast(&context));
-    _ = glfw.glfwSetWindowSizeCallback(window, resizeCallback);
+    var window = try Window.init(800, 600, "BoB");
+    window.setUserPointer();
+    try window.pushCallback(&resizeCallback, @ptrCast(@alignCast(&context)), .resize);
+    try window.pushCallback(&keyboardCallback, @ptrCast(@alignCast(&window)), .keyboard);
+    defer window.deinit();
 
-    var x: c_int = undefined;
-    var y: c_int = undefined;
-    glfw.glfwGetWindowSize(window, &x, &y);
-    context.window_width = x;
-    context.window_height = y;
+    context.window_width = window.width;
+    context.window_height = window.height;
     context.window_did_resize = true;
+
+    var ui = try @import("UI.zig").init(window.handle);
+    defer ui.deinit();
 
     var current_name: ?[*:0]const u8 = null;
     var current_index: ?usize = null;
@@ -105,17 +81,30 @@ pub fn main() !void {
     const bob_dir = try std.process.getCwd(&bob_dir_buf);
 
     while (running) {
-        glfw.glfwPollEvents();
+        window.update();
+        defer window.swap();
+        defer running = window.running();
+        defer {
+            if (context.window_did_resize) {
+                context.window_did_resize = false;
+            }
+        }
 
-        gl.glClearColor(0.2, 0.2, 0.2, 1.0);
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
+        // === Input ===
+        if (glfw.glfwGetKey(window.handle, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
+            break;
+        }
 
+        // === Update sate ===
         context.processAudio();
 
-        if (context.client) |client| {
-            if (context.capturer != null) {
-                client.update();
-            }
+        // === Draw begins here ===
+        if (context.client != null and context.capturer != null) {
+            context.client.?.update();
+        } else {
+            // Much clearer
+            gl.glClearColor(0.2, 0.2, 0.2, 1.0);
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         }
 
         ui.beginFrame();
@@ -258,17 +247,5 @@ pub fn main() !void {
         context.err.show(allocator);
 
         ui.endFrame();
-
-        running = glfw.glfwWindowShouldClose(window) == glfw.GLFW_FALSE;
-        glfw.glfwSwapBuffers(window);
-
-        if (glfw.glfwGetKey(window, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
-            break;
-        }
     }
-}
-
-/// Print error and code on GLFW errors.
-fn errorCallback(err: c_int, msg: [*c]const u8) callconv(.C) void {
-    std.log.err("Error code: {d} message: {s}", .{ err, msg });
 }
