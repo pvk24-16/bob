@@ -5,15 +5,20 @@ layout(location = 1) in vec2 uv;
 layout(location = 2) in vec3 norm;
 layout(location = 3) in vec4 wiggle_coefs;
 layout(location = 4) in vec4 offset;
-
+layout(location = 5) in float freq;
+layout(location = 6) in float prev_freq;
 
 out vec2 tex_coord;
 out vec3 normal;
 
 uniform float time;
+uniform float freq_time;
+uniform float interp_time;
 uniform mat4 scaleRotateMatrix;
 uniform mat4 translateMatrix;
 uniform mat4 perspectiveMatrix;
+
+const float PI = 3.14159265359;
 
 mat4 rotationMatrixY(float angleRadians) {
     float c = cos(angleRadians);
@@ -39,10 +44,20 @@ mat4 rotationMatrixZ(float angleRadians) {
     );
 }
 
+float get_interp_coef() {
+    float t = (time - freq_time) / interp_time;
+    // return 0.5 + 0.5 * sin(2.0 * PI * x - PI / 2.0);
+    return t * t * (3.0 - 2.0 * t);
+}
+
 vec4 transformPos(vec3 pos) {
+    float interp_coef = get_interp_coef();
+    float interpolated_freq = (1 - interp_coef) * prev_freq + interp_coef * freq;
+    float adjusted_freq = sqrt(interpolated_freq * 1000.0);
+
     float a_1 = wiggle_coefs.x;
     float p_1 = pos.z + wiggle_coefs.y * time;
-    float angle = wiggle_coefs.w - time;
+    float angle = mod(wiggle_coefs.w - time, 2.0 * PI);
 
     float side_to_side_wiggle = pos.x + a_1 * sin(p_1);
     float up_down_wiggle = pos.y;
@@ -51,14 +66,14 @@ vec4 transformPos(vec3 pos) {
     vec4 wiggly_pos = vec4(side_to_side_wiggle, up_down_wiggle, front_back_wiggle, 1.0);
 
     vec4 scaled_rotated_pos = scaleRotateMatrix * wiggly_pos;
-    vec4 translated_pos = offset + translateMatrix * scaled_rotated_pos;
+    vec4 translated_pos = (0.2 + adjusted_freq) * offset + translateMatrix * scaled_rotated_pos;
 
-    return vec4(0., 0., -1., 0.0) + rotationMatrixZ(-0.5 * angle) * rotationMatrixY(angle) * translated_pos;
+    mat4 rotation_matrix = rotationMatrixZ(0.35 * PI * sin(angle)) * rotationMatrixY(angle);
+
+    return vec4(0., 0., -1.0, 0.0) + rotation_matrix * translated_pos;
 }
 
 void main() {
-    float angle = wiggle_coefs.w - time;
-
     gl_Position = perspectiveMatrix * transformPos(i_pos);
     normal = transformPos(norm).xyz;
     tex_coord = uv;
