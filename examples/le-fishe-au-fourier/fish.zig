@@ -150,16 +150,47 @@ fn randomOffsets(
     return coefs;
 }
 
-fn get_freq_data(allocator: *std.mem.Allocator) []f32 {
+fn stretch_array(comptime T: type, arr: []T, new_len: usize) []T {
+    // Create an array with the new length
+    const result = std.heap.page_allocator.alloc(T, new_len) catch unreachable;
+
+    const len = arr.len;
+    const ratio = @as(f32, @floatFromInt(new_len)) / @as(f32, @floatFromInt(len));
+
+    for (result, 0..) |*item, i| {
+        const orig_index: usize = @intFromFloat(@as(f32, @floatFromInt(i)) / ratio);
+        // Get the element from the original array based on the index
+        if (orig_index < len) {
+            item.* = arr[orig_index];
+        } else {
+            // If the computed index is out of bounds, use the last element
+            item.* = arr[len - 1];
+        }
+    }
+
+    return result;
+}
+
+fn get_freq_data() []f32 {
     const freqs: bob.bob_float_buffer = api.get_frequency_data.?(
         api.context,
         bob.BOB_MONO_CHANNEL,
     );
 
     const data = freqs.ptr[0..freqs.size];
-    const clone = allocator.alloc(f32, freqs.size) catch unreachable;
-    std.mem.copyForwards(f32, clone, data);
-    return clone;
+
+    return stretch_array(f32, @constCast(data), @intCast(num_fish.value));
+}
+
+fn get_pulse_data() []f32 {
+    const freqs: bob.bob_float_buffer = api.get_pulse_data.?(
+        api.context,
+        bob.BOB_MONO_CHANNEL,
+    );
+
+    const data = freqs.ptr[0..freqs.size];
+
+    return stretch_array(f32, @constCast(data), @intCast(num_fish.value));
 }
 
 fn register_params() void {
@@ -182,7 +213,7 @@ fn update_params() void {
         update_fish_buffers();
     }
     if (updates_per_second.update()) {
-        interpolation_time_seconds = 1.0 / updates_per_second.value;
+        interpolation_time_seconds = speed.value / updates_per_second.value;
         freq_last_updated_time = 0; // Make sure to reset interpolation
     }
     _ = min_freq.update();
@@ -195,7 +226,7 @@ export fn get_info() callconv(.C) [*c]const VisualizationInfo {
     info.* = VisualizationInfo{
         .name = "Instert name here",
         .description = "Insert description here",
-        .enabled = bob.BOB_AUDIO_FREQUENCY_DOMAIN_MONO,
+        .enabled = bob.BOB_AUDIO_FREQUENCY_DOMAIN_MONO | bob.BOB_AUDIO_PULSE_MONO,
     };
     return info;
 }
@@ -309,7 +340,7 @@ export fn create() callconv(.C) [*c]const u8 {
     freq_buffer = ArrayBuffer(f32).init();
     prev_freq_buffer = ArrayBuffer(f32).init();
 
-    freq_data = get_freq_data(&alloc);
+    freq_data = get_freq_data();
 
     freq_buffer.bind();
 
@@ -357,7 +388,7 @@ export fn update() void {
         prev_freq_buffer.bind();
         prev_freq_buffer.write(freq_data, .dynamic);
 
-        freq_data = get_freq_data(&alloc);
+        freq_data = get_freq_data();
         freq_buffer.bind();
         freq_buffer.write(freq_data, .dynamic);
 

@@ -57,7 +57,7 @@ float get_interp_coef() {
 float get_freq_coef() {
     float interp_coef = get_interp_coef();
     float interpolated_freq = (1 - interp_coef) * prev_freq + interp_coef * freq;
-    return sqrt(interpolated_freq * amplitude);
+    return interpolated_freq * amplitude;
 }
 
 vec4 transformPos(vec3 pos) {
