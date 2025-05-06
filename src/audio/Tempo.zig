@@ -5,12 +5,12 @@ const Self = @This();
 
 const c32 = std.math.Complex(f32);
 
-const N: usize = 131072;
+const N: usize = 131072 * 2;
 const sample_rate = Config.sample_rate;
 const band_limits = [_]usize{ 0, 200, 400, 800, 1600, 3200 };
 const n_bands: usize = band_limits.len;
 const win_len: f32 = 0.4;
-const n_pulses: usize = 3;
+const n_pulses: usize = 5;
 const bpm_min: f32 = 60;
 const bpm_max: f32 = 240;
 const bpm_acc: f32 = 1;
@@ -39,6 +39,7 @@ const Context = struct {
     bank: [n_bands][N]c32,
     hann: [N]c32,
     filt: [N]c32,
+    bpm_graph: [2][n_bpm]f32,
 };
 
 thd: std.Thread,
@@ -56,6 +57,7 @@ pub fn init(alloc: std.mem.Allocator) !Self {
     ctx.bpm = 0;
     ctx.quit = false;
     @memset(&ctx.buf[1], 0);
+    @memset(&ctx.bpm_graph[1], 0);
 
     return .{
         .thd = try std.Thread.spawn(.{}, thread_main, .{ctx}),
@@ -161,6 +163,7 @@ fn find_tempo(ctx: *Context) void {
     // Time comb step
     var e_max: f32 = 0;
     var s_bpm: f32 = 0;
+    var bpm_e: [N]f32 = undefined;
 
     for (0..n_bpm) |bpm_i| {
         const bpm = idx_to_bpm(bpm_i);
@@ -184,6 +187,16 @@ fn find_tempo(ctx: *Context) void {
             e_max = e;
             s_bpm = bpm;
         }
+
+        bpm_e[bpm_i] = e;
+    }
+
+    {
+        ctx.mtx.lock();
+        for (0..n_bpm) |bpm_i| {
+            ctx.bpm_graph[1][bpm_i] = bpm_e[bpm_i] / e_max;
+        }
+        ctx.mtx.unlock();
     }
 
     @atomicStore(f32, &ctx.bpm, s_bpm, .release);
@@ -225,4 +238,13 @@ pub fn execute(self: *Self, samples: []const f32) void {
 
 pub fn get_bpm(self: *const Self) f32 {
     return @atomicLoad(f32, &self.ctx.bpm, .acquire);
+}
+
+pub fn get_bpm_graph(self: *const Self) []const f32 {
+    {
+        self.ctx.mtx.lock();
+        @memcpy(&self.ctx.bpm_graph[0], &self.ctx.bpm_graph[1]);
+        self.ctx.mtx.unlock();
+    }
+    return &self.ctx.bpm_graph[0];
 }

@@ -69,8 +69,8 @@ static GLuint vao;
 static GLuint prog;
 static struct
 {
-	Vec2f v_pos[1024];
-	Vec4f v_col[1024];
+	Vec2f v_pos[2048];
+	Vec4f v_col[2048];
 } v_buf;
 
 EXPORT struct bob_api api;
@@ -117,29 +117,23 @@ EXPORT const char *create(void)
 	glUseProgram(prog);
 
 	C_handle = api.register_float_slider(api.context, "Magnitude threshold", 0.1f, 10.f, C);
-	M_handle = api.register_float_slider(api.context, "Scale", 10.f, 100.f, M);
 	Vl_handle = api.register_float_slider(api.context, "Variability threshold log", -7.f, -3.f, Vl);
+	M_handle = api.register_float_slider(api.context, "Graph scale", 1.f, 100.f, M);
 
 	return NULL;
 }
 
-#define FFT_SIZE 2048
-
 EXPORT void update(void)
 {
-	struct bob_float_buffer buf = api.get_pulse_data(api.context, BOB_MONO_CHANNEL);
+	struct bob_float_buffer pulse = api.get_pulse_data(api.context, BOB_MONO_CHANNEL);
+	struct bob_float_buffer graph = api.get_pulse_graph(api.context, BOB_MONO_CHANNEL);
+	const size_t B = pulse.size;
 
 	C = api.get_ui_float_value(api.context, C_handle);
-	M = api.get_ui_float_value(api.context, M_handle);
 	Vl = api.get_ui_float_value(api.context, Vl_handle);
-	float V = powf(10.f, Vl);
+	M = api.get_ui_float_value(api.context, M_handle);
 
-#define H 43
-
-	static float Ei[FFT_SIZE][H];
-	static float Eh[FFT_SIZE];
-
-	const size_t B = buf.size;
+	api.set_pulse_params(api.context, BOB_MONO_CHANNEL, C, Vl);
 
 	glBindVertexArray(vao);
 	glUseProgram(prog);
@@ -151,40 +145,25 @@ EXPORT void update(void)
 
 	for (size_t i = 0; i < B; i++)
 	{
-		float a = 0.f;
-		float s = 0.f;
-		float v = 0.f;
+		static float Eh[128];
 
-		for (size_t j = 0; j < H; j++)
-		{
-			a = a + Ei[i][j];
-		}
-
-		a = a / H;
-
-		for (size_t j = 0; j < H; j++)
-		{
-			float p = Ei[i][j] - a;
-
-			v = v + p * p;
-		}
-
-		v = v / H;
-
-		s = buf.ptr[i];
-
-		memcpy(&Ei[i][1], &Ei[i][0], sizeof(Ei[i]) - sizeof(Ei[i][0]));
-		Ei[i][0] = s;
+		float h = pulse.ptr[i];
+		float s = graph.ptr[i];
 
 		{
 			float w = 2.f / B;
 
-			if (s > C * a && v > V)
+			if (h != 0)
 			{
 				Eh[i] = 1.f;
 			}
 
 			Eh[i] -= 0.1;
+
+			if (Eh[i] < 0)
+			{
+				Eh[i] = 0;
+			}
 
 			{
 				Vec2f v[] =
@@ -219,8 +198,28 @@ EXPORT void update(void)
 		}
 	}
 
+	struct bob_float_buffer bpm_graph;
+	bpm_graph = api.get_tempo_graph(api.context, BOB_MONO_CHANNEL);
+
+	for (size_t i = 0; i < bpm_graph.size; i++)
+	{
+		Vec2f p =
+		{
+			(float) i / (bpm_graph.size - 1) * 2 - 1,
+			bpm_graph.ptr[i],
+		};
+		Vec4f c =
+		{
+			1.f, 1.f, 1.f, 1.f,
+		};
+
+		v_buf.v_pos[6 * B + i] = p;
+		v_buf.v_col[6 * B + i] = c;
+	}
+
 	glBufferData(GL_ARRAY_BUFFER, sizeof(v_buf), &v_buf, GL_STREAM_DRAW);
 	glDrawArrays(GL_TRIANGLES, 0, 6 * B);
+	glDrawArrays(GL_LINE_STRIP, 6 * B, bpm_graph.size);
 
 	{
 		static float bpm = 0;
