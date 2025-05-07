@@ -108,9 +108,24 @@ struct bob_api {
     struct bob_float_buffer (*get_pulse_data)(void *context, int channel);
 
     /**
+     * Get pulse debug graph for specified channel.
+     */
+    struct bob_float_buffer (*get_pulse_graph)(void *context, int channel);
+
+    /**
+     * Set pulse analysis parameters.
+     */
+    void (*set_pulse_params)(void *context, int channel, float C, float Vl);
+
+    /**
      * Get tempo for specified channel.
      */
     float (*get_tempo)(void *context, int channel);
+
+    /**
+     * Get tempo debug graph for specified channel.
+     */
+    struct bob_float_buffer (*get_tempo_graph)(void *context, int channel);
 
     /**
      * Returns wether there is a break in the audio (slience).
