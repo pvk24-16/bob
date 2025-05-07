@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const bob = @cImport({
     @cInclude("bob.h");
 });
@@ -43,7 +44,14 @@ export fn create() ?*anyopaque {
     defer if (gpa.deinit() != .ok) @panic("leak");
     const allocator = gpa.allocator();
 
-    const argv = [_][]const u8{ "python", "startFountain.py" };
+    var argv = [_][]const u8{ "", "" };
+
+    switch (builtin.target.os.tag) {
+        .windows => argv = [_][]const u8{ "python", "..\\..\\..\\examples\\fountain\\startFountain.py" },
+        .linux => argv = [_][]const u8{ "python", "../../../examples/fountain/startFountain.py" },
+        .macos => argv = [_][]const u8{ "python", "../../../examples/fountain/startFountain.py" },
+        else => @compileError("Unsupported platform"),
+    }
 
     var child = std.process.Child.init(&argv, allocator);
 
