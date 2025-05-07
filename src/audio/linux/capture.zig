@@ -1,13 +1,10 @@
 const std = @import("std");
+const pulse = @import("pulse.zig");
 
 const RingBuffer = @import("../buffer.zig").RingBuffer;
 const Config = @import("../Config.zig");
 
 pub const LinuxImpl = struct {
-    const pulse = @cImport({
-        @cInclude("pulse/pulseaudio.h");
-    });
-
     const log = std.log.scoped(.pulseaudio);
 
     const Error = error{
@@ -18,6 +15,9 @@ pub const LinuxImpl = struct {
         context_init,
         context_connect,
         stream_init,
+        stream_connect,
+        sink_info_init,
+        proplist_init,
     };
 
     running: bool = false,
@@ -30,13 +30,13 @@ pub const LinuxImpl = struct {
 
     pub fn init(config: Config, allocator: std.mem.Allocator) !LinuxImpl {
         const mainloop = pulse.pa_threaded_mainloop_new() orelse {
-            return error.mainloop_init;
+            return Error.mainloop_init;
         };
         errdefer pulse.pa_threaded_mainloop_free(mainloop);
         log.info("mainloop initialized...", .{});
 
         if (pulse.pa_threaded_mainloop_start(mainloop) < 0) {
-            return error.mainloop_start;
+            return Error.mainloop_start;
         }
 
         const context = try Context.init(mainloop);
@@ -136,7 +136,7 @@ pub const LinuxImpl = struct {
 
         pub fn init(mainloop: *pulse.pa_threaded_mainloop) !*pulse.pa_context {
             const proplist = pulse.pa_proplist_new() orelse {
-                return error.fail;
+                return Error.proplist_init;
             };
 
             defer pulse.pa_proplist_free(proplist);
@@ -198,7 +198,7 @@ pub const LinuxImpl = struct {
             pulse.pa_threaded_mainloop_unlock(mainloop);
 
             if (!userdata.ok) {
-                return error.sink_info_init;
+                return Error.sink_info_init;
             }
 
             return userdata.sink_input_info;
@@ -219,10 +219,8 @@ pub const LinuxImpl = struct {
             if (std.mem.eql(u8, data.process_id, ptr[0..len])) {
                 data.ok = true;
                 data.sink_input_info = info.*;
-                if (info.sample_spec.rate != Config.sample_rate) {
-                    std.log.err("sink input samplerate {d} does not match hardcoded value {d}", .{ info.sample_spec.rate, Config.sample_rate });
-                    data.ok = false;
-                }
+                if (info.sample_spec.rate != Config.sample_rate)
+                    std.log.warn("sink input samplerate {d} does not match hardcoded value {d}", .{ info.sample_spec.rate, Config.sample_rate });
             }
         }
     };
@@ -233,7 +231,7 @@ pub const LinuxImpl = struct {
 
         pub fn init(sink_input_info: *const pulse.pa_sink_input_info, mainloop: *pulse.pa_threaded_mainloop, context: *pulse.pa_context) !*pulse.pa_stream {
             const proplist = pulse.pa_proplist_new() orelse {
-                return error.fail;
+                return Error.proplist_init;
             };
 
             defer pulse.pa_proplist_free(proplist);
@@ -271,7 +269,7 @@ pub const LinuxImpl = struct {
             pulse.pa_threaded_mainloop_unlock(mainloop);
 
             if (!userdata.ok or pulse.pa_stream_get_state(stream) != pulse.PA_STREAM_READY) {
-                return error.fail;
+                return Error.stream_connect;
             }
 
             return stream;
@@ -318,7 +316,7 @@ pub const LinuxImpl = struct {
             pulse.pa_threaded_mainloop_unlock(mainloop);
 
             if (!userdata.ok) {
-                return error.cork;
+                return if (cork) Error.capture_stop else Error.capture_start;
             }
         }
 

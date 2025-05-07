@@ -25,7 +25,7 @@ static struct bob_visualization_info info = {
   .name = "Meta fifths",
   .description =
     "A circle of fifths made from metaballs.",
-  .enabled = BOB_AUDIO_CHROMAGRAM_MONO,
+  .enabled = BOB_AUDIO_CHROMAGRAM_MONO | BOB_AUDIO_BREAKS_MONO,
 };
 
 EXPORT const struct bob_visualization_info *get_info(void)
@@ -33,23 +33,22 @@ EXPORT const struct bob_visualization_info *get_info(void)
   return &info;
 }
 
-EXPORT void *create(void)
+EXPORT const char *create(void)
 {
   register_params();
 
+  graphics_init();
+
   int w, h;
   (void) api.get_window_size(api.context, &w, &h);
+  glViewport(0, 0, w, h);
   lattice_set_size(w, h, get_resolution());
-
-  graphics_init();
 
   return NULL;
 }
 
-EXPORT void update(void *userdata)
+EXPORT void update(void)
 {
-  (void) userdata;
-
   int w, h;
   if (api.get_window_size(api.context, &w, &h) || resolution_changed()) {
     glViewport(0, 0, w, h);
@@ -66,10 +65,8 @@ EXPORT void update(void *userdata)
   draw_buffer(&s_buffer);
 }
 
-EXPORT void destroy(void *userdata)
+EXPORT void destroy(void)
 {
-  (void) userdata;
-
   buf_free(&s_buffer);
   graphics_deinit();
   lattice_destroy();

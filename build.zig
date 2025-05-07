@@ -1,16 +1,17 @@
 const std = @import("std");
-const helper = @import("examples/build_helper.zig");
+const builtin = @import("builtin");
 
-fn linkToGLFW(add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
-    add_to.addIncludePath(.{ .cwd_relative = "deps/include/" });
+fn linkToGLFW(b: *std.Build, add_to: *std.Build.Step.Compile, os_tag: std.Target.Os.Tag) void {
+    add_to.addIncludePath(b.path("deps/include/"));
     add_to.addCSourceFiles(.{ .files = &.{"deps/src/glad.c"} });
     add_to.addCSourceFiles(.{ .files = &.{"deps/src/stb_image_fix.c"} });
     switch (os_tag) {
         .windows => {
-            add_to.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
-            add_to.addObjectFile(.{ .cwd_relative = "deps/lib/windows/glfw3.dll" });
+            add_to.addLibraryPath(b.path("deps/lib/windows"));
             add_to.linkSystemLibrary("opengl32");
             add_to.linkSystemLibrary("glfw3");
+            add_to.linkSystemLibrary("gdi32");
+            add_to.linkSystemLibrary("user32");
         },
         .linux => {
             add_to.linkSystemLibrary("GL");
@@ -40,12 +41,14 @@ pub fn build(b: *std.Build) !void {
 
     switch (os_tag) {
         .windows => {
-            exe.addLibraryPath(.{ .cwd_relative = "deps/lib/windows" });
-            exe.addObjectFile(.{ .cwd_relative = "deps/lib/windows/glfw3.dll" });
+            exe.addLibraryPath(b.path("deps/lib/windows"));
             exe.linkSystemLibrary("mmdevapi");
             exe.linkSystemLibrary("ole32");
+            exe.linkSystemLibrary("dwmapi");
             exe.linkSystemLibrary("opengl32");
             exe.linkSystemLibrary("glfw3");
+            exe.linkSystemLibrary("gdi32");
+            exe.linkSystemLibrary("user32");
         },
         .linux => {
             exe.linkSystemLibrary("glfw");
@@ -71,13 +74,6 @@ pub fn build(b: *std.Build) !void {
         run_cmd.addArgs(args);
     }
 
-    switch (os_tag) {
-        .windows => {
-            b.installFile("deps/lib/windows/glfw3.dll", "bin/glfw3.dll");
-        },
-        else => {},
-    }
-
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
 
@@ -91,7 +87,7 @@ pub fn build(b: *std.Build) !void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_unit_tests.step);
 
-    linkToGLFW(exe, target.result.os.tag);
+    linkToGLFW(b, exe, target.result.os.tag);
     exe.addIncludePath(b.path("api"));
     exe.linkLibC();
 
@@ -139,21 +135,10 @@ pub fn build(b: *std.Build) !void {
     b.installArtifact(exe);
 
     // Examples
-    try helper.buildExample(b, target, optimize, "simple", &.{"examples/simple/simple.c"});
-    try helper.buildExample(b, target, optimize, "checkboxes", &.{"examples/checkboxes/checkboxes.c"});
-    try helper.buildExample(b, target, optimize, "colorpicker", &.{"examples/colorpicker/colorpicker.c"});
-    try helper.buildExample(b, target, optimize, "cof", &.{"examples/cof/cof.c"});
-    try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "sphere", "examples/sphere/sphere.zig");
-    try helper.buildExample(b, target, optimize, "meta_fifths", &.{
-        "examples/meta_fifths/buffer.c",
-        "examples/meta_fifths/graphics.c",
-        "examples/meta_fifths/lattice.c",
-        "examples/meta_fifths/marching.c",
-        "examples/meta_fifths/meta_fifths.c",
-        "examples/meta_fifths/params.c",
-        "examples/meta_fifths/chroma.c",
-    });
-    try @import("examples/sphere/build.zig").buildExample(b, target, optimize, "fountain", "examples/fountain/fountain.zig");
+    try @import("examples/build_c_examples.zig").build_c_examples(b, target, optimize);
+    try @import("examples/sphere/build.zig").buildLib(b, "sphere", "examples/sphere/", target, optimize);
+    try @import("examples/logvol/build.zig").buildLib(b, "logvol", "examples/logvol/", target, optimize);
+    try @import("examples/logvol/build.zig").buildLib(b, "debug", "examples/debug/", target, optimize);
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
@@ -225,7 +210,7 @@ fn createImguiGLFWStaticLib(
     imgui_glfw.addIncludePath(imgui_dep.path("backends/"));
     imgui_glfw.addIncludePath(b.path("deps/include/"));
 
-    linkToGLFW(imgui_glfw, target.result.os.tag);
+    linkToGLFW(b, imgui_glfw, target.result.os.tag);
 
     imgui_glfw.addCSourceFile(.{
         .file = imgui_dep.path("backends/imgui_impl_glfw.cpp"),
@@ -234,4 +219,30 @@ fn createImguiGLFWStaticLib(
     });
 
     return imgui_glfw;
+}
+
+// Build a standalone Zig dll
+pub fn buildLib(b: *std.Build, comptime path: []const u8) !void {
+    if (true) @compileError("Unimplemented");
+
+    const folder = path ++ "/";
+    const file = switch (builtin.os.tag) {
+        .windows => path ++ ".os",
+        .linux => path ++ ".os",
+        .macos => path ++ ".os",
+    };
+
+    const lib = b.addSystemCommand(&.{ "zig", "build" });
+
+    // Set directory to that of lib
+    lib.setCwd(b.path(folder));
+
+    // Fail if lib cannot compile
+    lib.addCheck(.{ .expect_term = .{ .Exited = 0 } });
+
+    // Ensure lib is rebuilt every compilation
+    lib.has_side_effects = true;
+
+    // Install library in a separate folder
+    b.installLibFile(folder ++ "zig-out/lib/" ++ file, file);
 }

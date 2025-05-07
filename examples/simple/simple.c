@@ -26,7 +26,7 @@ EXPORT const struct bob_visualization_info *get_info(void)
   return &info;
 }
 
-EXPORT void *create(void)
+EXPORT const char *create(void)
 {
   gladLoadGLLoader(api.get_proc_address);
   slider = api.register_float_slider(api.context, "Floatiness", 0.0, 1.0, 0.5);
@@ -34,9 +34,8 @@ EXPORT void *create(void)
   return NULL;
 }
 
-EXPORT void update(void *userdata)
+EXPORT void update(void)
 {
-  (void) userdata;
   float value = api.get_ui_float_value(api.context, slider);
   glClearColor(value, value / 2.0f, 1.0f-value, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
@@ -46,7 +45,6 @@ EXPORT void update(void *userdata)
   }
 }
 
-EXPORT void destroy(void *userdata)
+EXPORT void destroy(void)
 {
-  (void) userdata;
 }

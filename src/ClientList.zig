@@ -98,7 +98,12 @@ pub fn getClientPath(self: *const ClientList, index: usize) ![]const u8 {
     });
 }
 
-pub fn freeClientPath(self: *const ClientList, path: []const u8) void {
+pub fn getClientParentPath(self: *const ClientList, index: usize) ![]const u8 {
+    const name = std.mem.span(self.list.items[index]);
+    return std.fs.path.join(self.list.allocator, &.{ self.path, name });
+}
+
+pub fn freePath(self: *const ClientList, path: []const u8) void {
     self.list.allocator.free(path);
 }
 

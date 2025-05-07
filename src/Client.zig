@@ -1,5 +1,5 @@
 const std = @import("std");
-const bob = @import("bob.zig");
+const bob = @import("bob_api.zig");
 
 const Client = @This();
 
@@ -29,7 +29,6 @@ const ClientApi = struct {
 
 lib: std.DynLib,
 api: ClientApi,
-ctx: ?*anyopaque,
 info: bob.bob_visualization_info,
 
 pub fn load(path: []const u8) !Client {
@@ -39,21 +38,23 @@ pub fn load(path: []const u8) !Client {
     return .{
         .lib = lib,
         .api = api,
-        .ctx = null,
         .info = info,
     };
 }
 
-pub fn create(self: *Client) void {
-    self.ctx = self.api.create();
+pub fn create(self: *Client) ?[]const u8 {
+    if (self.api.create()) |err| {
+        return std.mem.span(err);
+    }
+    return null;
 }
 
 pub fn update(self: *const Client) void {
-    self.api.update(self.ctx);
+    self.api.update();
 }
 
 pub fn destroy(self: *const Client) void {
-    self.api.destroy(self.ctx);
+    self.api.destroy();
 }
 
 pub fn unload(client: *Client) void {

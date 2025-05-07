@@ -22,7 +22,7 @@ pub fn deinit(self: *AudioSplixer, allocator: std.mem.Allocator) void {
     self.* = undefined;
 }
 
-pub fn mix(self: *AudioSplixer, stereo: []const f32) void {
+pub fn splix(self: *AudioSplixer, stereo: []const f32) void {
     std.debug.assert(stereo.len <= self.capacity << 1);
 
     self.left.len = stereo.len;

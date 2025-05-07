@@ -1,5 +1,5 @@
 const std = @import("std");
-const g = @import("opengl-abstraction/src/lib.zig");
+const g = @import("render");
 const bob = @cImport({
     @cInclude("bob.h");
 });
@@ -29,12 +29,13 @@ var vertex_buffer: VertexBuffer(Vec3) = undefined;
 var num_vertices: u32 = undefined;
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const gpa_allocator = gpa.allocator();
+var st: i64 = undefined;
 
 /// Export api variable, it will be populated with information by the API
 export var api: BobAPI = undefined;
 
 /// Include information about your visualization here
-export fn get_info() *VisualizationInfo {
+export fn get_info() callconv(.C) [*c]const VisualizationInfo {
     const info = std.heap.page_allocator.create(VisualizationInfo) catch unreachable;
     info.* = VisualizationInfo{
         .name = "Sphere",
@@ -48,7 +49,8 @@ export fn get_info() *VisualizationInfo {
 /// Audio analysis should be enabled here.
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
-export fn create() ?*anyopaque {
+export fn create() [*c]const u8 {
+    st = std.time.microTimestamp();
     _ = g.gl.gladLoadGLLoader(api.get_proc_address);
     radius_handle = api.register_float_slider.?(api.context, "Radius", 0.0, 2.0, 1.0);
     num_pts_handle = api.register_float_slider.?(api.context, "Num pts", 0.0, 10000.0, 1000.0);
@@ -81,7 +83,7 @@ export fn create() ?*anyopaque {
 
 /// Update called each frame.
 /// Audio analysis data is passed in `data`.
-export fn update(_: *anyopaque) void {
+export fn update() void {
 
     // Generate vertex/index buffers
 
@@ -93,7 +95,9 @@ export fn update(_: *anyopaque) void {
 
     shader_program.bind();
 
-    shader_program.setF32("time", @floatCast(g.glfw.glfwGetTime()));
+    const t: f32 = @floatCast((@as(f64, @floatFromInt(std.time.microTimestamp() - st))) / 1_000_000.0);
+    shader_program.setF32("time", t);
+
     g.gl.glClearColor(0.3, 0.5, 0.7, 1.0);
     g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
     g.gl.glClear(g.gl.GL_DEPTH_BUFFER_BIT);
@@ -112,7 +116,7 @@ export fn update(_: *anyopaque) void {
 }
 
 /// Perform potential visualization cleanup.
-export fn destroy(_: *anyopaque) void {
+export fn destroy() void {
     _ = gpa.deinit();
 }
 
@@ -159,4 +163,17 @@ fn fibo_sphere(n: u32, radius: f32, allocator: std.mem.Allocator) []Vec3 {
         pts[i] = .{ .x = radius * x, .y = radius * y, .z = radius * z };
     }
     return pts;
+}
+
+// Verify that type signatures are correct
+comptime {
+    for (&.{ "api", "get_info", "create", "update", "destroy" }) |name| {
+        const A = @TypeOf(@field(bob, name));
+        const B = @TypeOf(@field(@This(), name));
+        if (A != B) {
+            @compileError("Type mismatch for '" ++ name ++ "': "
+            //
+            ++ @typeName(A) ++ " and " ++ @typeName(B));
+        }
+    }
 }

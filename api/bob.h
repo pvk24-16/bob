@@ -51,6 +51,10 @@ enum bob_audio_flags {
     /* Tempo data */
     BOB_AUDIO_TEMPO_MONO = (1 << 8),
     BOB_AUDIO_TEMPO_STEREO = (1 << 9),
+
+    /* Breaks data */
+    BOB_AUDIO_BREAKS_MONO = (1 << 10),
+    BOB_AUDIO_BREAKS_STEREO = (1 << 11),
 };
 
 struct bob_float_buffer {
@@ -107,6 +111,12 @@ struct bob_api {
      * Get tempo for specified channel.
      */
     float (*get_tempo)(void *context, int channel);
+
+    /**
+     * Returns wether there is a break in the audio (slience).
+     * This flag is reset when it's read.
+     */
+    int (*in_break)(void *context, int channel);
 
     /**
      * Register a float slider.
@@ -187,20 +197,20 @@ const struct bob_visualization_info *get_info(void);
 /**
  * Initialize visualization.
  * UI parameters should be registered here.
- * Return a pointer to user data, or NULL.
+ * Return NULL, or an error string in case of failure
+ * to initialize.
  */
-void *create(void);
+const char *create(void);
 
 /**
  * Called for each frame.
- * Audio analysis data is passed in `data`.
  */
-void update(void *userdata);
+void update(void);
 
 /**
  * Perform potential visualization cleanup.
  */
-void destroy(void *userdata);
+void destroy(void);
 
 #ifdef __cplusplus
 }

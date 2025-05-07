@@ -211,7 +211,7 @@ pub const FastFourierTransform = struct {
         const window_coefficients: []f32 = try allocator.alloc(f32, capacity);
         errdefer allocator.free(window_coefficients);
 
-        const bit_reversal_lookup_table: []u32 = try initBitReversalLookupTable(capacity, allocator);
+        const bit_reversal_lookup_table: []u32 = try initBitReversalLookupTable(capacity, padding, allocator);
         errdefer allocator.free(bit_reversal_lookup_table);
 
         @memset(result, 0);
@@ -230,7 +230,7 @@ pub const FastFourierTransform = struct {
             .window_coefficients = window_coefficients,
             .bit_reversal_lookup_table = bit_reversal_lookup_table,
             .smoothing_factor = @max(0.0, @min(1.0, smoothing_factor)),
-            .scaling_factor = window_function.scale() / @as(f32, @floatFromInt(result.len)),
+            .scaling_factor = window_function.scale() / @as(f32, @floatFromInt(capacity / 2)),
         };
     }
 
@@ -278,7 +278,7 @@ pub const FastFourierTransform = struct {
 
     /// Evaluate FFT with written data.
     pub fn evaluate(self: *FastFourierTransform) void {
-        @memset(self.scratch[self.window.len..], c32.init(0, 0));
+        @memset(self.scratch, c32.init(0, 0));
 
         const end = self.window.len - self.cursor;
 
@@ -316,15 +316,15 @@ pub const FastFourierTransform = struct {
         return self.result.len;
     }
 
-    fn initBitReversalLookupTable(capacity: usize, allocator: std.mem.Allocator) ![]u32 {
-        // Capacity must be a power of two.
-        std.debug.assert(@popCount(capacity) == 1);
+    fn initBitReversalLookupTable(capacity: usize, padding: usize, allocator: std.mem.Allocator) ![]u32 {
+        // Capacity plus padding must be a power of two.
+        std.debug.assert(@popCount(capacity + padding) == 1);
 
         var table = try allocator.alloc(u32, capacity);
         errdefer allocator.free(table);
 
-        const mid: u32 = @intCast(capacity >> 1);
-        const mask: u32 = @intCast(capacity - 1);
+        const mid: u32 = @intCast((capacity + padding) / 2);
+        const mask: u32 = @intCast(capacity + padding - 1);
 
         var i: u32 = 0;
         var j: u32 = 0;
@@ -506,41 +506,3 @@ pub const SmoothingFunction = enum {
         return x;
     }
 };
-
-// const mid: u32 = @intCast(self.window.len >> 1);
-// const mask: u32 = @intCast(self.window.len - 1);
-
-// var i: u32 = 0;
-// var j: u32 = 0;
-
-// while (i + self.cursor < self.window.len) {
-//     if (i < j) {
-//         const c = 1; //self.window_coefficients[i];
-//         const x = self.window[i + self.cursor];
-
-//         self.scratch[j] = c32.init(c * x, 0);
-//     }
-
-//     const lszb: u32 = ~i & (i +% 1);
-//     const mszb: u32 = mid / lszb;
-//     const bits: u32 = mask & ~(mszb -% 1);
-
-//     j ^= bits;
-//     i += 1;
-// }
-
-// while (i < self.window.len) {
-//     if (i < j) {
-//         const c = 1; //self.window_coefficients[i];
-//         const x = self.window[i + self.cursor - self.window.len];
-
-//         self.scratch[j] = c32.init(c * x, 0);
-//     }
-
-//     const lszb: u32 = ~i & (i +% 1);
-//     const mszb: u32 = mid / lszb;
-//     const bits: u32 = mask & ~(mszb -% 1);
-
-//     j ^= bits;
-//     i += 1;
-// }
