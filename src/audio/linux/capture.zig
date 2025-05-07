@@ -272,6 +272,10 @@ pub const LinuxImpl = struct {
                 return Error.stream_connect;
             }
 
+            pulse.pa_threaded_mainloop_lock(mainloop);
+            pulse.pa_stream_set_state_callback(stream, nil, null);
+            pulse.pa_threaded_mainloop_unlock(mainloop);
+
             return stream;
         }
 
@@ -286,6 +290,11 @@ pub const LinuxImpl = struct {
                 data.ok = false;
                 pulse.pa_threaded_mainloop_signal(data.mainloop, 0);
             }
+        }
+
+        fn nil(stream: ?*pulse.pa_stream, userdata: ?*anyopaque) callconv(.C) void {
+            _ = stream;
+            _ = userdata;
         }
     };
 
