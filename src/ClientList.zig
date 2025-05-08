@@ -1,8 +1,13 @@
+//!
+//! Holds list of detected installed visualizers.
+//!
+
 const std = @import("std");
 const builtin = @import("builtin");
 
 const ClientList = @This();
 
+// Different filenames for shared libraries on different platforms
 const library: struct {
     prefix: []const u8,
     suffix: []const u8,
@@ -20,6 +25,7 @@ pub fn init(allocator: std.mem.Allocator, path_override: ?[]const u8) !ClientLis
     var env = try std.process.getEnvMap(allocator);
     defer env.deinit();
 
+    // Determine the parent path for installed visualizers
     const path = blk: {
         if (path_override) |override| {
             break :blk try allocator.dupe(u8, override);
@@ -82,6 +88,9 @@ pub fn deinit(self: *ClientList) void {
     self.list.allocator.free(self.path);
 }
 
+/// Get the full path to currently selected visualizer.
+/// A visualizer <name> is (on Linux) installed in the directory $XDG_DATA_HOME/bob/<name>
+/// as lib<name>.so, together with any required runtime files, such as textures, and preset.json.
 pub fn getClientPath(self: *const ClientList, index: usize) ![]const u8 {
     var buf = [_]u8{0} ** 64;
     var stream = std.io.fixedBufferStream(&buf);
@@ -107,6 +116,7 @@ pub fn freePath(self: *const ClientList, path: []const u8) void {
     self.list.allocator.free(path);
 }
 
+/// Detect installed visualizers
 pub fn readClientDir(self: *ClientList) !void {
     self.clearClients();
 

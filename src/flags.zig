@@ -1,3 +1,7 @@
+//!
+//! Holds th options passed in bob_visualization_info.enabled but as boolean members
+//!
+
 const std = @import("std");
 const bob = @import("bob_api.zig");
 

@@ -1,3 +1,7 @@
+//!
+//! Utilities for dealing with ImGui
+//!
+
 const std = @import("std");
 const imgui = @import("imgui");
 const glfw = @import("graphics/glfw.zig");
@@ -20,6 +24,8 @@ pub fn init(window: *glfw.GLFWwindow) !@This() {
         // For bringing GUI outside of main window
         .ViewportsEnable = true,
     });
+
+    // Set font
     if (io.Fonts) |fonts| {
         const glyph_range = imgui.FontGlyphRangesBuilder.init_ImFontGlyphRangesBuilder();
         imgui.FontGlyphRangesBuilder.AddRanges(glyph_range, imgui.FontAtlas.GetGlyphRangesDefault(fonts));
@@ -30,6 +36,8 @@ pub fn init(window: *glfw.GLFWwindow) !@This() {
         _ = imgui.FontAtlas.AddFontFromMemoryTTFExt(fonts, @constCast(@ptrCast(comicJensFreeProRegular.ptr)), comicJensFreeProRegular.len, 20.0, null, built_range.items()[0 .. built_range.Size - 1 :0]);
         _ = imgui.raw.ImFontAtlas_Build(fonts); // TODO: assert?
     }
+
+    // Light theme
     imgui.StyleColorsLight();
 
     _ = ImGui_ImplGlfw_InitForOpenGL(window, true);

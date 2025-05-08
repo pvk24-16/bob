@@ -1,8 +1,13 @@
+//!
+//! Holds data associated with a loaded visualizer
+//!
+
 const std = @import("std");
 const bob = @import("bob_api.zig");
 
 const Client = @This();
 
+/// Holds function pointers for the client side API
 const ClientApi = struct {
     api: *@TypeOf(bob.api),
     get_info: *const @TypeOf(bob.get_info),
@@ -31,6 +36,7 @@ lib: std.DynLib,
 api: ClientApi,
 info: bob.bob_visualization_info,
 
+/// Load the client and get some info
 pub fn load(path: []const u8) !Client {
     var lib = try std.DynLib.open(path);
     const api = try ClientApi.load(&lib);
@@ -41,6 +47,8 @@ pub fn load(path: []const u8) !Client {
         .info = info,
     };
 }
+
+// Visualizer API wrappers
 
 pub fn create(self: *Client) ?[]const u8 {
     if (self.api.create()) |err| {

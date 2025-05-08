@@ -1,8 +1,13 @@
+//!
+//! Error message displayed as a popup
+//!
+
 const std = @import("std");
 const imgui = @import("imgui");
 
 const Error = @This();
 
+// If this field is non-null, a popup showing the error string should be displayed
 message: ?[*:0]const u8 = null,
 
 pub fn setMessage(
@@ -20,6 +25,7 @@ pub fn setMessage(
     self.message = try allocator.dupeZ(u8, buffer.items);
 }
 
+/// Display the error message
 pub fn show(self: *Error, allocator: std.mem.Allocator) void {
     const title = "Error";
 
@@ -39,6 +45,7 @@ pub fn show(self: *Error, allocator: std.mem.Allocator) void {
     }
 }
 
+/// Clear the error message
 pub fn clear(self: *Error, allocator: std.mem.Allocator) void {
     if (self.message) |m| {
         allocator.free(std.mem.span(m));
