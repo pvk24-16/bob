@@ -1,11 +1,13 @@
-const FFT: type = @import("fft.zig").FastFourierTransform;
+const FFT = @import("fft.zig").FastFourierTransform;
+const Tempo = @import("Tempo.zig");
+
 const s: f32 = @floatFromInt(@import("Config.zig").sample_rate);
 
 // https://sites.tufts.edu/eeseniordesignhandbook/2015/music-mood-classification/
 
 // high zero crossing rate AND  THEN high energy
 
-const Mood = enum {
+const Mooddddd = enum {
     // +-intensity +-timbre ++pitch ++rhythm
     happy,
     //  +intensity +-timbre  +pitch  +rhythm
@@ -27,13 +29,68 @@ const Mood = enum {
     // Rhythm increases with tempo
 };
 
+// Tempo classification:
+//  * fast: >120 bpm, +valence, +-arousal,
+//  * medium: 76-120 bpm, -valence, +arousal
+//  * slow: 60-76 bpm (we will generalize to <76), +-valence, +-arousal
+//  * source: https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2018.02118/full
+
+// Loudness classification:
+//
+//
+//
+
 // Tempo
 // Chroma
 // Loudness: rms
 // Brightness: centroid
 
-pub fn get_mood(fft: *FFT) f32 {
-    _ = fft;
+const Mood = enum {
+    happy,
+    calm,
+    sad,
+    angry,
+};
+
+// https://www.nature.com/articles/s41598-024-78156-1#:~:text=weak%20or%20non,EA%2C%20TA%2C%20dominance%2C%20and%20affiliation
+
+pub fn get_mood(fft: *FFT, bpm: f32) Mood {
+    var valence: f32 = 0;
+    var arousal: f32 = 0;
+
+    if (bpm > 120.0) {
+        valence += 1.0;
+    } else if (bpm >= 76.0) {
+        valence -= 1.0;
+        arousal += 1.0;
+    }
+
+    const centroid = spectralCentroid(fft);
+
+    if (centroid < 200.0) {
+        arousal -= 0.5;
+    } else if (centroid > 2000.0) {
+        arousal += 0.5;
+    }
+
+    const rms = rootMeanSquare(fft);
+
+    // TODO
+    if (rms < 0) {
+        arousal -= 0.5;
+    } else if (rms > 0) {
+        arousal += 0.5;
+    }
+
+    if (valence >= 0.0 and arousal >= 0.0) {
+        return .happy;
+    } else if (valence >= 0.0 and arousal <= 0.0) {
+        return .calm;
+    } else if (valence <= 0.0 and arousal <= 0.0) {
+        return .sad;
+    } else {
+        return .angry;
+    }
 }
 
 pub fn energy(fft: *FFT) f32 {
@@ -46,6 +103,7 @@ pub fn energy(fft: *FFT) f32 {
     return sum / s;
 }
 
+// Determines loudness
 pub fn rootMeanSquare(fft: *FFT) f32 {
     var sum: f32 = 0.0;
 
@@ -56,6 +114,7 @@ pub fn rootMeanSquare(fft: *FFT) f32 {
     return @sqrt(sum / @as(f32, @floatFromInt(fft.outputLength())));
 }
 
+// Determines
 pub fn zeroCrossingRate(fft: *FFT) f32 {
     const n = fft.outputLength();
     var sum: u32 = 0;
