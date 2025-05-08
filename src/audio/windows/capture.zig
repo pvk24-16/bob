@@ -141,7 +141,7 @@ pub const WindowsImpl = struct {
         );
 
         if (result != win.S_OK) {
-            log.err("failed to init audio client code: {X}", .{@as(u32, @bitCast(result))});
+            log.err("failed to init audio client | code: {X}", .{@as(u32, @bitCast(result))});
             return Error.audio_client_init;
         }
 
@@ -209,8 +209,8 @@ pub const WindowsImpl = struct {
 
         self.ring_buffer.deinit(allocator);
 
-        const caputre_client_release_fn = self.capture_client.lpVtbl.*.Release.?;
-        _ = caputre_client_release_fn(self.capture_client);
+        const capture_client_release_fn = self.capture_client.lpVtbl.*.Release.?;
+        _ = capture_client_release_fn(self.capture_client);
 
         const release_fn = self.audio_client.lpVtbl.*.Release.?;
         _ = release_fn(self.audio_client);
