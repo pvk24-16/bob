@@ -1,5 +1,7 @@
+//!
 //! Holds all data used in API calls
-//! TODO: add all the stuff
+//!
+
 const std = @import("std");
 const Context = @This();
 
@@ -14,12 +16,25 @@ const Error = @import("Error.zig");
 const FFT = @import("audio/fft.zig").FastFourierTransform;
 const Flags = @import("flags.zig").Flags;
 
+/// The current error message
 err: Error,
+
+/// The state associated with GUI registered by current visualizer
 gui_state: GuiState,
+
+/// The currently selected visualizer, or null if none is selected
 client: ?Client,
+
+/// The audio capture backend, if a source process is selected, otherwise null
 capturer: ?AudioCapturer,
+
+/// Audio analyzer
 analyzer: AudioAnalyzer,
+
+/// Enabled analysises for the current visualizer
 flags: Flags,
+
+// Windows size and state
 window_width: i32,
 window_height: i32,
 window_did_resize: bool,
@@ -38,6 +53,7 @@ pub fn init(allocator: std.mem.Allocator) !Context {
     };
 }
 
+/// Connect to a process by PID
 pub fn connect(self: *Context, process_id: []const u8, allocator: std.mem.Allocator) !void {
     if (self.capturer) |_| {
         unreachable;
@@ -48,12 +64,14 @@ pub fn connect(self: *Context, process_id: []const u8, allocator: std.mem.Alloca
     try self.capturer.?.start();
 }
 
+/// Disconnect from connected process
 pub fn disconnect(self: *Context, allocator: std.mem.Allocator) !void {
     try self.capturer.?.stop();
     self.capturer.?.deinit(allocator);
     self.capturer = null;
 }
 
+/// Run enabled analysis
 pub fn processAudio(self: *Context) void {
     if (self.capturer) |*capturer| {
         const sample = capturer.sample();

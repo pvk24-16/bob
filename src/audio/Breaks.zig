@@ -1,7 +1,14 @@
+//!
+//! Detect breaks in audio source (silent parts)
+//!
+
 const std = @import("std");
 const Breaks = @This();
 
 in_break: bool = false,
+
+/// The value that is passed to visualizer
+/// This is reset when read, or when audio comes back on
 client_flag: bool = false,
 
 pub fn execute(self: *Breaks, samples: []const f32) void {
