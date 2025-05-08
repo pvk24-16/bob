@@ -23,6 +23,7 @@ const api_fn_names: []const []const u8 = &.{
     "get_pulse_data",
     "get_tempo",
     "in_break",
+    "get_key",
     "register_float_slider",
     "register_int_slider",
     "register_checkbox",
@@ -144,6 +145,25 @@ pub fn in_break(context: ?*anyopaque, channel: c_int) callconv(.C) c_int {
     const value = flag.*;
     flag.* = false;
     return @intFromBool(value);
+}
+
+pub fn get_key(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_key {
+    const ctx: *Context = @ptrCast(@alignCast(context.?));
+
+    const result = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.key_center.result,
+        bob.BOB_LEFT_CHANNEL => &ctx.analyzer.key_left.result,
+        bob.BOB_RIGHT_CHANNEL => &ctx.analyzer.key_right.result,
+        else => @panic("Bad API call"),
+    };
+
+    const key: bob.bob_key = .{
+        .pitch_class = @intCast(result.pitch_class),
+        .type = @intCast(result.key_type),
+        .confidence = result.confidence,
+    };
+
+    return key;
 }
 
 pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32, max: f32, default_value: f32) callconv(.C) c_int {

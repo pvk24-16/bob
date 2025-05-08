@@ -7,6 +7,29 @@ extern "C" {
 
 #include <stddef.h>
 
+enum bob_key_type {
+    BOB_KEY_MAJOR,
+    BOB_KEY_MINOR,
+};
+
+/**
+ * Returned by get_key.
+ */
+struct bob_key {
+
+    /**
+     * The pitch class of the root note, starting
+     * with C = 0 and increasing in half tone steps.
+     */
+    int pitch_class;
+
+    /** Major/minor */
+    enum bob_key_type type;
+
+    /** Confidence value TODO: spcify range. */
+    float confidence;
+};
+
 enum bob_channel {
     BOB_MONO_CHANNEL,
     BOB_LEFT_CHANNEL,
@@ -55,6 +78,10 @@ enum bob_audio_flags {
     /* Breaks data */
     BOB_AUDIO_BREAKS_MONO = (1 << 10),
     BOB_AUDIO_BREAKS_STEREO = (1 << 11),
+
+    /* Key data */
+    BOB_AUDIO_KEY_MONO = (1 << 12),
+    BOB_AUDIO_KEY_STEREO = (1 << 13),
 };
 
 struct bob_float_buffer {
@@ -117,6 +144,11 @@ struct bob_api {
      * This flag is reset when it's read.
      */
     int (*in_break)(void *context, int channel);
+
+    /**
+     * Returns the currently detected key (see definition of struct bob_key).
+     */
+    struct bob_key (*get_key)(void *context, int channel);
 
     /**
      * Register a float slider.
