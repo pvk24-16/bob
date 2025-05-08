@@ -48,6 +48,12 @@ const examples: []const Example = &.{
             "chroma.c",
         },
     },
+    .{
+        .name = "gui_test",
+        .sources = &.{
+            "gui_test.c",
+        },
+    },
 };
 
 pub fn build_c_examples(
