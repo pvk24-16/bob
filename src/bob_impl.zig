@@ -21,7 +21,10 @@ const api_fn_names: []const []const u8 = &.{
     "get_frequency_data",
     "get_chromagram",
     "get_pulse_data",
+    "get_pulse_graph",
+    "set_pulse_params",
     "get_tempo",
+    "get_tempo_graph",
     "in_break",
     "get_key",
     "register_float_slider",
@@ -120,6 +123,22 @@ pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob
     };
 
     const buffer: bob.bob_float_buffer = .{
+        .ptr = @ptrCast(&beat.Eh),
+        .size = beat.num_bins,
+    };
+
+    return buffer;
+}
+
+pub fn get_pulse_graph(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const beat = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.beat_center,
+        else => @panic("Bad API call"),
+    };
+
+    const buffer: bob.bob_float_buffer = .{
         .ptr = @ptrCast(&beat.bin_vals),
         .size = beat.num_bins,
     };
@@ -127,9 +146,43 @@ pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob
     return buffer;
 }
 
+pub fn set_pulse_params(context: ?*anyopaque, channel: c_int, C: f32, Vl: f32) callconv(.C) void {
+    const ctx: *Context = @ptrCast(@alignCast(context.?));
+
+    const beat = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.beat_center,
+        else => @panic("Bad API call"),
+    };
+
+    beat.C = C;
+    beat.Vl = Vl;
+}
+
 pub fn get_tempo(context: ?*anyopaque, channel: c_int) callconv(.C) f32 {
-    _ = .{ context, channel };
-    return 0.0;
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const tempo = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.tempo_center,
+        else => @panic("Bad API call"),
+    };
+
+    return tempo.get_bpm();
+}
+
+pub fn get_tempo_graph(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const tempo = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.tempo_center,
+        else => @panic("Bad API call"),
+    };
+
+    const buf = tempo.get_bpm_graph();
+
+    return .{
+        .ptr = buf.ptr,
+        .size = buf.len,
+    };
 }
 
 pub fn in_break(context: ?*anyopaque, channel: c_int) callconv(.C) c_int {
