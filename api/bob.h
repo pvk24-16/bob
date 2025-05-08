@@ -119,6 +119,12 @@ struct bob_api {
     int (*in_break)(void *context, int channel);
 
     /**
+     * Register a label.
+     * The label text is initially empty and must be set with set_label_content.
+     */
+    int (*register_label)(void *context);
+
+    /**
      * Register a float slider.
      */
     int (*register_float_slider)(void *context, const char *name, float min, float max, float default_value);
@@ -142,6 +148,12 @@ struct bob_api {
      * Check if a UI element is updated since last read.
      */
     int (*ui_element_is_updated)(void *context, int handle);
+
+    /**
+     * Set label content. Format specifiers are the same as for the printf-family.
+     * Returns 0 on success and -1 on failure.
+     */
+    int (*set_label_content)(void *context, int handle, const char *fmt, ...);
 
     /**
      * Get float value from a UI element.

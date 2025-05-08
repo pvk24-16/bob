@@ -31,6 +31,7 @@ pub const GuiElement = struct {
         int_slider: Slider(c_int),
         checkbox: Checkbox,
         colorpicker: ColorPicker,
+        label: std.ArrayListUnmanaged(u8),
     },
 
     pub fn eql(self: *const GuiElement, other: *const GuiElement) bool {
@@ -92,13 +93,21 @@ pub fn update(self: *GuiState) void {
                 imgui.PopItemWidth();
                 break :blk update_;
             },
+            .label => |e| blk: {
+                imgui.Text(@ptrCast(e.items));
+                break :blk false;
+            },
         };
     }
 }
 
 pub fn clear(self: *GuiState) void {
-    for (self.elements.items) |element| {
+    for (self.elements.items) |*element| {
         self.elements.allocator.free(element.name);
+        switch (element.data) {
+            .label => |*l| l.deinit(self.elements.allocator),
+            else => {},
+        }
     }
     self.elements.clearRetainingCapacity();
 }

@@ -3,6 +3,7 @@ const bob = @import("bob_api.zig");
 const glfw = @import("graphics/glfw.zig");
 const Context = @import("Context.zig");
 const GuiState = @import("GuiState.zig");
+const libc = @import("libc.zig");
 
 fn checkSignature(comptime name: []const u8) void {
     const t1 = @TypeOf(@field(bob.api, name));
@@ -23,10 +24,12 @@ const api_fn_names: []const []const u8 = &.{
     "get_pulse_data",
     "get_tempo",
     "in_break",
+    "register_label",
     "register_float_slider",
     "register_int_slider",
     "register_checkbox",
     "ui_element_is_updated",
+    "set_label_content",
     "get_ui_float_value",
     "get_ui_int_value",
     "get_ui_bool_value",
@@ -146,6 +149,21 @@ pub fn in_break(context: ?*anyopaque, channel: c_int) callconv(.C) c_int {
     return @intFromBool(value);
 }
 
+pub fn register_label(context: ?*anyopaque) callconv(.C) c_int {
+    const ctx: *Context = @ptrCast(@alignCast(context.?));
+
+    var content = std.ArrayListUnmanaged(u8){};
+    content.append(ctx.gui_state.elements.allocator, 0) catch return -1;
+
+    const element: GuiState.GuiElement = .{
+        .name = "",
+        .data = .{ .label = content },
+    };
+
+    const result = ctx.gui_state.registerElement(element);
+    return result catch -1;
+}
+
 pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32, max: f32, default_value: f32) callconv(.C) c_int {
     const ctx: *Context = @alignCast(@ptrCast(context.?));
 
@@ -219,6 +237,34 @@ pub fn ui_element_is_updated(context: ?*anyopaque, handle: c_int) callconv(.C) c
     const id: GuiState.InternalIndexType = @intCast(handle);
     const elems = ctx.gui_state.getElements();
     return @intFromBool(elems[id].update);
+}
+
+pub fn set_label_content(context: ?*anyopaque, handle: c_int, fmt: [*c]const u8, ...) callconv(.C) c_int {
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+
+    const id: GuiState.InternalIndexType = @intCast(handle);
+    const elems = ctx.gui_state.getElements();
+    const elem = &elems[id];
+    const label = switch (elem.data) {
+        .label => |*l| l,
+        else => return -1,
+    };
+    label.clearRetainingCapacity();
+
+    var ap_1 = @cVaStart();
+    var ap_2 = @cVaCopy(&ap_1);
+
+    const content_size = libc.vsnprintf(null, 0, fmt, @ptrCast(&ap_1)) + 1;
+    @cVaEnd(&ap_1);
+
+    const content = label.addManyAsSlice(
+        ctx.gui_state.elements.allocator,
+        @intCast(content_size),
+    ) catch return -1;
+    _ = libc.vsprintf(@ptrCast(content), fmt, @ptrCast(&ap_2));
+    @cVaEnd(&ap_2);
+
+    return 0;
 }
 
 pub fn get_ui_float_value(context: ?*anyopaque, handle: c_int) callconv(.C) f32 {
