@@ -9,6 +9,7 @@ const Chroma = @import("Chroma.zig");
 const Breaks = @import("Breaks.zig");
 const Beat = @import("Beat.zig");
 const Tempo = @import("Tempo.zig");
+const Key = @import("Key.zig");
 
 splixer: AudioSplixer,
 spectral_analyzer_left: FFT,
@@ -20,6 +21,9 @@ chroma_center: Chroma,
 breaks_left: Breaks,
 breaks_right: Breaks,
 breaks_center: Breaks,
+key_left: Key,
+key_right: Key,
+key_center: Key,
 beat_center: Beat,
 tempo_center: Tempo,
 
@@ -62,6 +66,9 @@ pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
         .breaks_left = .{},
         .breaks_right = .{},
         .breaks_center = .{},
+        .key_left = .{},
+        .key_right = .{},
+        .key_center = .{},
         .beat_center = beat_center,
         .tempo_center = tempo_center,
     };
@@ -100,6 +107,10 @@ pub fn analyze(self: *AudioAnalyzer, stereo: []const f32, flags: Flags) void {
         self.breaks_center.execute(center);
     }
 
+    if (flags.key_mono) {
+        self.key_center.classify(&self.chroma_center.chroma);
+    }
+
     if (flags.pulse_mono) {
         self.beat_center.execute(self.splixer.getCenter());
     }
@@ -123,5 +134,10 @@ pub fn analyze(self: *AudioAnalyzer, stereo: []const f32, flags: Flags) void {
     if (flags.breaks_stereo) {
         self.breaks_left.execute(left);
         self.breaks_right.execute(right);
+    }
+
+    if (flags.key_stereo) {
+        self.key_left.classify(&self.chroma_left.chroma);
+        self.key_right.classify(&self.chroma_right.chroma);
     }
 }
