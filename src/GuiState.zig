@@ -31,6 +31,7 @@ pub const GuiElement = struct {
         int_slider: Slider(c_int),
         checkbox: Checkbox,
         colorpicker: ColorPicker,
+        label: std.ArrayListUnmanaged(u8),
     },
 
     pub fn eql(self: *const GuiElement, other: *const GuiElement) bool {
@@ -91,6 +92,10 @@ pub fn update(self: *GuiState) void {
                 const update_ = imgui.ColorPicker3Ext(elem.name, &e.rgb, color_edit_flags);
                 imgui.PopItemWidth();
                 break :blk update_;
+            },
+            .label => |*e| blk: {
+                imgui.Text(@ptrCast(e.items));
+                break :blk false;
             },
         };
     }

@@ -27,10 +27,12 @@ const api_fn_names: []const []const u8 = &.{
     "get_tempo_graph",
     "in_break",
     "get_key",
+    "register_label",
     "register_float_slider",
     "register_int_slider",
     "register_checkbox",
     "ui_element_is_updated",
+    "set_label_content",
     "get_ui_float_value",
     "get_ui_int_value",
     "get_ui_bool_value",
@@ -219,6 +221,21 @@ pub fn get_key(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_key {
     return key;
 }
 
+pub fn register_label(context: ?*anyopaque) callconv(.C) c_int {
+    const ctx: *Context = @ptrCast(@alignCast(context.?));
+
+    var content = std.ArrayListUnmanaged(u8){};
+    content.append(ctx.gui_state.elements.allocator, 0);
+
+    const element = GuiState.GuiElement{
+        .name = "",
+        .update = false,
+        .data = .{ .label = content },
+    };
+
+    return ctx.gui_state.registerElement(element) catch return -1;
+}
+
 pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32, max: f32, default_value: f32) callconv(.C) c_int {
     const ctx: *Context = @alignCast(@ptrCast(context.?));
 
@@ -292,6 +309,29 @@ pub fn ui_element_is_updated(context: ?*anyopaque, handle: c_int) callconv(.C) c
     const id: GuiState.InternalIndexType = @intCast(handle);
     const elems = ctx.gui_state.getElements();
     return @intFromBool(elems[id].update);
+}
+
+pub fn set_label_content(context: ?*anyopaque, handle: c_int, content: [*:0]const u8) callconv(.C) c_int {
+    const ctx: *Context = @alignCast(@ptrCast(context.?));
+    const id: GuiState.InternalIndexType = @intCast(handle);
+    const elems = ctx.gui_state.getElements();
+    const label: *std.ArrayListUnmanaged(u8) = switch (elems[id]) {
+        .label => |*l| l,
+        else => return -1,
+    };
+
+    const size = label.items.len;
+    label.clearRetainingCapacity();
+
+    var slice = std.mem.span(content);
+    slice.len += 1; // Include null terminator
+
+    label.appendSlice(ctx.gui_state.elements.allocator, slice) catch {
+        label.items.len = size;
+        return -1;
+    };
+
+    return 0;
 }
 
 pub fn get_ui_float_value(context: ?*anyopaque, handle: c_int) callconv(.C) f32 {

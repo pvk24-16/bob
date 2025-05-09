@@ -166,6 +166,11 @@ struct bob_api {
     struct bob_key (*get_key)(void *context, int channel);
 
     /**
+     * Register a label.
+     */
+    int (*register_label)(void *context);
+
+    /**
      * Register a float slider.
      */
     int (*register_float_slider)(void *context, const char *name, float min, float max, float default_value);
@@ -190,6 +195,11 @@ struct bob_api {
      */
     int (*ui_element_is_updated)(void *context, int handle);
 
+    /**
+     * Set label content.
+     */
+    int (*set_label_content)(void *context, int handle, const char *content);
+    
     /**
      * Get float value from a UI element.
      */
