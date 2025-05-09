@@ -64,11 +64,11 @@ var tex: u32 = undefined;
 var buffers: Buffers = undefined;
 var wiggle_buffer: ArrayBuffer(Vec4) = undefined;
 var offset_buffer: ArrayBuffer(Vec3) = undefined;
-var freq_buffer: ArrayBuffer(f32) = undefined;
-var prev_freq_buffer: ArrayBuffer(f32) = undefined;
-var freq_data: []f32 = undefined;
+var pulse_buffer: ArrayBuffer(f32) = undefined;
+var prev_pulse_buffer: ArrayBuffer(f32) = undefined;
+var pulse_data: []f32 = undefined;
 var wiggle_coefs: []Vec4 = undefined;
-var freq_last_updated_time: f32 = 0;
+var pulse_last_updated_time: f32 = 0;
 var interpolation_time_seconds: f32 = 0.1;
 
 // User controlled data
@@ -77,8 +77,17 @@ var size: FloatParam = undefined;
 var radius: FloatParam = undefined;
 var num_fish: IntParam = undefined;
 var updates_per_second: FloatParam = undefined;
-var min_freq: FloatParam = undefined;
+var min_pulse: FloatParam = undefined;
 var amplitude: FloatParam = undefined;
+var x_rotation_coef: FloatParam = undefined;
+var y_rotation_coef: FloatParam = undefined;
+var z_rotation_coef: FloatParam = undefined;
+var x_offset: FloatParam = undefined;
+var y_offset: FloatParam = undefined;
+var z_offset: FloatParam = undefined;
+var x_stddev: FloatParam = undefined;
+var y_stddev: FloatParam = undefined;
+var z_stddev: FloatParam = undefined;
 
 const bob = @cImport({
     @cInclude("bob.h");
@@ -171,52 +180,63 @@ fn stretch_array(comptime T: type, arr: []T, new_len: usize) []T {
     return result;
 }
 
-fn get_freq_data() []f32 {
-    const freqs: bob.bob_float_buffer = api.get_frequency_data.?(
-        api.context,
-        bob.BOB_MONO_CHANNEL,
-    );
-
-    const data = freqs.ptr[0..freqs.size];
-
-    return stretch_array(f32, @constCast(data), @intCast(num_fish.value));
-}
-
 fn get_pulse_data() []f32 {
-    const freqs: bob.bob_float_buffer = api.get_pulse_data.?(
+    const pulses: bob.bob_float_buffer = api.get_pulse_data.?(
         api.context,
         bob.BOB_MONO_CHANNEL,
     );
 
-    const data = freqs.ptr[0..freqs.size];
+    const data = pulses.ptr[0..pulses.size];
 
     return stretch_array(f32, @constCast(data), @intCast(num_fish.value));
 }
 
 fn register_params() void {
+    x_rotation_coef.register("Rotation Coefficient (X)", 0.0, 10.0, 0.0);
+    y_rotation_coef.register("Rotation Coefficient (Y)", 0.0, 10.0, 1.0);
+    z_rotation_coef.register("Rotation Coefficient (Z)", 0.0, 10.0, 0.0);
+
+    x_offset.register("Offset (X)", -2.0, 2.0, 0.0);
+    y_offset.register("Offset (Y)", -2.0, 2.0, 0.0);
+    z_offset.register("Offset (Z)", -2.0, 2.0, -1.0);
+
+    x_stddev.register("Standard deviation (X)", 0.0, 2.0, 0.15);
+    y_stddev.register("Standard deviation (Y)", 0.0, 2.0, 0.25);
+    z_stddev.register("Standard deviation (Z)", 0.0, 2.0, 0.2);
+
     speed.register("speed", 0.0, 5.0, 1.0);
-    size.register("size", 0.0, 1.0, 0.05);
+    size.register("size", 0.0, 0.2, 0.05);
     radius.register("radius", 0.0, 2.0, 0.5);
-    num_fish.register("fish count", 1, 100000, 1000);
+    num_fish.register("fish count", 1, 10000, 500);
     updates_per_second.register("Samples per second", 1.0, 60.0, 10.0);
-    min_freq.register("Min deviation", 0.0, 1.0, 0.1);
-    amplitude.register("Amplitude", 0.0, 10000.0, 1000.0);
+    min_pulse.register("Min deviation", 0.0, 1.0, 0.1);
+    amplitude.register("Amplitude", 0.0, 500.0, 100.0);
 }
 
 fn update_params() void {
     if (speed.update()) {
-        freq_last_updated_time = 0; // Make sure to reset interpolation
+        pulse_last_updated_time = 0; // Make sure to reset interpolation
     }
     _ = size.update();
     _ = radius.update();
-    if (num_fish.update()) {
+    if (num_fish.update() or
+        x_rotation_coef.update() or
+        y_rotation_coef.update() or
+        z_rotation_coef.update() or
+        x_offset.update() or
+        y_offset.update() or
+        z_offset.update() or
+        x_stddev.update() or
+        y_stddev.update() or
+        z_stddev.update())
+    {
         update_fish_buffers();
     }
     if (updates_per_second.update()) {
         interpolation_time_seconds = speed.value / updates_per_second.value;
-        freq_last_updated_time = 0; // Make sure to reset interpolation
+        pulse_last_updated_time = 0; // Make sure to reset interpolation
     }
-    _ = min_freq.update();
+    _ = min_pulse.update();
     _ = amplitude.update();
 }
 
@@ -224,9 +244,9 @@ fn update_params() void {
 export fn get_info() callconv(.C) [*c]const VisualizationInfo {
     const info = std.heap.page_allocator.create(VisualizationInfo) catch unreachable;
     info.* = VisualizationInfo{
-        .name = "Instert name here",
-        .description = "Insert description here",
-        .enabled = bob.BOB_AUDIO_FREQUENCY_DOMAIN_MONO | bob.BOB_AUDIO_PULSE_MONO,
+        .name = "Fish Swarm",
+        .description = "Swarm of fish. Tweak the parameters to make them swim in interesting patterns!",
+        .enabled = bob.BOB_AUDIO_PULSE_MONO,
     };
     return info;
 }
@@ -257,10 +277,20 @@ fn set_variable_uniforms() void {
             .translate(radius.value, 0.0, 0.0),
     );
 
+    const offset: Vec3 = .{
+        .x = x_offset.value,
+        .y = y_offset.value,
+        .z = z_offset.value,
+    };
+
     shader_program.setF32("time", t);
-    shader_program.setF32("interp_time", interpolation_time_seconds);
+    shader_program.setF32("interpTime", interpolation_time_seconds);
     shader_program.setF32("amplitude", amplitude.value);
-    shader_program.setF32("minFreq", min_freq.value);
+    shader_program.setF32("minPulse", min_pulse.value);
+    shader_program.setF32("xRotationCoef", x_rotation_coef.value);
+    shader_program.setF32("yRotationCoef", y_rotation_coef.value);
+    shader_program.setF32("zRotationCoef", z_rotation_coef.value);
+    shader_program.setVec3("absoluteOffset", offset);
 }
 
 fn update_fish_buffers() void {
@@ -288,9 +318,9 @@ fn update_fish_buffers() void {
     const offsets = randomOffsets(
         &alloc,
         @intCast(num_fish.value),
-        .{ .mean = 0.1, .stddev = 0.05 },
-        .{ .mean = 0.1, .stddev = 0.15 },
-        .{ .mean = 0.3, .stddev = 0.1 },
+        .{ .mean = 0.0, .stddev = x_stddev.value },
+        .{ .mean = 0.0, .stddev = y_stddev.value },
+        .{ .mean = 0.0, .stddev = z_stddev.value },
     );
 
     offset_buffer.bind();
@@ -336,23 +366,23 @@ export fn create() callconv(.C) [*c]const u8 {
 
     update_fish_buffers();
 
-    // Buffers for frequency data
-    freq_buffer = ArrayBuffer(f32).init();
-    prev_freq_buffer = ArrayBuffer(f32).init();
+    // Buffers for pulseuency data
+    pulse_buffer = ArrayBuffer(f32).init();
+    prev_pulse_buffer = ArrayBuffer(f32).init();
 
-    freq_data = get_freq_data();
+    pulse_data = get_pulse_data();
 
-    freq_buffer.bind();
+    pulse_buffer.bind();
 
-    freq_buffer.enableAttribute(5, 1, .float, false, 0);
-    freq_buffer.setDivisior(5, 1);
-    freq_buffer.write(freq_data, .dynamic);
+    pulse_buffer.enableAttribute(5, 1, .float, false, 0);
+    pulse_buffer.setDivisior(5, 1);
+    pulse_buffer.write(pulse_data, .dynamic);
 
-    prev_freq_buffer.bind();
+    prev_pulse_buffer.bind();
 
-    prev_freq_buffer.enableAttribute(6, 1, .float, false, 0);
-    prev_freq_buffer.setDivisior(6, 1);
-    prev_freq_buffer.write(freq_data, .dynamic);
+    prev_pulse_buffer.enableAttribute(6, 1, .float, false, 0);
+    prev_pulse_buffer.setDivisior(6, 1);
+    prev_pulse_buffer.write(pulse_data, .dynamic);
 
     st = std.time.microTimestamp();
 
@@ -384,16 +414,16 @@ export fn update() void {
     t = @floatCast((@as(f32, @floatFromInt(std.time.microTimestamp() - st))) / 1_000_000.0);
     t *= speed.value;
 
-    if (t - freq_last_updated_time > interpolation_time_seconds) {
-        prev_freq_buffer.bind();
-        prev_freq_buffer.write(freq_data, .dynamic);
+    if (t - pulse_last_updated_time > interpolation_time_seconds) {
+        prev_pulse_buffer.bind();
+        prev_pulse_buffer.write(pulse_data, .dynamic);
 
-        freq_data = get_freq_data();
-        freq_buffer.bind();
-        freq_buffer.write(freq_data, .dynamic);
+        pulse_data = get_pulse_data();
+        pulse_buffer.bind();
+        pulse_buffer.write(pulse_data, .dynamic);
 
-        shader_program.setF32("freq_time", t);
-        freq_last_updated_time = t;
+        shader_program.setF32("pulseTime", t);
+        pulse_last_updated_time = t;
     }
 
     set_variable_uniforms();
@@ -406,7 +436,7 @@ export fn update() void {
     vertex_buffer.bindArray();
     wiggle_buffer.bind();
     offset_buffer.bind();
-    freq_buffer.bind();
+    pulse_buffer.bind();
 
     g.gl.glDrawElementsInstanced(
         g.gl.GL_TRIANGLES,
