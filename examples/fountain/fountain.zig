@@ -1,5 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const bob = @cImport({
     @cInclude("bob.h");
 });
@@ -28,9 +27,9 @@ export var api: BobAPI = undefined;
 export fn get_info() *VisualizationInfo {
     const info = std.heap.page_allocator.create(VisualizationInfo) catch unreachable;
     info.* = VisualizationInfo{
-        .name = "Instert name here",
-        .description = "Insert description here",
-        .enabled = bob.BOB_AUDIO_TIME_DOMAIN_MONO | bob.BOB_AUDIO_FREQUENCY_DOMAIN_MONO | bob.BOB_AUDIO_CHROMAGRAM_MONO,
+        .name = "Fountain",
+        .description = "Using socket to visualise music in a 3d music fountain created using godot and blender.",
+        .enabled = bob.BOB_AUDIO_CHROMAGRAM_MONO,
     };
     return info;
 }
@@ -44,14 +43,7 @@ export fn create() ?*anyopaque {
     defer if (gpa.deinit() != .ok) @panic("leak");
     const allocator = gpa.allocator();
 
-    var argv = [_][]const u8{ "", "" };
-
-    switch (builtin.target.os.tag) {
-        .windows => argv = [_][]const u8{ "python", "..\\..\\..\\examples\\fountain\\startFountain.py" },
-        .linux => argv = [_][]const u8{ "python", "../../../examples/fountain/startFountain.py" },
-        .macos => argv = [_][]const u8{ "python", "../../../examples/fountain/startFountain.py" },
-        else => @compileError("Unsupported platform"),
-    }
+    var argv = [_][]const u8{ "python", "../../../examples/fountain/startFountain.py" };
 
     var child = std.process.Child.init(&argv, allocator);
 
@@ -95,7 +87,7 @@ export fn update(user_data: *anyopaque) void {
     };
     // Connect to peer
     const stream = net.tcpConnectToAddress(peer) catch |err| {
-        print("error connecting to socket:{}", .{err});
+        print("error connecting to socket:{}\n", .{err});
         return;
     };
 
