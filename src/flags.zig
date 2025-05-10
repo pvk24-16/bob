@@ -37,7 +37,7 @@ pub const Flags = struct {
     }
 
     pub fn log(self: Flags) void {
-        std.log.info("client audio flags:", .{});
+        std.log.info("visualizer audio flags:", .{});
         inline for (std.meta.fields(Flags)) |field| {
             const flag: bool = @field(self, field.name);
             if (flag) {

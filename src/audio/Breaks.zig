@@ -2,7 +2,7 @@ const std = @import("std");
 const Breaks = @This();
 
 in_break: bool = false,
-client_flag: bool = false,
+visualizer_flag: bool = false,
 
 pub fn execute(self: *Breaks, samples: []const f32) void {
 
@@ -24,10 +24,10 @@ pub fn execute(self: *Breaks, samples: []const f32) void {
     const in_break = mean < threshold;
 
     if (!self.in_break and in_break)
-        self.client_flag = true;
+        self.visualizer_flag = true;
 
     if (self.in_break and !in_break)
-        self.client_flag = false;
+        self.visualizer_flag = false;
 
     self.in_break = in_break;
 }

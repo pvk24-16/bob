@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
-const ClientList = @This();
+const VisualizerList = @This();
 
 const library: struct {
     prefix: []const u8,
@@ -16,7 +16,7 @@ const library: struct {
 path: []const u8,
 list: std.ArrayList([*:0]const u8),
 
-pub fn init(allocator: std.mem.Allocator, path_override: ?[]const u8) !ClientList {
+pub fn init(allocator: std.mem.Allocator, path_override: ?[]const u8) !VisualizerList {
     var env = try std.process.getEnvMap(allocator);
     defer env.deinit();
 
@@ -66,7 +66,7 @@ pub fn init(allocator: std.mem.Allocator, path_override: ?[]const u8) !ClientLis
         }
     };
 
-    std.log.info("creating client list. path is {s}", .{path});
+    std.log.info("creating visualizer list. path is {s}", .{path});
 
     try std.fs.cwd().makePath(path);
 
@@ -76,13 +76,13 @@ pub fn init(allocator: std.mem.Allocator, path_override: ?[]const u8) !ClientLis
     };
 }
 
-pub fn deinit(self: *ClientList) void {
-    self.clearClients();
+pub fn deinit(self: *VisualizerList) void {
+    self.clearVisualizers();
     self.list.deinit();
     self.list.allocator.free(self.path);
 }
 
-pub fn getClientPath(self: *const ClientList, index: usize) ![]const u8 {
+pub fn getVisualizerPath(self: *const VisualizerList, index: usize) ![]const u8 {
     var buf = [_]u8{0} ** 64;
     var stream = std.io.fixedBufferStream(&buf);
     const name = std.mem.span(self.list.items[index]);
@@ -98,17 +98,17 @@ pub fn getClientPath(self: *const ClientList, index: usize) ![]const u8 {
     });
 }
 
-pub fn getClientParentPath(self: *const ClientList, index: usize) ![]const u8 {
+pub fn getVisualizerParentPath(self: *const VisualizerList, index: usize) ![]const u8 {
     const name = std.mem.span(self.list.items[index]);
     return std.fs.path.join(self.list.allocator, &.{ self.path, name });
 }
 
-pub fn freePath(self: *const ClientList, path: []const u8) void {
+pub fn freePath(self: *const VisualizerList, path: []const u8) void {
     self.list.allocator.free(path);
 }
 
-pub fn readClientDir(self: *ClientList) !void {
-    self.clearClients();
+pub fn readVisualizerDir(self: *VisualizerList) !void {
+    self.clearVisualizers();
 
     const dir = try std.fs.cwd().openDir(self.path, .{ .iterate = true });
     var iter = dir.iterate();
@@ -124,7 +124,7 @@ pub fn readClientDir(self: *ClientList) !void {
     }
 }
 
-fn clearClients(self: *ClientList) void {
+fn clearVisualizers(self: *VisualizerList) void {
     for (self.list.items) |name| {
         // Some annoying stuff to be able to free a C string
         var slice: [:0]const u8 = undefined;
