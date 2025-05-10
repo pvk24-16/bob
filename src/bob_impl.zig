@@ -189,9 +189,9 @@ pub fn in_break(context: ?*anyopaque, channel: c_int) callconv(.C) c_int {
     const ctx: *Context = @ptrCast(@alignCast(context.?));
 
     const flag = switch (channel) {
-        bob.BOB_MONO_CHANNEL => &ctx.analyzer.breaks_center.client_flag,
-        bob.BOB_LEFT_CHANNEL => &ctx.analyzer.breaks_left.client_flag,
-        bob.BOB_RIGHT_CHANNEL => &ctx.analyzer.breaks_right.client_flag,
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.breaks_center.visualizer_flag,
+        bob.BOB_LEFT_CHANNEL => &ctx.analyzer.breaks_left.visualizer_flag,
+        bob.BOB_RIGHT_CHANNEL => &ctx.analyzer.breaks_right.visualizer_flag,
         else => @panic("Bad API call"),
     };
 
@@ -378,11 +378,11 @@ pub fn set_chromagram_num_partials(context: ?*anyopaque, num: usize) callconv(.C
     ctx.analyzer.chroma_center.num_partials = num;
 }
 
-pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(bob.api)) void {
-    client_api_ptr.context = context;
-    client_api_ptr.get_proc_address = @ptrCast(&glfw.glfwGetProcAddress);
+pub fn fill(context: ?*anyopaque, visualizer_api_ptr: *@TypeOf(bob.api)) void {
+    visualizer_api_ptr.context = context;
+    visualizer_api_ptr.get_proc_address = @ptrCast(&glfw.glfwGetProcAddress);
 
     inline for (api_fn_names) |name| {
-        @field(client_api_ptr.*, name) = @field(@This(), name);
+        @field(visualizer_api_ptr.*, name) = @field(@This(), name);
     }
 }
