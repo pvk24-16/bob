@@ -26,7 +26,7 @@ const BufferType = union(enum) {
     with_tex: VertexBuffer(VertexWithTex),
 };
 
-const Buffers = struct {
+pub const Buffers = struct {
     vertex_count: usize,
     index_buffer: IndexBuffer(u32),
     index_count: usize,
