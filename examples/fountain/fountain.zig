@@ -13,19 +13,13 @@ const BobAPI = bob.bob_api;
 var s_target_chroma: [12]f32 = undefined;
 var s_chroma: [12]f32 = undefined;
 
-/// Struct for storing user data.
-/// Define "global" values needed by the visualizer.
-/// Create an instance of `UserData` in `create()`, and use it in `update()` and `destroy()`.
-/// If you do not need any user data you can remove this struct.
-const UserData = extern struct {
-    my_rgb: [3]u8, // Example: storing an rgb value
-};
+var timeout_count: u8 = 0;
 
 /// Export api variable, it will be populated with information by the API
 export var api: BobAPI = undefined;
 
 /// Include information about your visualization here
-export fn get_info() *VisualizationInfo {
+export fn get_info() callconv(.C) [*c]const VisualizationInfo {
     const info = std.heap.page_allocator.create(VisualizationInfo) catch unreachable;
     info.* = VisualizationInfo{
         .name = "Fountain",
@@ -43,7 +37,7 @@ export fn get_info() *VisualizationInfo {
 /// Audio analysis should be enabled here.
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
-export fn create() ?*anyopaque {
+export fn create() callconv(.C) ?*anyopaque {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer if (gpa.deinit() != .ok) @panic("leak");
     const allocator = gpa.allocator();
@@ -65,13 +59,14 @@ export fn create() ?*anyopaque {
     };
 
     // Initialize user data
+
     // If you do not need user data remove this and return null
     return null;
 }
 
 /// Update called each frame.
 /// Audio analysis data is passed in `data`.
-export fn update(user_data: *anyopaque) void {
+export fn update(user_data: *anyopaque) callconv(.C) void {
     const snap = 0.001;
     const threshold = 0.8;
     api.get_chromagram.?(api.context, &s_target_chroma[0], bob.BOB_MONO_CHANNEL);
@@ -93,63 +88,69 @@ export fn update(user_data: *anyopaque) void {
         }
     }
 
-    const peer = net.Address.parseIp4("127.0.0.1", 8764) catch |err| {
-        print("error creating socket:{}", .{err});
-        return;
-    };
-    // Connect to peer
-    const stream = net.tcpConnectToAddress(peer) catch |err| {
-        print("error connecting to socket:{}\n", .{err});
-        return;
-    };
+    if (timeout_count < 1) {
+        const peer = net.Address.parseIp4("127.0.0.1", 8764) catch |err| {
+            print("error creating socket:{}\n", .{err});
+            return;
+        };
+        // Connect to peer
+        const stream = net.tcpConnectToAddress(peer) catch |err| {
+            print("error connecting to socket:{}\n", .{err});
+            timeout_count += 1;
+            return;
+        };
 
-    defer stream.close();
-    //print("Connecting to {}\n", .{peer});
+        defer stream.close();
+        //print("Connecting to {}\n", .{peer});
 
-    // Sending data to peer
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const alloc = gpa.allocator();
-    defer _ = gpa.deinit();
-    const string = std.fmt.allocPrint(
-        alloc,
-        "{d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}",
-        .{ s_chroma[0], s_chroma[1], s_chroma[2], s_chroma[3], s_chroma[4], s_chroma[5], s_chroma[6], s_chroma[7], s_chroma[8], s_chroma[9], s_chroma[10], s_chroma[11] },
-    ) catch |err| {
-        print("error creating string{}", .{err});
-        return;
-    };
-    defer alloc.free(string);
-    var writer = stream.writer();
-    _ = writer.write(string) catch |err| {
-        print("error{} writing to socket", .{err});
-        return;
-    };
+        var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+        const alloc = gpa.allocator();
+        defer _ = gpa.deinit();
+
+        // Sending data to peer
+        const string = std.fmt.allocPrint(
+            alloc,
+            "{d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}, {d:.3}",
+            .{ s_chroma[0], s_chroma[1], s_chroma[2], s_chroma[3], s_chroma[4], s_chroma[5], s_chroma[6], s_chroma[7], s_chroma[8], s_chroma[9], s_chroma[10], s_chroma[11] },
+        ) catch |err| {
+            print("error creating string{}\n", .{err});
+            return;
+        };
+        defer alloc.free(string);
+        var writer = stream.writer();
+        _ = writer.write(string) catch |err| {
+            print("error{} writing to socket\n", .{err});
+            return;
+        };
+    }
 
     //print("Sending '{s}' to peer, total written: {d} bytes\n", .{ string, size });
     _ = user_data;
 }
 
 /// Perform potential visualization cleanup.
-export fn destroy(user_data: *anyopaque) void {
-    const peer = net.Address.parseIp4("127.0.0.1", 8764) catch |err| {
-        print("error creating socket:{}", .{err});
-        return;
-    };
-    // Connect to peer
-    const stream = net.tcpConnectToAddress(peer) catch |err| {
-        print("error connecting to socket:{}", .{err});
-        return;
-    };
+export fn destroy(user_data: *anyopaque) callconv(.C) void {
+    if (timeout_count < 1) {
+        const peer = net.Address.parseIp4("127.0.0.1", 8764) catch |err| {
+            print("error creating socket:{}\n", .{err});
+            return;
+        };
+        // Connect to peer
+        const stream = net.tcpConnectToAddress(peer) catch |err| {
+            print("error connecting to socket:{}\n", .{err});
+            return;
+        };
 
-    defer stream.close();
+        defer stream.close();
 
-    const string = "close";
+        const string = "close";
 
-    var writer = stream.writer();
-    _ = writer.write(string) catch |err| {
-        print("error{} writing to socket", .{err});
-        return;
-    };
+        var writer = stream.writer();
+        _ = writer.write(string) catch |err| {
+            print("error writing to socket{}\n", .{err});
+            return;
+        };
+    }
 
     _ = user_data; // Avoid unused variable error
 }
