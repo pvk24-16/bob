@@ -140,6 +140,7 @@ pub fn build(b: *std.Build) !void {
     try @import("examples/fish_swarm/build.zig").buildLib(b, "fish_swarm", "examples/fish_swarm/", target, optimize);
     try @import("examples/logvol/build.zig").buildLib(b, "logvol", "examples/logvol/", target, optimize);
     try @import("examples/logvol/build.zig").buildLib(b, "debug", "examples/debug/", target, optimize);
+    try @import("examples/fountain/build.zig").buildLib(b, "fountain", "examples/fountain/", target, optimize);
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
