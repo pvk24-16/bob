@@ -29,7 +29,7 @@ export fn get_info() *VisualizationInfo {
     const info = std.heap.page_allocator.create(VisualizationInfo) catch unreachable;
     info.* = VisualizationInfo{
         .name = "Fountain",
-        .description = "Using socket to visualise music in a 3d music fountain created using godot and blender.",
+        .description = "Using socket to visualise music in a 3d music fountain created using godot and blender.\nDoes not work on macOS due to signing issues",
         .enabled = bob.BOB_AUDIO_CHROMAGRAM_MONO,
     };
     return info;
