@@ -14,6 +14,8 @@ pub const Flags = struct {
     tempo_stereo: bool = false,
     breaks_mono: bool = false,
     breaks_stereo: bool = false,
+    key_mono: bool = false,
+    key_stereo: bool = false,
 
     pub fn init(flags: c_int) Flags {
         return Flags{
@@ -21,19 +23,21 @@ pub const Flags = struct {
             .time_stereo = flags & bob.BOB_AUDIO_TIME_DOMAIN_STEREO != 0,
             .frequency_mono = flags & bob.BOB_AUDIO_FREQUENCY_DOMAIN_MONO != 0,
             .frequency_stereo = flags & bob.BOB_AUDIO_FREQUENCY_DOMAIN_STEREO != 0,
-            .chromagram_mono = flags & bob.BOB_AUDIO_CHROMAGRAM_MONO != 0,
-            .chromagram_stereo = flags & bob.BOB_AUDIO_CHROMAGRAM_STEREO != 0,
+            .chromagram_mono = flags & bob.BOB_AUDIO_CHROMAGRAM_MONO != 0 or flags & bob.BOB_AUDIO_KEY_MONO != 0,
+            .chromagram_stereo = flags & bob.BOB_AUDIO_CHROMAGRAM_STEREO != 0 or flags & bob.BOB_AUDIO_KEY_STEREO != 0,
             .pulse_mono = flags & bob.BOB_AUDIO_PULSE_MONO != 0,
             .pulse_stereo = flags & bob.BOB_AUDIO_PULSE_STEREO != 0,
             .tempo_mono = flags & bob.BOB_AUDIO_TEMPO_MONO != 0,
             .tempo_stereo = flags & bob.BOB_AUDIO_TEMPO_STEREO != 0,
             .breaks_mono = flags & bob.BOB_AUDIO_BREAKS_MONO != 0,
             .breaks_stereo = flags & bob.BOB_AUDIO_BREAKS_STEREO != 0,
+            .key_mono = flags & bob.BOB_AUDIO_KEY_MONO != 0,
+            .key_stereo = flags & bob.BOB_AUDIO_KEY_STEREO != 0,
         };
     }
 
     pub fn log(self: Flags) void {
-        std.log.info("client audio flags:", .{});
+        std.log.info("visualizer audio flags:", .{});
         inline for (std.meta.fields(Flags)) |field| {
             const flag: bool = @field(self, field.name);
             if (flag) {

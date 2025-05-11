@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Client = @import("Client.zig");
+const Visualizer = @import("Visualizer.zig");
 const bob_impl = @import("bob_impl.zig");
 const imgui = @import("imgui");
 const glfw = @import("graphics/glfw.zig");
@@ -42,9 +42,9 @@ pub fn main() !void {
     const allocator = gpa.allocator();
 
     // the path to visualizers is currently overridden with the path where buildExample puts them
-    var client_list = try @import("ClientList.zig").init(allocator, "zig-out/bob");
-    defer client_list.deinit();
-    try client_list.readClientDir();
+    var visualizer_list = try @import("VisualizerList.zig").init(allocator, "zig-out/bob");
+    defer visualizer_list.deinit();
+    try visualizer_list.readVisualizerDir();
 
     var context = try Context.init(allocator);
     defer context.deinit(allocator);
@@ -99,8 +99,8 @@ pub fn main() !void {
         context.processAudio();
 
         // === Draw begins here ===
-        if (context.client != null and context.capturer != null) {
-            context.client.?.update();
+        if (context.visualizer != null and context.capturer != null) {
+            context.visualizer.?.update();
         } else {
             // Much clearer
             gl.glClearColor(0.2, 0.2, 0.2, 1.0);
@@ -152,69 +152,69 @@ pub fn main() !void {
             } else audio_source_list_is_open = false;
         }
 
-        if (ui.selectClient(&client_list, current_name)) |index| {
-            if (context.client) |*client| {
+        if (ui.selectVisualizer(&visualizer_list, current_name)) |index| {
+            if (context.visualizer) |*visualizer| {
                 std.log.info("unloading visualizer", .{});
-                client.destroy();
-                client.unload();
-                context.client = null;
+                visualizer.destroy();
+                visualizer.unload();
+                context.visualizer = null;
                 context.gui_state.clear();
                 current_name = null;
                 std.process.changeCurDir(bob_dir) catch {};
             }
 
-            current_name = client_list.list.items[index];
-            const path = try client_list.getClientPath(index);
-            defer client_list.freePath(path);
+            current_name = visualizer_list.list.items[index];
+            const path = try visualizer_list.getVisualizerPath(index);
+            defer visualizer_list.freePath(path);
 
             std.log.info("loading visualizer {s}", .{current_name.?});
 
-            context.client = Client.load(path) catch |e| blk: {
+            context.visualizer = Visualizer.load(path) catch |e| blk: {
                 std.log.err("failed to load {s}: {s}", .{ path, @errorName(e) });
                 try context.err.setMessage("Failed to load visualizer: {s}", .{@errorName(e)}, allocator);
                 break :blk null;
             };
 
-            if (context.client) |*client| {
-                const client_dir = std.fs.path.dirname(path) orelse unreachable;
-                std.process.changeCurDir(client_dir) catch {};
+            if (context.visualizer) |*visualizer| {
+                const visualizer_dir = std.fs.path.dirname(path) orelse unreachable;
+                std.process.changeCurDir(visualizer_dir) catch {};
 
-                bob_impl.fill(@ptrCast(&context), client.api.api);
-                if (client.create()) |err| {
+                bob_impl.fill(@ptrCast(&context), visualizer.api.api);
+                if (visualizer.create()) |err| {
                     try context.err.setMessage("Failed to initialize visualizer: {s}", .{err}, allocator);
                     std.log.info("unloading visualizer", .{});
-                    client.destroy();
-                    client.unload();
-                    context.client = null;
+                    visualizer.destroy();
+                    visualizer.unload();
+                    context.visualizer = null;
                     context.gui_state.clear();
                     current_name = null;
                     context.flags = Flags{};
                     std.process.changeCurDir(bob_dir) catch {};
                 } else {
-                    context.flags = Flags.init(client.info.enabled);
+                    context.flags = Flags.init(visualizer.info.enabled);
                     context.flags.log();
                     current_index = index;
                 }
             }
         }
 
-        if (context.client) |*client| {
-            imgui.SeparatorText(client.info.name);
+        if (context.visualizer) |*visualizer| {
+            imgui.SeparatorText(visualizer.info.name);
             if (imgui.Button("Unload")) {
                 std.log.info("unloading visualizer", .{});
-                client.destroy();
-                client.unload();
-                context.client = null;
+                visualizer.destroy();
+                visualizer.unload();
+                context.visualizer = null;
                 context.gui_state.clear();
                 current_name = null;
                 context.flags = Flags{};
                 std.process.changeCurDir(bob_dir) catch {};
             } else {
-                const path = client_list.getClientParentPath(current_index.?) catch |e| blk: {
-                    std.log.err("failed to create parent path for client: {s}", .{@errorName(e)});
+                const path = visualizer_list.getVisualizerParentPath(current_index.?) catch |e| blk: {
+                    std.log.err("failed to create parent path for visualizer: {s}", .{@errorName(e)});
                     break :blk null;
                 };
-                defer if (path) |path_| client_list.freePath(path_);
+                defer if (path) |path_| visualizer_list.freePath(path_);
 
                 var load_preset = false;
                 var save_preset = false;
@@ -227,7 +227,7 @@ pub fn main() !void {
 
                 context.gui_state.update();
                 imgui.SeparatorText("Description");
-                imgui.Text(client.info.description);
+                imgui.Text(visualizer.info.description);
 
                 if (path) |_| {
                     if (load_preset) {

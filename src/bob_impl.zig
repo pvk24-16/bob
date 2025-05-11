@@ -21,8 +21,12 @@ const api_fn_names: []const []const u8 = &.{
     "get_frequency_data",
     "get_chromagram",
     "get_pulse_data",
+    "get_pulse_graph",
+    "set_pulse_params",
     "get_tempo",
+    "get_tempo_graph",
     "in_break",
+    "get_key",
     "register_float_slider",
     "register_int_slider",
     "register_checkbox",
@@ -119,6 +123,22 @@ pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob
     };
 
     const buffer: bob.bob_float_buffer = .{
+        .ptr = @ptrCast(&beat.Eh),
+        .size = beat.num_bins,
+    };
+
+    return buffer;
+}
+
+pub fn get_pulse_graph(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const beat = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.beat_center,
+        else => @panic("Bad API call"),
+    };
+
+    const buffer: bob.bob_float_buffer = .{
         .ptr = @ptrCast(&beat.bin_vals),
         .size = beat.num_bins,
     };
@@ -126,24 +146,77 @@ pub fn get_pulse_data(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob
     return buffer;
 }
 
+pub fn set_pulse_params(context: ?*anyopaque, channel: c_int, C: f32, Vl: f32) callconv(.C) void {
+    const ctx: *Context = @ptrCast(@alignCast(context.?));
+
+    const beat = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.beat_center,
+        else => @panic("Bad API call"),
+    };
+
+    beat.C = C;
+    beat.Vl = Vl;
+}
+
 pub fn get_tempo(context: ?*anyopaque, channel: c_int) callconv(.C) f32 {
-    _ = .{ context, channel };
-    return 0.0;
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const tempo = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.tempo_center,
+        else => @panic("Bad API call"),
+    };
+
+    return tempo.get_bpm();
+}
+
+pub fn get_tempo_graph(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_float_buffer {
+    const ctx: *const Context = @ptrCast(@alignCast(context.?));
+
+    const tempo = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.tempo_center,
+        else => @panic("Bad API call"),
+    };
+
+    const buf = tempo.get_bpm_graph();
+
+    return .{
+        .ptr = buf.ptr,
+        .size = buf.len,
+    };
 }
 
 pub fn in_break(context: ?*anyopaque, channel: c_int) callconv(.C) c_int {
     const ctx: *Context = @ptrCast(@alignCast(context.?));
 
     const flag = switch (channel) {
-        bob.BOB_MONO_CHANNEL => &ctx.analyzer.breaks_center.client_flag,
-        bob.BOB_LEFT_CHANNEL => &ctx.analyzer.breaks_left.client_flag,
-        bob.BOB_RIGHT_CHANNEL => &ctx.analyzer.breaks_right.client_flag,
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.breaks_center.visualizer_flag,
+        bob.BOB_LEFT_CHANNEL => &ctx.analyzer.breaks_left.visualizer_flag,
+        bob.BOB_RIGHT_CHANNEL => &ctx.analyzer.breaks_right.visualizer_flag,
         else => @panic("Bad API call"),
     };
 
     const value = flag.*;
     flag.* = false;
     return @intFromBool(value);
+}
+
+pub fn get_key(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_key {
+    const ctx: *Context = @ptrCast(@alignCast(context.?));
+
+    const result = switch (channel) {
+        bob.BOB_MONO_CHANNEL => &ctx.analyzer.key_center.result,
+        bob.BOB_LEFT_CHANNEL => &ctx.analyzer.key_left.result,
+        bob.BOB_RIGHT_CHANNEL => &ctx.analyzer.key_right.result,
+        else => @panic("Bad API call"),
+    };
+
+    const key: bob.bob_key = .{
+        .pitch_class = @intCast(result.pitch_class),
+        .type = @intCast(result.key_type),
+        .confidence = result.confidence,
+    };
+
+    return key;
 }
 
 pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32, max: f32, default_value: f32) callconv(.C) c_int {
@@ -305,11 +378,11 @@ pub fn set_chromagram_num_partials(context: ?*anyopaque, num: usize) callconv(.C
     ctx.analyzer.chroma_center.num_partials = num;
 }
 
-pub fn fill(context: ?*anyopaque, client_api_ptr: *@TypeOf(bob.api)) void {
-    client_api_ptr.context = context;
-    client_api_ptr.get_proc_address = @ptrCast(&glfw.glfwGetProcAddress);
+pub fn fill(context: ?*anyopaque, visualizer_api_ptr: *@TypeOf(bob.api)) void {
+    visualizer_api_ptr.context = context;
+    visualizer_api_ptr.get_proc_address = @ptrCast(&glfw.glfwGetProcAddress);
 
     inline for (api_fn_names) |name| {
-        @field(client_api_ptr.*, name) = @field(@This(), name);
+        @field(visualizer_api_ptr.*, name) = @field(@This(), name);
     }
 }
