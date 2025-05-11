@@ -96,14 +96,6 @@ const bob = @cImport({
 const VisualizationInfo = bob.bob_visualization_info;
 const BobAPI = bob.bob_api;
 
-/// Struct for storing user data.
-/// Define "global" values needed by the visualizer.
-/// Create an instance of `UserData` in `create()`, and use it in `update()` and `destroy()`.
-/// If you do not need any user data you can remove this struct.
-const UserData = extern struct {
-    my_rgb: [3]u8, // Example: storing an rgb value
-};
-
 /// Export api variable, it will be populated with information by the API
 export var api: BobAPI = undefined;
 
@@ -358,7 +350,6 @@ export fn create() callconv(.C) [*c]const u8 {
 
     shader_program.bind();
     set_const_uniforms();
-    shader_program.unbind();
 
     // Buffers for fish
     wiggle_buffer = ArrayBuffer(Vec4).init();
@@ -409,6 +400,11 @@ export fn update() void {
     var index_buffer = buffers.index_buffer;
     const num_indices = buffers.index_count;
 
+    index_buffer.bind();
+    vertex_buffer.bind();
+    wiggle_buffer.bind();
+    offset_buffer.bind();
+    pulse_buffer.bind();
     shader_program.bind();
 
     t = @floatCast((@as(f32, @floatFromInt(std.time.microTimestamp() - st))) / 1_000_000.0);
@@ -432,12 +428,6 @@ export fn update() void {
     g.gl.glClear(g.gl.GL_COLOR_BUFFER_BIT);
     g.gl.glClear(g.gl.GL_DEPTH_BUFFER_BIT);
 
-    index_buffer.bind();
-    vertex_buffer.bindArray();
-    wiggle_buffer.bind();
-    offset_buffer.bind();
-    pulse_buffer.bind();
-
     g.gl.glDrawElementsInstanced(
         g.gl.GL_TRIANGLES,
         @intCast(num_indices),
@@ -449,9 +439,16 @@ export fn update() void {
 
 /// Perform potential visualization cleanup.
 export fn destroy() void {
+    g.gl.glDisable(g.gl.GL_DEPTH_TEST);
+    g.gl.glDisable(g.gl.GL_CULL_FACE);
+    g.gl.glCullFace(g.gl.GL_NONE);
+
     wiggle_buffer.deinit();
-    buffers.deinit();
+    offset_buffer.deinit();
+    pulse_buffer.deinit();
+    prev_pulse_buffer.deinit();
     shader_program.deinit();
+    buffers.deinit();
 }
 
 // Verify that type signatures are correct
