@@ -1,6 +1,6 @@
 const std = @import("std");
-const gl = @import("c.zig").gl;
-const glfw = @import("c.zig").glfw;
+const gl = @import("glad.zig");
+const glfw = @import("glfw.zig");
 const os_tag = @import("builtin").os.tag;
 
 pub const Error = error{
@@ -17,15 +17,21 @@ pub const CallbackKind = enum {
     cursor,
 };
 
+/// NOTE: Window resize records width and height to this struct
+/// NOTE: Window resize also sets the GL viewport
 pub fn Window(comptime max_callbacks: usize) type {
     return struct {
         const Self = @This();
 
-        const window_width: u32 = 800;
-        const window_height: u32 = 600;
-        const window_title = "project_name";
+        handle: *glfw.GLFWwindow = undefined,
+        width: i32 = undefined,
+        height: i32 = undefined,
 
-        window_handle: *glfw.GLFWwindow = undefined,
+        borderless: bool = false,
+        saved_width: i32 = undefined,
+        saved_height: i32 = undefined,
+        saved_x: i32 = undefined,
+        saved_y: i32 = undefined,
 
         resize_callbacks: [max_callbacks]*const fn (i32, i32, ?*anyopaque) void = undefined,
         key_callbacks: [max_callbacks]*const fn (i32, i32, i32, i32, ?*anyopaque) void = undefined,
@@ -44,57 +50,111 @@ pub fn Window(comptime max_callbacks: usize) type {
 
         /// Create renderer.
         /// To use callbacks, call setUserPointer() after initializing.
-        pub fn init() !Self {
+        pub fn init(width: i32, height: i32, title: []const u8) !Self {
             if (glfw.glfwInit() == glfw.GLFW_FALSE) return Error.failed_to_init_glfw;
             _ = glfw.glfwSetErrorCallback(errorCallback);
             glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
             glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
             glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_CORE_PROFILE);
+            glfw.glfwWindowHint(glfw.GLFW_AUTO_ICONIFY, glfw.GLFW_FALSE);
             if (os_tag == .macos) {
                 glfw.glfwWindowHint(glfw.GLFW_OPENGL_FORWARD_COMPAT, glfw.GLFW_TRUE);
             }
 
             const window = glfw.glfwCreateWindow(
-                window_width,
-                window_height,
-                window_title[0..],
+                @intCast(width),
+                @intCast(height),
+                title[0..].ptr,
                 null,
                 null,
             ) orelse return Error.failed_to_create_window;
             glfw.glfwMakeContextCurrent(window);
 
             if (gl.gladLoadGLLoader(@ptrCast(&glfw.glfwGetProcAddress)) == 0) return Error.failed_to_init_gl;
-            gl.glViewport(0, 0, window_width, window_height);
+            gl.glViewport(
+                0,
+                0,
+                @intCast(width),
+                @intCast(height),
+            );
 
             glfw.glfwSwapInterval(1);
 
-            return Self{ .window_handle = window };
+            return Self{
+                .width = width,
+                .height = height,
+                .handle = window,
+            };
         }
 
         /// Destroy renderer.
         pub fn deinit(self: *Self) void {
-            glfw.glfwDestroyWindow(self.window_handle);
+            glfw.glfwDestroyWindow(self.handle);
             glfw.glfwTerminate();
         }
 
         /// Set user pointer and callbacks.
         pub fn setUserPointer(self: *Self) void {
-            glfw.glfwSetWindowUserPointer(self.window_handle, @ptrCast(self));
-            _ = glfw.glfwSetFramebufferSizeCallback(self.window_handle, resizeCallback);
-            _ = glfw.glfwSetKeyCallback(self.window_handle, keyboardCallback);
-            _ = glfw.glfwSetMouseButtonCallback(self.window_handle, mouseCallback);
-            _ = glfw.glfwSetCursorPosCallback(self.window_handle, cursorPositionCallback);
+            glfw.glfwSetWindowUserPointer(self.handle, @ptrCast(self));
+            _ = glfw.glfwSetFramebufferSizeCallback(self.handle, resizeCallback);
+            _ = glfw.glfwSetKeyCallback(self.handle, keyboardCallback);
+            _ = glfw.glfwSetMouseButtonCallback(self.handle, mouseCallback);
+            _ = glfw.glfwSetCursorPosCallback(self.handle, cursorPositionCallback);
         }
 
-        /// Swap buffers and poll events.
-        pub fn update(self: *Self) void {
-            glfw.glfwSwapBuffers(self.window_handle);
+        /// Poll events.
+        pub inline fn update(self: *Self) void {
+            _ = self;
             glfw.glfwPollEvents();
+        }
+
+        /// Swap buffers.
+        pub inline fn swap(self: *Self) void {
+            glfw.glfwSwapBuffers(self.handle);
         }
 
         /// Returns false if the window should close.
         pub fn running(self: *Self) bool {
-            return glfw.glfwWindowShouldClose(self.window_handle) == glfw.GLFW_FALSE;
+            return glfw.glfwWindowShouldClose(self.handle) == glfw.GLFW_FALSE;
+        }
+
+        /// Togggle between windowed and borderless fullscreen
+        pub fn toggleBorderless(self: *Self) void {
+            if (self.borderless) {
+                // Restore
+                glfw.glfwSetWindowMonitor(
+                    self.handle,
+                    null,
+                    @intCast(self.saved_x),
+                    @intCast(self.saved_y),
+                    @intCast(self.saved_width),
+                    @intCast(self.saved_height),
+                    glfw.GLFW_DONT_CARE,
+                );
+            } else {
+                // Set borderless
+                const monitor = glfw.glfwGetPrimaryMonitor();
+                const mode = glfw.glfwGetVideoMode(monitor);
+                glfw.glfwGetWindowPos(
+                    self.handle,
+                    @ptrCast(&self.saved_x),
+                    @ptrCast(&self.saved_y),
+                );
+                self.saved_width = self.width;
+                self.saved_height = self.height;
+
+                glfw.glfwSetWindowMonitor(
+                    self.handle,
+                    monitor,
+                    0,
+                    0,
+                    mode.*.width,
+                    mode.*.height,
+                    mode.*.refreshRate,
+                );
+            }
+
+            self.borderless = !self.borderless;
         }
 
         /// Assign function for callback.
@@ -165,7 +225,9 @@ pub fn Window(comptime max_callbacks: usize) type {
             height: c_int,
         ) callconv(.C) void {
             const self: *Self = @alignCast(@ptrCast(glfw.glfwGetWindowUserPointer(h)));
-            gl.glViewport(0, 0, width, height); // TODO: Maybe the user should decide this?
+            self.width = width;
+            self.height = height;
+            gl.glViewport(0, 0, width, height);
 
             for (0..self.resize_num) |i| {
                 self.resize_callbacks[i](

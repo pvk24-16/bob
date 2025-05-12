@@ -1,5 +1,5 @@
 const std = @import("std");
-const g = @import("../lib.zig");
+const g = @import("../root.zig");
 const VertexBuffer = g.buffer.VertexBuffer;
 const IndexBuffer = g.buffer.ElementBuffer;
 const Vec3 = g.math.Vec3;
@@ -26,7 +26,7 @@ const BufferType = union(enum) {
     with_tex: VertexBuffer(VertexWithTex),
 };
 
-const Buffers = struct {
+pub const Buffers = struct {
     vertex_count: usize,
     index_buffer: IndexBuffer(u32),
     index_count: usize,

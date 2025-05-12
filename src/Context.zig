@@ -8,7 +8,7 @@ const AudioConfig = @import("audio/Config.zig");
 const AudioCapturer = @import("audio/AudioCapturer.zig");
 const AudioSplixer = @import("audio/AudioSplixer.zig");
 const Config = @import("audio/Config.zig");
-const Client = @import("Client.zig");
+const Visualizer = @import("Visualizer.zig");
 const GuiState = @import("GuiState.zig");
 const Error = @import("Error.zig");
 const FFT = @import("audio/fft.zig").FastFourierTransform;
@@ -16,7 +16,7 @@ const Flags = @import("flags.zig").Flags;
 
 err: Error,
 gui_state: GuiState,
-client: ?Client,
+visualizer: ?Visualizer,
 capturer: ?AudioCapturer,
 analyzer: AudioAnalyzer,
 flags: Flags,
@@ -28,7 +28,7 @@ pub fn init(allocator: std.mem.Allocator) !Context {
     return Context{
         .err = Error{},
         .gui_state = GuiState.init(allocator),
-        .client = null,
+        .visualizer = null,
         .capturer = null,
         .analyzer = try AudioAnalyzer.init(allocator),
         .flags = Flags{},
@@ -64,8 +64,8 @@ pub fn processAudio(self: *Context) void {
 pub fn deinit(self: *Context, allocator: std.mem.Allocator) void {
     self.gui_state.deinit();
 
-    if (self.client) |*client| {
-        client.unload();
+    if (self.visualizer) |*visualizer| {
+        visualizer.unload();
     }
 
     if (self.capturer) |*capturer| {

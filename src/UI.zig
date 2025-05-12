@@ -1,7 +1,7 @@
 const std = @import("std");
 const imgui = @import("imgui");
 const glfw = @import("graphics/glfw.zig");
-const ClientList = @import("ClientList.zig");
+const VisualizerList = @import("VisualizerList.zig");
 
 const comicJensFreeProRegular = @embedFile("assets/ComicJensFreePro-Regular.ttf");
 
@@ -62,13 +62,13 @@ pub fn beginFrame(self: *const @This()) void {
     _ = imgui.Begin(ui_window_title);
 }
 
-/// Returns an index in to the list if the user selected a client, and null otherwise
-pub fn selectClient(self: *const @This(), clients: *const ClientList, current: ?[*:0]const u8) ?usize {
+/// Returns an index in to the list if the user selected a visualizer, and null otherwise
+pub fn selectVisualizer(self: *const @This(), visualizers: *const VisualizerList, current: ?[*:0]const u8) ?usize {
     _ = self;
 
     if (imgui.BeginCombo("Select visualizer", current)) {
         defer imgui.EndCombo();
-        for (clients.list.items, 0..) |name, i| {
+        for (visualizers.list.items, 0..) |name, i| {
             const selected = if (current) |c| std.mem.orderZ(u8, name, c) == .eq else false;
             _ = selected;
             if (imgui.Selectable_Bool(name))

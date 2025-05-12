@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Client = @import("Client.zig");
+const Visualizer = @import("Visualizer.zig");
 const bob_impl = @import("bob_impl.zig");
 const imgui = @import("imgui");
 const glfw = @import("graphics/glfw.zig");
@@ -9,82 +9,58 @@ const Context = @import("Context.zig");
 const Flags = @import("flags.zig").Flags;
 
 const audio_producer_enumerator = @import("producers/enumerator.zig");
+const Window = @import("graphics/window.zig").Window(8);
 
 const os_tag = @import("builtin").os.tag;
 
-fn resizeCallback(window: ?*glfw.GLFWwindow, x: c_int, y: c_int) callconv(.C) void {
-    const userdata = glfw.glfwGetWindowUserPointer(window);
-    const context: *Context = @ptrCast(@alignCast(userdata));
-    context.window_width = x;
-    context.window_height = y;
+fn resizeCallback(x: i32, y: i32, userdata: ?*anyopaque) void {
+    const context: *Context = @ptrCast(@alignCast(userdata.?)); // This is ok
+    context.window_width = @intCast(x);
+    context.window_height = @intCast(y);
     context.window_did_resize = true;
-    gl.glViewport(0, 0, 800, 600);
+}
+
+/// Userdata is window
+fn keyboardCallback(key: i32, _: i32, action: i32, _: i32, userdata: ?*anyopaque) void {
+    var window: *Window = @ptrCast(@alignCast(userdata.?)); // This is ok
+
+    switch (key) {
+        glfw.GLFW_KEY_F => {
+            if (action == glfw.GLFW_PRESS) {
+                // For now we reserve key F for toggling borderless fullscreen
+                // TODO: list monitors in GUI somehow, we use the primary monitor for now
+                window.toggleBorderless();
+            }
+        },
+        else => {},
+    }
 }
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
-
     const allocator = gpa.allocator();
 
-    var args = try std.process.argsWithAllocator(allocator);
-    defer args.deinit();
-
     // the path to visualizers is currently overridden with the path where buildExample puts them
-    var client_list = try @import("ClientList.zig").init(allocator, "zig-out/bob");
-    defer client_list.deinit();
-    try client_list.readClientDir();
-
-    _ = glfw.glfwSetErrorCallback(errorCallback);
-    if (glfw.glfwInit() == glfw.GLFW_FALSE) {
-        std.log.err("Failed to init GLFW", .{});
-        return;
-    }
-    defer glfw.glfwTerminate();
-
-    glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfw.glfwWindowHint(glfw.GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfw.glfwWindowHint(glfw.GLFW_OPENGL_PROFILE, glfw.GLFW_OPENGL_CORE_PROFILE);
-    if (os_tag == .macos) {
-        glfw.glfwWindowHint(glfw.GLFW_OPENGL_FORWARD_COMPAT, glfw.GLFW_TRUE);
-    }
-
-    const window = glfw.glfwCreateWindow(
-        800,
-        600,
-        "bob",
-        null,
-        null,
-    ) orelse {
-        std.log.err("Failed to create window", .{});
-        return;
-    };
-    defer glfw.glfwDestroyWindow(window);
-
-    glfw.glfwMakeContextCurrent(window);
-    if (gl.gladLoadGLLoader(@ptrCast(&glfw.glfwGetProcAddress)) == 0) {
-        std.log.err("Failed to load gl", .{});
-        return;
-    }
-
-    gl.glViewport(0, 0, 800, 600);
-    glfw.glfwSwapInterval(1);
-
-    var ui = try @import("UI.zig").init(window);
-    defer ui.deinit();
+    var visualizer_list = try @import("VisualizerList.zig").init(allocator, "zig-out/bob");
+    defer visualizer_list.deinit();
+    try visualizer_list.readVisualizerDir();
 
     var context = try Context.init(allocator);
     defer context.deinit(allocator);
 
-    glfw.glfwSetWindowUserPointer(window, @ptrCast(&context));
-    _ = glfw.glfwSetWindowSizeCallback(window, resizeCallback);
+    var window = try Window.init(800, 600, "BoB");
+    window.setUserPointer();
+    try window.pushCallback(&resizeCallback, @ptrCast(@alignCast(&context)), .resize);
+    try window.pushCallback(&keyboardCallback, @ptrCast(@alignCast(&window)), .keyboard);
+    defer window.deinit();
 
-    var x: c_int = undefined;
-    var y: c_int = undefined;
-    glfw.glfwGetWindowSize(window, &x, &y);
-    context.window_width = x;
-    context.window_height = y;
+    context.window_width = window.width;
+    context.window_height = window.height;
     context.window_did_resize = true;
+
+    var ui = try @import("UI.zig").init(window.handle);
+    defer ui.deinit();
 
     var current_name: ?[*:0]const u8 = null;
     var current_index: ?usize = null;
@@ -105,17 +81,30 @@ pub fn main() !void {
     const bob_dir = try std.process.getCwd(&bob_dir_buf);
 
     while (running) {
-        glfw.glfwPollEvents();
+        window.update();
+        defer window.swap();
+        defer running = window.running();
+        defer {
+            if (context.window_did_resize) {
+                context.window_did_resize = false;
+            }
+        }
 
-        gl.glClearColor(0.2, 0.2, 0.2, 1.0);
-        gl.glClear(gl.GL_COLOR_BUFFER_BIT);
+        // === Input ===
+        if (glfw.glfwGetKey(window.handle, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
+            break;
+        }
 
+        // === Update sate ===
         context.processAudio();
 
-        if (context.client) |client| {
-            if (context.capturer != null) {
-                client.update();
-            }
+        // === Draw begins here ===
+        if (context.visualizer != null and context.capturer != null) {
+            context.visualizer.?.update();
+        } else {
+            // Much clearer
+            gl.glClearColor(0.2, 0.2, 0.2, 1.0);
+            gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         }
 
         ui.beginFrame();
@@ -163,69 +152,69 @@ pub fn main() !void {
             } else audio_source_list_is_open = false;
         }
 
-        if (ui.selectClient(&client_list, current_name)) |index| {
-            if (context.client) |*client| {
+        if (ui.selectVisualizer(&visualizer_list, current_name)) |index| {
+            if (context.visualizer) |*visualizer| {
                 std.log.info("unloading visualizer", .{});
-                client.destroy();
-                client.unload();
-                context.client = null;
+                visualizer.destroy();
+                visualizer.unload();
+                context.visualizer = null;
                 context.gui_state.clear();
                 current_name = null;
                 std.process.changeCurDir(bob_dir) catch {};
             }
 
-            current_name = client_list.list.items[index];
-            const path = try client_list.getClientPath(index);
-            defer client_list.freePath(path);
+            current_name = visualizer_list.list.items[index];
+            const path = try visualizer_list.getVisualizerPath(index);
+            defer visualizer_list.freePath(path);
 
             std.log.info("loading visualizer {s}", .{current_name.?});
 
-            context.client = Client.load(path) catch |e| blk: {
+            context.visualizer = Visualizer.load(path) catch |e| blk: {
                 std.log.err("failed to load {s}: {s}", .{ path, @errorName(e) });
                 try context.err.setMessage("Failed to load visualizer: {s}", .{@errorName(e)}, allocator);
                 break :blk null;
             };
 
-            if (context.client) |*client| {
-                const client_dir = std.fs.path.dirname(path) orelse unreachable;
-                std.process.changeCurDir(client_dir) catch {};
+            if (context.visualizer) |*visualizer| {
+                const visualizer_dir = std.fs.path.dirname(path) orelse unreachable;
+                std.process.changeCurDir(visualizer_dir) catch {};
 
-                bob_impl.fill(@ptrCast(&context), client.api.api);
-                if (client.create()) |err| {
+                bob_impl.fill(@ptrCast(&context), visualizer.api.api);
+                if (visualizer.create()) |err| {
                     try context.err.setMessage("Failed to initialize visualizer: {s}", .{err}, allocator);
                     std.log.info("unloading visualizer", .{});
-                    client.destroy();
-                    client.unload();
-                    context.client = null;
+                    visualizer.destroy();
+                    visualizer.unload();
+                    context.visualizer = null;
                     context.gui_state.clear();
                     current_name = null;
                     context.flags = Flags{};
                     std.process.changeCurDir(bob_dir) catch {};
                 } else {
-                    context.flags = Flags.init(client.info.enabled);
+                    context.flags = Flags.init(visualizer.info.enabled);
                     context.flags.log();
                     current_index = index;
                 }
             }
         }
 
-        if (context.client) |*client| {
-            imgui.SeparatorText(client.info.name);
+        if (context.visualizer) |*visualizer| {
+            imgui.SeparatorText(visualizer.info.name);
             if (imgui.Button("Unload")) {
                 std.log.info("unloading visualizer", .{});
-                client.destroy();
-                client.unload();
-                context.client = null;
+                visualizer.destroy();
+                visualizer.unload();
+                context.visualizer = null;
                 context.gui_state.clear();
                 current_name = null;
                 context.flags = Flags{};
                 std.process.changeCurDir(bob_dir) catch {};
             } else {
-                const path = client_list.getClientParentPath(current_index.?) catch |e| blk: {
-                    std.log.err("failed to create parent path for client: {s}", .{@errorName(e)});
+                const path = visualizer_list.getVisualizerParentPath(current_index.?) catch |e| blk: {
+                    std.log.err("failed to create parent path for visualizer: {s}", .{@errorName(e)});
                     break :blk null;
                 };
-                defer if (path) |path_| client_list.freePath(path_);
+                defer if (path) |path_| visualizer_list.freePath(path_);
 
                 var load_preset = false;
                 var save_preset = false;
@@ -238,7 +227,7 @@ pub fn main() !void {
 
                 context.gui_state.update();
                 imgui.SeparatorText("Description");
-                imgui.Text(client.info.description);
+                imgui.Text(visualizer.info.description);
 
                 if (path) |_| {
                     if (load_preset) {
@@ -258,17 +247,5 @@ pub fn main() !void {
         context.err.show(allocator);
 
         ui.endFrame();
-
-        running = glfw.glfwWindowShouldClose(window) == glfw.GLFW_FALSE;
-        glfw.glfwSwapBuffers(window);
-
-        if (glfw.glfwGetKey(window, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
-            break;
-        }
     }
-}
-
-/// Print error and code on GLFW errors.
-fn errorCallback(err: c_int, msg: [*c]const u8) callconv(.C) void {
-    std.log.err("Error code: {d} message: {s}", .{ err, msg });
 }

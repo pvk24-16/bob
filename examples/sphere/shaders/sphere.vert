@@ -7,5 +7,6 @@ uniform mat4 perspectiveMatrix;
 uniform mat4 transformMatrix;
 
 void main() {
-    gl_Position = perspectiveMatrix * transformMatrix * vec4(pos, 1.0);
+    vec3 p = vec3(pos.x, pos.y + sin(time) * 0.05, pos.z);
+    gl_Position = perspectiveMatrix * transformMatrix * vec4(p, 1.0);
 }
