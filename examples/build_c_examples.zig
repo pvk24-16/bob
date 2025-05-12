@@ -22,6 +22,10 @@ const examples: []const Example = &.{
         .sources = &.{"key_test.c"},
     },
     .{
+        .name = "debugvisual",
+        .sources = &.{"debugvisual.c"},
+    },
+    .{
         .name = "debugprint",
         .sources = &.{"debugprint.c"},
     },
