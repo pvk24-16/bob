@@ -38,13 +38,13 @@ static float vertex_data[] = {
     1.f,  1.f,
 }; 
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
     .name = "Volume bar",
     .description = "A really cool volume bar to test audio capture",
     .enabled = BOB_AUDIO_TIME_DOMAIN_MONO | BOB_AUDIO_FREQUENCY_DOMAIN_MONO | BOB_AUDIO_FREQUENCY_DOMAIN_STEREO ,
 };
 
-const struct bob_visualization_info *get_info(void) {
+const struct bob_visualizer_info *get_info(void) {
     return &info;
 }
 

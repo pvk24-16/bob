@@ -15,13 +15,13 @@ int checkbox = -1;
 
 EXPORT struct bob_api api;
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
   .name = "Simple example",
   .description = "This is a description that is not very useful",
   .enabled = BOB_AUDIO_CHROMAGRAM_STEREO | BOB_AUDIO_TEMPO_MONO,
 };
 
-EXPORT const struct bob_visualization_info *get_info(void)
+EXPORT const struct bob_visualizer_info *get_info(void)
 {
   return &info;
 }

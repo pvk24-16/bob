@@ -12,13 +12,13 @@
 
 EXPORT struct bob_api api;
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
   .name = "Key detection test",
   .description = "Check the terminal",
   .enabled = BOB_AUDIO_KEY_MONO,
 };
 
-EXPORT const struct bob_visualization_info *get_info(void)
+EXPORT const struct bob_visualizer_info *get_info(void)
 {
   return &info;
 }

@@ -37,7 +37,7 @@ pub const glad = @cImport({
     @cInclude("glad/glad.h");
 });
 
-const Info = bob.bob_visualization_info;
+const Info = bob.bob_visualizer_info;
 const Bob = bob.bob_api;
 
 export var api: Bob = undefined;

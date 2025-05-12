@@ -21,14 +21,14 @@ static struct buffer s_buffer = {0};
 
 EXPORT struct bob_api api;
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
   .name = "Meta fifths",
   .description =
     "A circle of fifths made from metaballs.",
   .enabled = BOB_AUDIO_CHROMAGRAM_MONO | BOB_AUDIO_BREAKS_MONO,
 };
 
-EXPORT const struct bob_visualization_info *get_info(void)
+EXPORT const struct bob_visualizer_info *get_info(void)
 {
   return &info;
 }

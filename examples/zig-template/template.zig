@@ -5,7 +5,7 @@ const bob = @cImport({
     @cInclude("bob.h");
 });
 
-const VisualizationInfo = bob.bob_visualization_info;
+const VisualizationInfo = bob.bob_visualizer_info;
 const BobAPI = bob.bob_api;
 
 /// Struct for storing user data.
@@ -19,7 +19,7 @@ const UserData = extern struct {
 /// Export api variable, it will be populated with information by the API
 export var api: BobAPI = undefined;
 
-/// Include information about your visualization here
+/// Include information about your visualizer here
 export fn get_info() callconv(.C) [*c]const VisualizationInfo {
     const info = std.heap.page_allocator.create(VisualizationInfo) catch unreachable;
     info.* = VisualizationInfo{
@@ -30,7 +30,7 @@ export fn get_info() callconv(.C) [*c]const VisualizationInfo {
     return info;
 }
 
-/// Initialize visualization.
+/// Initialize visualizer.
 /// Audio analysis should be enabled here.
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
@@ -52,7 +52,7 @@ export fn update(user_data: ?*anyopaque) callconv(.C) void {
     _ = my_rgb; // Avoid unused variable error
 }
 
-/// Perform potential visualization cleanup.
+/// Perform potential visualizer cleanup.
 export fn destroy(user_data: ?*anyopaque) callconv(.C) void {
     _ = user_data; // Avoid unused variable error
 }

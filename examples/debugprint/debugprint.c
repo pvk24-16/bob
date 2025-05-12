@@ -43,9 +43,9 @@ int print_breaks_right = 0;
 
 EXPORT struct bob_api api;
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
   .name = "debugprint",
-  .description = "A debug visualization used to test the BoB API.\n Select the checkboxes for things you want to be debug printed.",
+  .description = "A debug visualizer used to test the BoB API.\n Select the checkboxes for things you want to be debug printed.",
   .enabled =
     BOB_AUDIO_TIME_DOMAIN_MONO |
     BOB_AUDIO_TIME_DOMAIN_STEREO |
@@ -61,7 +61,7 @@ static struct bob_visualization_info info = {
     BOB_AUDIO_BREAKS_STEREO,
 };
 
-EXPORT const struct bob_visualization_info *get_info(void)
+EXPORT const struct bob_visualizer_info *get_info(void)
 {
   printf("get_info\n");
   return &info;

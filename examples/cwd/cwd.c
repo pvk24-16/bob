@@ -10,14 +10,14 @@
 
 EXPORT struct bob_api api;
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
   .name = "CWD",
   .description = "This visualizer just checks that the working directory "
                  "is set correctly.",
   .enabled = 0,
 };
 
-EXPORT const struct bob_visualization_info *get_info(void)
+EXPORT const struct bob_visualizer_info *get_info(void)
 {
   return &info;
 }
