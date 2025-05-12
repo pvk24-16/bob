@@ -41,21 +41,61 @@ export fn create() [*c]const u8 {
     c.glad.glGenBuffers(1, &vbo);
     c.glad.glBindBuffer(c.glad.GL_ARRAY_BUFFER, vbo);
 
+    // Set up vertex attributes
+    c.glad.glVertexAttribPointer(
+        0, // location = 0 in shader
+        2, // 2 components (x, y)
+        c.glad.GL_FLOAT,
+        c.glad.GL_FALSE,
+        2 * @sizeOf(f32),
+        null,
+    );
+    c.glad.glEnableVertexAttribArray(0);
+
     // Initialize vertex shader
     const vshader: c.glad.GLuint = c.glad.glCreateShader(c.glad.GL_VERTEX_SHADER);
     c.glad.glShaderSource(vshader, 1, &vsource, null);
     c.glad.glCompileShader(vshader);
+
+    // Check for shader compilation errors
+    var success: c.glad.GLint = undefined;
+    var infoLog: [512]u8 = undefined;
+    c.glad.glGetShaderiv(vshader, c.glad.GL_COMPILE_STATUS, &success);
+    if (success == 0) {
+        var length: c.glad.GLsizei = undefined;
+        c.glad.glGetShaderInfoLog(vshader, 512, &length, &infoLog);
+        const error_msg = std.fmt.allocPrint(std.heap.page_allocator, "Vertex shader compilation failed: {s}", .{infoLog[0..@intCast(length)]}) catch @panic("Failed to allocate error message");
+        @panic(error_msg);
+    }
 
     // Initialize fragment shader
     const fshader: c.glad.GLuint = c.glad.glCreateShader(c.glad.GL_FRAGMENT_SHADER);
     c.glad.glShaderSource(fshader, 1, &fsource, null);
     c.glad.glCompileShader(fshader);
 
+    // Check for shader compilation errors
+    c.glad.glGetShaderiv(fshader, c.glad.GL_COMPILE_STATUS, &success);
+    if (success == 0) {
+        var length: c.glad.GLsizei = undefined;
+        c.glad.glGetShaderInfoLog(fshader, 512, &length, &infoLog);
+        const error_msg = std.fmt.allocPrint(std.heap.page_allocator, "Fragment shader compilation failed: {s}", .{infoLog[0..@intCast(length)]}) catch @panic("Failed to allocate error message");
+        @panic(error_msg);
+    }
+
     // Initialize program
     program = c.glad.glCreateProgram();
     c.glad.glAttachShader(program, vshader);
     c.glad.glAttachShader(program, fshader);
     c.glad.glLinkProgram(program);
+
+    // Check for program linking errors
+    c.glad.glGetProgramiv(program, c.glad.GL_LINK_STATUS, &success);
+    if (success == 0) {
+        var length: c.glad.GLsizei = undefined;
+        c.glad.glGetProgramInfoLog(program, 512, &length, &infoLog);
+        const error_msg = std.fmt.allocPrint(std.heap.page_allocator, "Shader program linking failed: {s}", .{infoLog[0..@intCast(length)]}) catch @panic("Failed to allocate error message");
+        @panic(error_msg);
+    }
 
     // Deinitialize shaders
     c.glad.glDeleteShader(vshader);
@@ -83,7 +123,6 @@ export fn update() void {
         c.bob.BOB_MONO_CHANNEL,
     );
 
-    // const bins: f64 = @floatFromInt(freqs_left.size);
     const segments = 180; // Half circle for each channel
 
     // Clear the screen
@@ -97,43 +136,43 @@ export fn update() void {
         const angle2 = @as(f32, @floatFromInt(i + 1)) * std.math.pi / @as(f32, @floatFromInt(segments));
 
         // Left channel (top half)
-        const left_volume = freqs_left.ptr[i * freqs_left.size / segments];
-        vertices[vertex_index] = 0.5 * std.math.cos(angle1);
-        vertices[vertex_index + 1] = 0.5 * std.math.sin(angle1);
-        vertices[vertex_index + 2] = (0.5 + left_volume) * std.math.cos(angle1);
-        vertices[vertex_index + 3] = (0.5 + left_volume) * std.math.sin(angle1);
-        vertices[vertex_index + 4] = (0.5 + left_volume) * std.math.cos(angle2);
-        vertices[vertex_index + 5] = (0.5 + left_volume) * std.math.sin(angle2);
+        const left_volume = freqs_left.ptr[i * freqs_left.size / segments] * 20;
+        vertices[vertex_index] = 0.3 * std.math.cos(angle1);
+        vertices[vertex_index + 1] = 0.3 * std.math.sin(angle1);
+        vertices[vertex_index + 2] = (0.3 + left_volume * 1.5) * std.math.cos(angle1);
+        vertices[vertex_index + 3] = (0.3 + left_volume * 1.5) * std.math.sin(angle1);
+        vertices[vertex_index + 4] = (0.3 + left_volume * 1.5) * std.math.cos(angle2);
+        vertices[vertex_index + 5] = (0.3 + left_volume * 1.5) * std.math.sin(angle2);
         vertex_index += 6;
 
         // Right channel (bottom half)
-        const right_volume = freqs_right.ptr[i * freqs_right.size / segments];
-        vertices[vertex_index] = 0.5 * std.math.cos(angle1 + std.math.pi);
-        vertices[vertex_index + 1] = 0.5 * std.math.sin(angle1 + std.math.pi);
-        vertices[vertex_index + 2] = (0.5 + right_volume) * std.math.cos(angle1 + std.math.pi);
-        vertices[vertex_index + 3] = (0.5 + right_volume) * std.math.sin(angle1 + std.math.pi);
-        vertices[vertex_index + 4] = (0.5 + right_volume) * std.math.cos(angle2 + std.math.pi);
-        vertices[vertex_index + 5] = (0.5 + right_volume) * std.math.sin(angle2 + std.math.pi);
+        const right_volume = freqs_right.ptr[i * freqs_right.size / segments] * 20;
+        vertices[vertex_index] = 0.3 * std.math.cos(angle1 + std.math.pi);
+        vertices[vertex_index + 1] = 0.3 * std.math.sin(angle1 + std.math.pi);
+        vertices[vertex_index + 2] = (0.3 + right_volume * 1.5) * std.math.cos(angle1 + std.math.pi);
+        vertices[vertex_index + 3] = (0.3 + right_volume * 1.5) * std.math.sin(angle1 + std.math.pi);
+        vertices[vertex_index + 4] = (0.3 + right_volume * 1.5) * std.math.cos(angle2 + std.math.pi);
+        vertices[vertex_index + 5] = (0.3 + right_volume * 1.5) * std.math.sin(angle2 + std.math.pi);
         vertex_index += 6;
     }
 
     // Update vertex buffer with circle data
     c.glad.glBufferData(
         c.glad.GL_ARRAY_BUFFER,
-        vertices.len * @sizeOf(f32),
+        @intCast(vertex_index * @sizeOf(f32)),
         &vertices,
         c.glad.GL_STREAM_DRAW,
     );
 
     // Draw the circle
-    c.glad.glDrawArrays(c.glad.GL_TRIANGLES, 0, @intCast(vertices.len / 2));
+    c.glad.glDrawArrays(c.glad.GL_TRIANGLES, 0, @intCast(vertex_index / 2));
 
     // Generate corner vertices for pulsing effect
     var pulse_intensity: f32 = 0;
-    for (pulse.size) |i| {
+    for (0..pulse.size) |i| {
         pulse_intensity += pulse.ptr[i];
     }
-    // pulse_intensity = pulse_intensity / pulse.size;
+    pulse_intensity = pulse_intensity / @as(f32, @floatFromInt(pulse.size));
     const corner_size = 0.2 + pulse_intensity * 0.3;
 
     // Top-left corner
@@ -171,7 +210,7 @@ export fn update() void {
     // Update vertex buffer with corner data
     c.glad.glBufferData(
         c.glad.GL_ARRAY_BUFFER,
-        corner_vertices.len * @sizeOf(f32),
+        @intCast(corner_vertices.len * @sizeOf(f32)),
         &corner_vertices,
         c.glad.GL_STREAM_DRAW,
     );
