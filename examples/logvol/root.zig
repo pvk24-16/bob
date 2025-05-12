@@ -1,7 +1,7 @@
 const std = @import("std");
 const c = @import("c.zig");
 
-const Info = c.bob.bob_visualization_info;
+const Info = c.bob.bob_visualizer_info;
 const Bob = c.bob.bob_api;
 
 export var api: Bob = undefined;
@@ -164,7 +164,7 @@ export fn update() void {
     c.glad.glDrawArrays(c.glad.GL_TRIANGLES, 0, 6);
 }
 
-/// Perform potential visualization cleanup.
+/// Perform potential visualizer cleanup.
 export fn destroy() void {
     c.glad.glDeleteBuffers(1, &vbo);
     c.glad.glDeleteVertexArrays(1, &vao);

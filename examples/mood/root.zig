@@ -1,7 +1,7 @@
 const std = @import("std");
 const c = @import("c.zig");
 
-const Info = c.bob.bob_visualization_info;
+const Info = c.bob.bob_visualizer_info;
 const Bob = c.bob.bob_api;
 
 export var api: Bob = undefined;

@@ -10,7 +10,7 @@
 
 EXPORT struct bob_api api;
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
   .name = "Performance testing",
   .description = "This is a crazy visualizer that activates all analysis",
   .enabled =
@@ -28,7 +28,7 @@ static struct bob_visualization_info info = {
     BOB_AUDIO_BREAKS_STEREO,
 };
 
-EXPORT const struct bob_visualization_info *get_info(void)
+EXPORT const struct bob_visualizer_info *get_info(void)
 {
   return &info;
 }

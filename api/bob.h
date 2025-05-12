@@ -48,14 +48,14 @@ enum bob_channel {
 };
 
 /**
- * Information about this visualization
+ * Information about this visualizer
  * returned by `getInfo`.
  */
-struct bob_visualization_info {
-    /* The name of this visualization */
+struct bob_visualizer_info {
+    /* The name of this visualizer */
     const char *name;
 
-    /* A description of this visualization */
+    /* A description of this visualizer */
     const char *description;
 
     /* Enabled analysis tools */
@@ -248,7 +248,7 @@ struct bob_api {
 
 /********************************************
  * The following symbols need to be defined *
- * in the visualization instance.           *
+ * in the visualizer instance.           *
  ********************************************/
 
 /**
@@ -257,12 +257,12 @@ struct bob_api {
 extern struct bob_api api;
 
 /**
- * Return some info about this visualization.
+ * Return some info about this visualizer.
  */
-const struct bob_visualization_info *get_info(void);
+const struct bob_visualizer_info *get_info(void);
 
 /**
- * Initialize visualization.
+ * Initialize visualizer.
  * UI parameters should be registered here.
  * Return NULL, or an error string in case of failure
  * to initialize.
@@ -275,7 +275,7 @@ const char *create(void);
 void update(void);
 
 /**
- * Perform potential visualization cleanup.
+ * Perform potential visualizer cleanup.
  */
 void destroy(void);
 

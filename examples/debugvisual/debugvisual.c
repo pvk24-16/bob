@@ -267,7 +267,7 @@ static void draw_break(enum bob_channel ch)
 
 struct bob_api api;
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
   .name = "Debug visualizer",
   .description = "Hej hej",
   .enabled =
@@ -279,7 +279,7 @@ static struct bob_visualization_info info = {
     BOB_AUDIO_BREAKS_STEREO,
 };
 
-const struct bob_visualization_info *get_info(void)
+const struct bob_visualizer_info *get_info(void)
 {
   return &info;
 }

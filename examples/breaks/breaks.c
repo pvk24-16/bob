@@ -14,13 +14,13 @@ static float r = 0.f, g = 0.f, b = 0.f;
 
 EXPORT struct bob_api api;
 
-static struct bob_visualization_info info = {
+static struct bob_visualizer_info info = {
   .name = "Breaks example",
   .description = "Detects breaks in music and changes background color",
   .enabled = BOB_AUDIO_BREAKS_MONO,
 };
 
-EXPORT const struct bob_visualization_info *get_info(void)
+EXPORT const struct bob_visualizer_info *get_info(void)
 {
   return &info;
 }

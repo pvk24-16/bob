@@ -29,7 +29,7 @@ const VisualizerApi = struct {
 
 lib: std.DynLib,
 api: VisualizerApi,
-info: bob.bob_visualization_info,
+info: bob.bob_visualizer_info,
 
 pub fn load(path: []const u8) !Visualizer {
     var lib = try std.DynLib.open(path);

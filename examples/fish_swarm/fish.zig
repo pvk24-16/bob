@@ -93,7 +93,7 @@ const bob = @cImport({
     @cInclude("bob.h");
 });
 
-const VisualizationInfo = bob.bob_visualization_info;
+const VisualizationInfo = bob.bob_visualizer_info;
 const BobAPI = bob.bob_api;
 
 /// Export api variable, it will be populated with information by the API
@@ -232,7 +232,7 @@ fn update_params() void {
     _ = amplitude.update();
 }
 
-/// Include information about your visualization here
+/// Include information about your visualizer here
 export fn get_info() callconv(.C) [*c]const VisualizationInfo {
     const info = std.heap.page_allocator.create(VisualizationInfo) catch unreachable;
     info.* = VisualizationInfo{
@@ -323,7 +323,7 @@ fn update_fish_buffers() void {
     alloc.free(offsets);
 }
 
-/// Initialize visualization.
+/// Initialize visualizer.
 /// Audio analysis should be enabled here.
 /// UI parameters should be registered here.
 /// Return a pointer to user data, or NULL.
@@ -437,7 +437,7 @@ export fn update() void {
     );
 }
 
-/// Perform potential visualization cleanup.
+/// Perform potential visualizer cleanup.
 export fn destroy() void {
     g.gl.glDisable(g.gl.GL_DEPTH_TEST);
     g.gl.glDisable(g.gl.GL_CULL_FACE);
