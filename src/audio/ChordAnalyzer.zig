@@ -1,5 +1,5 @@
 const std = @import("std");
-const Mood = @This();
+const ChordAnalyzer = @This();
 
 const PitchClass = enum(usize) {
     C,
@@ -56,7 +56,7 @@ fn getProfile(t: Type) []const usize {
     };
 }
 
-pub fn init(allocator: std.mem.Allocator) !Mood {
+pub fn init(allocator: std.mem.Allocator) !ChordAnalyzer {
     var chords = std.ArrayList(Chord).init(allocator);
 
     for (std.enums.values(Type)) |type_| {
@@ -85,11 +85,11 @@ pub fn init(allocator: std.mem.Allocator) !Mood {
     };
 }
 
-pub fn deinit(self: *Mood) void {
+pub fn deinit(self: *ChordAnalyzer) void {
     self.allocator.free(self.chords);
 }
 
-pub fn classify(self: *Mood, chromagram: []const f32) ?*const Chord {
+pub fn classify(self: *ChordAnalyzer, chromagram: []const f32) ?*const Chord {
     // const threshold: f32 = 0.2;
 
     var min_idx: usize = 0;

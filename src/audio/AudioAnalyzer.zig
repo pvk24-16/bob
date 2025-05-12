@@ -10,6 +10,7 @@ const Breaks = @import("Breaks.zig");
 const Beat = @import("Beat.zig");
 const Tempo = @import("Tempo.zig");
 const Key = @import("Key.zig");
+const mood = @import("mood.zig");
 
 splixer: AudioSplixer,
 spectral_analyzer_left: FFT,
@@ -26,6 +27,7 @@ key_right: Key,
 key_center: Key,
 beat_center: Beat,
 tempo_center: Tempo,
+mood_center: mood.MoodAnalyzer,
 
 pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
     var splixer = try AudioSplixer.init(Config.windowSize(), allocator);
@@ -55,6 +57,9 @@ pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
     var tempo_center = try Tempo.init(allocator);
     errdefer tempo_center.deinit(allocator);
 
+    var mood_center = try mood.MoodAnalyzer.init(allocator);
+    errdefer mood_center.deinit(allocator);
+
     return AudioAnalyzer{
         .splixer = splixer,
         .spectral_analyzer_left = spectral_analyzer_left,
@@ -71,6 +76,7 @@ pub fn init(allocator: std.mem.Allocator) !AudioAnalyzer {
         .key_center = .{},
         .beat_center = beat_center,
         .tempo_center = tempo_center,
+        .mood_center = mood_center,
     };
 }
 
@@ -84,6 +90,7 @@ pub fn deinit(self: *AudioAnalyzer, allocator: std.mem.Allocator) void {
     self.chroma_center.deinit(allocator);
     self.beat_center.deinit(allocator);
     self.tempo_center.deinit(allocator);
+    self.mood_center.deinit(allocator);
     self.* = undefined;
 }
 
@@ -112,11 +119,11 @@ pub fn analyze(self: *AudioAnalyzer, stereo: []const f32, flags: Flags) void {
     }
 
     if (flags.pulse_mono) {
-        self.beat_center.execute(self.splixer.getCenter());
+        self.beat_center.execute(center);
     }
 
     if (flags.tempo_mono) {
-        self.tempo_center.execute(self.splixer.getCenter());
+        self.tempo_center.execute(center);
     }
 
     if (flags.frequency_stereo) {
@@ -139,5 +146,9 @@ pub fn analyze(self: *AudioAnalyzer, stereo: []const f32, flags: Flags) void {
     if (flags.key_stereo) {
         self.key_left.classify(&self.chroma_left.chroma);
         self.key_right.classify(&self.chroma_right.chroma);
+    }
+
+    if (flags.mood_mono) {
+        self.mood_center.analyze(center);
     }
 }

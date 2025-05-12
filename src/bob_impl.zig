@@ -10,7 +10,7 @@ fn checkSignature(comptime name: []const u8) void {
 
     if (t1 != t2) {
         @compileError("API signature mismatch for '" ++ name ++ "': "
-        //
+            //
         ++ @typeName(t1) ++ " and " ++ @typeName(t2));
     }
 }
@@ -25,6 +25,7 @@ const api_fn_names: []const []const u8 = &.{
     "set_pulse_params",
     "get_tempo",
     "get_tempo_graph",
+    "get_mood",
     "in_break",
     "get_key",
     "register_float_slider",
@@ -217,6 +218,17 @@ pub fn get_key(context: ?*anyopaque, channel: c_int) callconv(.C) bob.bob_key {
     };
 
     return key;
+}
+
+pub fn get_mood(context: ?*anyopaque, channel: c_int) callconv(.C) c_int {
+    const ctx: *Context = @ptrCast(@alignCast(context.?));
+
+    const mood = switch (channel) {
+        bob.BOB_MONO_CHANNEL => ctx.analyzer.mood_center.read(),
+        else => @panic("Bad API call"),
+    };
+
+    return @intFromEnum(mood);
 }
 
 pub fn register_float_slider(context: ?*anyopaque, name: [*c]const u8, min: f32, max: f32, default_value: f32) callconv(.C) c_int {

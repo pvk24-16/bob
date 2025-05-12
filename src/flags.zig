@@ -16,6 +16,8 @@ pub const Flags = struct {
     breaks_stereo: bool = false,
     key_mono: bool = false,
     key_stereo: bool = false,
+    mood_mono: bool = false,
+    mood_stereo: bool = false,
 
     pub fn init(flags: c_int) Flags {
         return Flags{
@@ -33,6 +35,8 @@ pub const Flags = struct {
             .breaks_stereo = flags & bob.BOB_AUDIO_BREAKS_STEREO != 0,
             .key_mono = flags & bob.BOB_AUDIO_KEY_MONO != 0,
             .key_stereo = flags & bob.BOB_AUDIO_KEY_STEREO != 0,
+            .mood_mono = flags & bob.BOB_AUDIO_MOOD_MONO != 0,
+            .mood_stereo = flags & bob.BOB_AUDIO_MOOD_STEREO != 0,
         };
     }
 

@@ -137,8 +137,10 @@ pub fn build(b: *std.Build) !void {
     // Examples
     try @import("examples/build_c_examples.zig").build_c_examples(b, target, optimize);
     try @import("examples/sphere/build.zig").buildLib(b, "sphere", "examples/sphere/", target, optimize);
+    try @import("examples/fish_swarm/build.zig").buildLib(b, "fish_swarm", "examples/fish_swarm/", target, optimize);
     try @import("examples/logvol/build.zig").buildLib(b, "logvol", "examples/logvol/", target, optimize);
     try @import("examples/debug/build.zig").buildLib(b, "debug", "examples/debug/", target, optimize);
+    try @import("examples/logvol/build.zig").buildLib(b, "mood", "examples/mood/", target, optimize);
     try @import("examples/spectrogram/build.zig").buildLib(b, "spectrogram", "examples/spectrogram/", target, optimize);
 }
 
