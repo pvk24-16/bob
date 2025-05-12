@@ -59,26 +59,6 @@ export fn create() [*c]const u8 {
     glad.glVertexAttribPointer(0, 2, glad.GL_FLOAT, glad.GL_FALSE, @sizeOf(vec2), null);
     glad.glEnableVertexAttribArray(0);
 
-    //// Initialize vertex shader
-    //const vshader: glad.GLuint = glad.glCreateShader(glad.GL_VERTEX_SHADER);
-    //glad.glShaderSource(vshader, 1, &vsource, null);
-    //glad.glCompileShader(vshader);
-
-    //// Initialize fragment shader
-    //const fshader: glad.GLuint = glad.glCreateShader(glad.GL_FRAGMENT_SHADER);
-    //glad.glShaderSource(fshader, 1, &fsource, null);
-    //glad.glCompileShader(fshader);
-
-    //// Initialize program
-    //program = glad.glCreateProgram();
-    //glad.glAttachShader(program, vshader);
-    //glad.glAttachShader(program, fshader);
-    //glad.glLinkProgram(program);
-
-    //// Deinitialize shaders
-    //glad.glDeleteShader(vshader);
-    //glad.glDeleteShader(fshader);
-
     shader_program = Shader.init(
         @embedFile("shaders/vertex.glsl"),
         @embedFile("shaders/fragment.glsl"),
@@ -161,7 +141,7 @@ export fn update() void {
     const square_width = 1.3 / @as(f32, @floatFromInt(over_time[0].len));
     const square_height = 2.0 / @as(f32, @floatFromInt(over_time.len));
     const y_shift_by: f32 = -1;
-    const x_shift_by: f32 = -0.6;
+    const x_shift_by: f32 = -0.5;
     shader_program.bind();
     for (0..over_time.len) |i| {
         const i_f: f32 = @floatFromInt(i);
@@ -216,34 +196,11 @@ export fn update() void {
     shader_program.unbind();
 
     glad.glDrawArrays(glad.GL_TRIANGLES, 0, 6);
-
-    //var line: [2]vec2 = .{
-    //    vec2{ .x = -1.0, .y = -0.9 },b
-    //    vec2{ .x = -1.0 + step, .y = undefined },
-    //};
-
-    //for (bins) |v| {
-    //    line[1].y = 10 * v - 0.9;
-
-    //    // Update segment
-    //    glad.glBufferSubData(
-    //        glad.GL_ARRAY_BUFFER,
-    //        0,
-    //        2 * @sizeOf(vec2),
-    //        @ptrCast(line[0..].ptr),
-    //    );
-
-    //    glad.glDrawArrays(glad.GL_LINES, 0, 2);
-
-    //    line[0] = line[1];
-    //    line[1].x += step;
-    //}
 }
 
 export fn destroy() void {
     glad.glDeleteBuffers(1, &vbo);
     glad.glDeleteVertexArrays(1, &vao);
-    //glad.glDeleteProgram(program);
     shader_program.deinit();
 }
 
