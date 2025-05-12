@@ -28,7 +28,7 @@ void main() {
 
     float facing = clamp(dot(normalize(normal), normalize(lightDir)), 0.0, 1.0);
 
-    vec3 texColor = 0.5 * texture2D(tex, texCoord).xyz;
+    vec3 texColor = 0.5 * texture(tex, texCoord).xyz;
     vec3 lightColor = vec3(0.75, 0.81, 0.62) * rayIntensity * facing;
 
     vec3 sceneColor = texColor + rayIntensity * lightColor;
