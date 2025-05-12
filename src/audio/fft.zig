@@ -308,11 +308,11 @@ pub const FastFourierTransform = struct {
         self.cursor = 0;
     }
 
-    pub fn inputLength(self: *FastFourierTransform) usize {
+    pub fn inputLength(self: *const FastFourierTransform) usize {
         return self.window.len;
     }
 
-    pub fn outputLength(self: *FastFourierTransform) usize {
+    pub fn outputLength(self: *const FastFourierTransform) usize {
         return self.result.len;
     }
 

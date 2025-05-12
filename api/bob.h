@@ -30,6 +30,17 @@ struct bob_key {
     float confidence;
 };
 
+enum bob_mood {
+    BOB_HAPPY = 0,
+    BOB_EXUBERANT = 1,
+    BOB_ENERGETIC = 2,
+    BOB_FRANTIC = 3,
+    BOB_ANXIOUS = 4,
+    BOB_DEPRESSION = 5,
+    BOB_CALM = 6,
+    BOB_CONTENTMENT = 7,
+};
+
 enum bob_channel {
     BOB_MONO_CHANNEL,
     BOB_LEFT_CHANNEL,
@@ -82,6 +93,10 @@ enum bob_audio_flags {
     /* Key data */
     BOB_AUDIO_KEY_MONO = (1 << 12),
     BOB_AUDIO_KEY_STEREO = (1 << 13),
+
+    /* Mood data */
+    BOB_AUDIO_MOOD_MONO = (1 << 14),
+    BOB_AUDIO_MOOD_STEREO = (1 << 15),
 };
 
 struct bob_float_buffer {
@@ -164,6 +179,11 @@ struct bob_api {
      * Returns the currently detected key (see definition of struct bob_key).
      */
     struct bob_key (*get_key)(void *context, int channel);
+
+    /**
+     * Returns the mood of the specified channel.
+     */
+    int (*get_mood)(void *context, int channel);
 
     /**
      * Register a float slider.
