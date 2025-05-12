@@ -11,8 +11,8 @@ void main() {
     // For the circle: use position to create a gradient
     // For the corners: use white
     if (abs(aPos.x) > 0.8 || abs(aPos.y) > 0.8) {
-        // Corners are white with some transparency
-        vertexColor = vec4(1.0, 1.0, 1.0, 0.8);
+        // Corners are bright white with less transparency
+        vertexColor = vec4(1.0, 1.0, 1.0, 0.9);
     } else {
         // Circle uses a vibrant gradient based on position
         float angle = atan(aPos.y, aPos.x);

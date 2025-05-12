@@ -12,7 +12,7 @@ const fsource: [*]const u8 = @ptrCast(@alignCast(@embedFile("fragment.glsl")));
 var info = Info{
     .name = "circleflash",
     .description = "Circular frequency visualization with stereo channels and pulsing corners.",
-    .enabled = c.bob.BOB_AUDIO_FREQUENCY_DOMAIN_STEREO | c.bob.BOB_AUDIO_TIME_DOMAIN_STEREO | c.bob.BOB_AUDIO_PULSE_MONO,
+    .enabled = c.bob.BOB_AUDIO_FREQUENCY_DOMAIN_STEREO | c.bob.BOB_AUDIO_TIME_DOMAIN_STEREO | c.bob.BOB_AUDIO_PULSE_MONO | c.bob.BOB_AUDIO_MOOD_MONO,
 };
 
 var vao: c.glad.GLuint = undefined;
@@ -23,11 +23,24 @@ var program: c.glad.GLuint = undefined;
 var vertices: [360 * 6]f32 = undefined; // 360 degrees * 6 vertices per segment
 var corner_vertices: [4 * 6]f32 = undefined; // 4 corners * 6 vertices per corner
 
+var frequency_multiplier_handle: c_int = undefined;
+var min_height_handle: c_int = undefined;
+var beat_multiplier_handle: c_int = undefined;
+
+var r: f32 = 0.0;
+var g: f32 = 0.0;
+var b: f32 = 0.0;
+
 export fn get_info() [*c]const Info {
     return &info;
 }
 
 export fn create() [*c]const u8 {
+    // Sliders
+    frequency_multiplier_handle = api.register_float_slider.?(api.context, "Frequency Multiplier", 0.0, 50.0, 20.0);
+    min_height_handle = api.register_float_slider.?(api.context, "Min Height", 0.0, 0.1, 0.002);
+    beat_multiplier_handle = api.register_float_slider.?(api.context, "Beat Multiplier", 0.0, 100.0, 2.0);
+
     // Initialize
     if (c.glad.gladLoadGLLoader(api.get_proc_address) == 0) {
         @panic("could not load gl loader");
@@ -118,16 +131,17 @@ export fn update() void {
         c.bob.BOB_RIGHT_CHANNEL,
     );
 
-    const pulse: c.bob.bob_float_buffer = api.get_pulse_data.?(
-        api.context,
-        c.bob.BOB_MONO_CHANNEL,
-    );
-
     const segments = 180; // Half circle for each channel
 
+    const mood: c_int = api.get_mood.?(api.context, c.bob.BOB_MONO_CHANNEL);
+    processMoodRgb(mood);
+
     // Clear the screen
-    c.glad.glClearColor(0, 0, 0, 1);
+    c.glad.glClearColor(r / 2, g / 2, b / 2, 1);
     c.glad.glClear(c.glad.GL_COLOR_BUFFER_BIT);
+
+    const frequency_multiplier = api.get_ui_float_value.?(api.context, frequency_multiplier_handle);
+    const min_height = api.get_ui_float_value.?(api.context, min_height_handle);
 
     // Generate circle vertices
     var vertex_index: usize = 0;
@@ -135,24 +149,30 @@ export fn update() void {
         const angle1 = @as(f32, @floatFromInt(i)) * std.math.pi / @as(f32, @floatFromInt(segments));
         const angle2 = @as(f32, @floatFromInt(i + 1)) * std.math.pi / @as(f32, @floatFromInt(segments));
 
-        // Left channel (top half)
-        const left_volume = freqs_left.ptr[i * freqs_left.size / segments] * 20;
-        vertices[vertex_index] = 0.3 * std.math.cos(angle1);
-        vertices[vertex_index + 1] = 0.3 * std.math.sin(angle1);
-        vertices[vertex_index + 2] = (0.3 + left_volume * 1.5) * std.math.cos(angle1);
-        vertices[vertex_index + 3] = (0.3 + left_volume * 1.5) * std.math.sin(angle1);
-        vertices[vertex_index + 4] = (0.3 + left_volume * 1.5) * std.math.cos(angle2);
-        vertices[vertex_index + 5] = (0.3 + left_volume * 1.5) * std.math.sin(angle2);
+        // Left channel (top-left half)
+        var left_volume = freqs_left.ptr[i * freqs_left.size / segments] * frequency_multiplier;
+        if (left_volume < min_height) {
+            left_volume = min_height;
+        }
+        vertices[vertex_index] = 0.3 * std.math.cos(angle1 - std.math.pi / 2.0);
+        vertices[vertex_index + 1] = 0.3 * std.math.sin(angle1 - std.math.pi / 2.0);
+        vertices[vertex_index + 2] = (0.3 + left_volume * 1.5) * std.math.cos(angle1 - std.math.pi / 2.0);
+        vertices[vertex_index + 3] = (0.3 + left_volume * 1.5) * std.math.sin(angle1 - std.math.pi / 2.0);
+        vertices[vertex_index + 4] = (0.3 + left_volume * 1.5) * std.math.cos(angle2 - std.math.pi / 2.0);
+        vertices[vertex_index + 5] = (0.3 + left_volume * 1.5) * std.math.sin(angle2 - std.math.pi / 2.0);
         vertex_index += 6;
 
-        // Right channel (bottom half)
-        const right_volume = freqs_right.ptr[i * freqs_right.size / segments] * 20;
-        vertices[vertex_index] = 0.3 * std.math.cos(angle1 + std.math.pi);
-        vertices[vertex_index + 1] = 0.3 * std.math.sin(angle1 + std.math.pi);
-        vertices[vertex_index + 2] = (0.3 + right_volume * 1.5) * std.math.cos(angle1 + std.math.pi);
-        vertices[vertex_index + 3] = (0.3 + right_volume * 1.5) * std.math.sin(angle1 + std.math.pi);
-        vertices[vertex_index + 4] = (0.3 + right_volume * 1.5) * std.math.cos(angle2 + std.math.pi);
-        vertices[vertex_index + 5] = (0.3 + right_volume * 1.5) * std.math.sin(angle2 + std.math.pi);
+        // Right channel (top-right half)
+        var right_volume = freqs_right.ptr[i * freqs_right.size / segments] * frequency_multiplier;
+        if (right_volume < min_height) {
+            right_volume = min_height;
+        }
+        vertices[vertex_index] = 0.3 * std.math.cos(angle1 + std.math.pi / 2.0);
+        vertices[vertex_index + 1] = 0.3 * std.math.sin(angle1 + std.math.pi / 2.0);
+        vertices[vertex_index + 2] = (0.3 + right_volume * 1.5) * std.math.cos(angle1 + std.math.pi / 2.0);
+        vertices[vertex_index + 3] = (0.3 + right_volume * 1.5) * std.math.sin(angle1 + std.math.pi / 2.0);
+        vertices[vertex_index + 4] = (0.3 + right_volume * 1.5) * std.math.cos(angle2 + std.math.pi / 2.0);
+        vertices[vertex_index + 5] = (0.3 + right_volume * 1.5) * std.math.sin(angle2 + std.math.pi / 2.0);
         vertex_index += 6;
     }
 
@@ -168,12 +188,25 @@ export fn update() void {
     c.glad.glDrawArrays(c.glad.GL_TRIANGLES, 0, @intCast(vertex_index / 2));
 
     // Generate corner vertices for pulsing effect
+    const pulse: c.bob.bob_float_buffer = api.get_pulse_data.?(
+        api.context,
+        c.bob.BOB_MONO_CHANNEL,
+    );
+    const beat_multiplier = api.get_ui_float_value.?(api.context, beat_multiplier_handle);
+
+    // Find the maximum pulse value instead of average for more dramatic effect
     var pulse_intensity: f32 = 0;
     for (0..pulse.size) |i| {
-        pulse_intensity += pulse.ptr[i];
+        if (pulse.ptr[i] > pulse_intensity) {
+            pulse_intensity = pulse.ptr[i];
+        }
     }
-    pulse_intensity = pulse_intensity / @as(f32, @floatFromInt(pulse.size));
-    const corner_size = 0.2 + pulse_intensity * 0.3;
+
+    // Make the corners more responsive to beats
+    var corner_size = 0.2 + pulse_intensity * beat_multiplier * 2.0;
+    if (corner_size > 0.5) {
+        corner_size = 0.5;
+    }
 
     // Top-left corner
     corner_vertices[0] = -1.0;
@@ -223,6 +256,54 @@ export fn destroy() void {
     c.glad.glDeleteBuffers(1, &vbo);
     c.glad.glDeleteVertexArrays(1, &vao);
     c.glad.glDeleteProgram(program);
+}
+
+fn processMoodRgb(mood: c_int) void {
+    const scale = 0.9;
+
+    switch (mood) {
+        c.bob.BOB_HAPPY => {
+            r = scale * r + (1.0 - scale) * 0.71;
+            g = scale * g + (1.0 - scale) * 0.62;
+            b = scale * b + (1.0 - scale) * 0.00;
+        },
+        c.bob.BOB_EXUBERANT => {
+            r = scale * r + (1.0 - scale) * 0.80;
+            g = scale * g + (1.0 - scale) * 0.40;
+            b = scale * b + (1.0 - scale) * 0.10;
+        },
+        c.bob.BOB_ENERGETIC => {
+            r = scale * r + (1.0 - scale) * 0.70;
+            g = scale * g + (1.0 - scale) * 0.10;
+            b = scale * b + (1.0 - scale) * 0.10;
+        },
+        c.bob.BOB_FRANTIC => {
+            r = scale * r + (1.0 - scale) * 0.60;
+            g = scale * g + (1.0 - scale) * 0.10;
+            b = scale * b + (1.0 - scale) * 0.40;
+        },
+        c.bob.BOB_ANXIOUS => {
+            r = scale * r + (1.0 - scale) * 0.10;
+            g = scale * g + (1.0 - scale) * 0.10;
+            b = scale * b + (1.0 - scale) * 0.50;
+        },
+        c.bob.BOB_DEPRESSION => {
+            r = scale * r + (1.0 - scale) * 0.10;
+            g = scale * g + (1.0 - scale) * 0.10;
+            b = scale * b + (1.0 - scale) * 0.30;
+        },
+        c.bob.BOB_CALM => {
+            r = scale * r + (1.0 - scale) * 0.10;
+            g = scale * g + (1.0 - scale) * 0.50;
+            b = scale * b + (1.0 - scale) * 0.20;
+        },
+        c.bob.BOB_CONTENTMENT => {
+            r = scale * r + (1.0 - scale) * 0.30;
+            g = scale * g + (1.0 - scale) * 0.30;
+            b = scale * b + (1.0 - scale) * 0.30;
+        },
+        else => unreachable,
+    }
 }
 
 // Verify that type signatures are correct
