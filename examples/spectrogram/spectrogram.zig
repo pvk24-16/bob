@@ -23,7 +23,7 @@ export var api: Bob = undefined;
 const vsource: [*]const u8 = @ptrCast(@alignCast(@embedFile("shaders/vertex.glsl")));
 const fsource: [*]const u8 = @ptrCast(@alignCast(@embedFile("shaders/fragment.glsl")));
 
-var info = Info {
+var info = Info{
     .name = "spectrogram",
     .description = "A simple spectrogram",
     .enabled = bob.BOB_AUDIO_FREQUENCY_DOMAIN_MONO,
@@ -108,7 +108,6 @@ export fn update() void {
     //glad.glUseProgram(program);
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, vbo);
 
-
     var vertices: [12]f32 = .{
         1,  1,
         1,  -1,
@@ -159,15 +158,15 @@ export fn update() void {
     glad.glClearColor(0, 0, 0, 1);
     glad.glClear(glad.GL_COLOR_BUFFER_BIT);
 
-    const square_width = 1.3/@as(f32, @floatFromInt(over_time[0].len));
-    const square_height = 2.0/@as(f32, @floatFromInt(over_time.len));
+    const square_width = 1.3 / @as(f32, @floatFromInt(over_time[0].len));
+    const square_height = 2.0 / @as(f32, @floatFromInt(over_time.len));
     const y_shift_by: f32 = -1;
     const x_shift_by: f32 = -0.6;
     shader_program.bind();
-    for (0 .. over_time.len) |i| {
+    for (0..over_time.len) |i| {
         const i_f: f32 = @floatFromInt(i);
         const index: usize = @intCast((over_time.len * 2 + over_time_index - 1 - i) % over_time.len);
-        for (0 .. over_time[0].len) |j| {
+        for (0..over_time[0].len) |j| {
             const j_f: f32 = @floatFromInt(j);
             vertices[0] = x_shift_by + j_f * square_width;
             vertices[1] = y_shift_by + i_f * square_height;
@@ -177,7 +176,7 @@ export fn update() void {
 
             vertices[4] = x_shift_by + j_f * square_width - square_width;
             vertices[5] = y_shift_by + i_f * square_height - square_height;
- 
+
             vertices[6] = x_shift_by + j_f * square_width - square_width;
             vertices[7] = y_shift_by + i_f * square_height - square_height;
 
@@ -197,7 +196,6 @@ export fn update() void {
             };
             shader_program.setVec3("f_color", color);
 
-
             //std.debug.print("{}\n", .{over_time[index][j]});
             if (over_time[index][j] > 0.02) {
                 glad.glBufferData(
@@ -213,7 +211,6 @@ export fn update() void {
                     6,
                 );
             }
-
         }
     }
     shader_program.unbind();
