@@ -89,7 +89,7 @@ comptime {
         const B = @TypeOf(@field(@This(), name));
         if (A != B) {
             @compileError("Type mismatch for '" ++ name ++ "': "
-                //
+            //
             ++ @typeName(A) ++ " and " ++ @typeName(B));
         }
     }
