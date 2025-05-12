@@ -5,6 +5,28 @@ const math = g.math;
 const Vec3 = math.Vec3;
 const Shader = g.shader.Shader;
 
+const FloatParam = struct {
+    const Self = @This();
+
+    handle: c_int = undefined,
+    value: f32 = undefined,
+
+    pub fn register(self: *Self, name: [*c]const u8, min: f32, max: f32, default: f32) void {
+        self.handle = api.register_float_slider.?(api.context, name, min, max, default);
+        self.value = default;
+    }
+
+    pub fn update(self: *Self) bool {
+        if (api.ui_element_is_updated.?(api.context, self.handle) > 0) {
+            self.value = api.get_ui_float_value.?(api.context, self.handle);
+            return true;
+        }
+        return false;
+    }
+};
+
+var multiplier: FloatParam = undefined;
+
 var shader_program: Shader = undefined;
 
 pub const bob = @cImport({
@@ -68,6 +90,8 @@ export fn create() [*c]const u8 {
 
     over_time = std.mem.zeroes(@TypeOf(over_time));
 
+    multiplier.register("multiplier", 0.5, 100.0, 30.0);
+
     return null;
 }
 
@@ -84,6 +108,7 @@ fn freqToMel(freq: f64) f64 {
 }
 
 export fn update() void {
+    _ = multiplier.update();
     glad.glBindVertexArray(vao);
     //glad.glUseProgram(program);
     glad.glBindBuffer(glad.GL_ARRAY_BUFFER, vbo);
@@ -168,7 +193,7 @@ export fn update() void {
 
             // TODO: Using a uniform is bad for performance. But time is too short to fix it now.
             // Perhaps writing to a texture buffer would be the ideal way.
-            const grayscale = over_time[index][j] * 10.0;
+            const grayscale = @log10(over_time[index][j] * multiplier.value);
             const color: Vec3 = .{
                 .x = grayscale,
                 .y = grayscale,
@@ -177,7 +202,7 @@ export fn update() void {
             shader_program.setVec3("f_color", color);
 
             //std.debug.print("{}\n", .{over_time[index][j]});
-            if (over_time[index][j] > 0.02) {
+            if (over_time[index][j] > 0.001 and grayscale > 0.001) {
                 glad.glBufferData(
                     glad.GL_ARRAY_BUFFER,
                     vertices.len * @sizeOf(f32),
@@ -211,7 +236,7 @@ comptime {
         const B = @TypeOf(@field(@This(), name));
         if (A != B) {
             @compileError("Type mismatch for '" ++ name ++ "': "
-            //
+                //
             ++ @typeName(A) ++ " and " ++ @typeName(B));
         }
     }
