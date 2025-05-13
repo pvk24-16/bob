@@ -82,7 +82,7 @@ vec4 transformPos(vec3 pos) {
 
     float a1 = wiggleCoefs.x;
     float p1 = pos.z + wiggleCoefs.y * time;
-    float angle = mod(wiggleCoefs.w - time, 2.0 * PI);
+    float angle = wiggleCoefs.w - time;
 
     float sideToSideWiggle = pos.x + exp(-pos.x-1.0) * a1 * sin(-p1);
     float upDownWiggle = pos.y;

@@ -173,7 +173,7 @@ fn stretch_array(comptime T: type, arr: []T, new_len: usize) []T {
 }
 
 fn get_pulse_data() []f32 {
-    const pulses: bob.bob_float_buffer = api.get_pulse_data.?(
+    const pulses: bob.bob_float_buffer = api.get_pulse_graph.?(
         api.context,
         bob.BOB_MONO_CHANNEL,
     );
