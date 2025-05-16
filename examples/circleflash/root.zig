@@ -1,7 +1,7 @@
 const std = @import("std");
 const c = @import("c.zig");
 
-const Info = c.bob.bob_visualization_info;
+const Info = c.bob.bob_visualizer_info;
 const Bob = c.bob.bob_api;
 
 export var api: Bob = undefined;
@@ -25,7 +25,12 @@ var corner_vertices: [4 * 6]f32 = undefined; // 4 corners * 6 vertices per corne
 
 var frequency_multiplier_handle: c_int = undefined;
 var min_height_handle: c_int = undefined;
-var beat_multiplier_handle: c_int = undefined;
+var min_triangle_size_handle: c_int = undefined;
+var max_triangle_size_handle: c_int = undefined;
+var continous_beat_handle: c_int = undefined;
+var mood_fraction_handle: c_int = undefined;
+
+var dynamic_beat_multiplier: f32 = 1.0;
 
 var r: f32 = 0.0;
 var g: f32 = 0.0;
@@ -39,7 +44,10 @@ export fn create() [*c]const u8 {
     // Sliders
     frequency_multiplier_handle = api.register_float_slider.?(api.context, "Frequency Multiplier", 0.0, 50.0, 20.0);
     min_height_handle = api.register_float_slider.?(api.context, "Min Height", 0.0, 0.1, 0.002);
-    beat_multiplier_handle = api.register_float_slider.?(api.context, "Beat Multiplier", 0.0, 100.0, 2.0);
+    min_triangle_size_handle = api.register_float_slider.?(api.context, "Minimum Beat Triangle Size", 0.0, 2, 0.2);
+    max_triangle_size_handle = api.register_float_slider.?(api.context, "Maximum Beat Triangle Size", 0.0, 2, 0.3);
+    continous_beat_handle = api.register_checkbox.?(api.context, "Continous Beat", 1); // 1 = true
+    mood_fraction_handle = api.register_float_slider.?(api.context, "Mood Color Fraction", 0.0, 1.0, 0.5);
 
     // Initialize
     if (c.glad.gladLoadGLLoader(api.get_proc_address) == 0) {
@@ -137,7 +145,8 @@ export fn update() void {
     processMoodRgb(mood);
 
     // Clear the screen
-    c.glad.glClearColor(r / 2, g / 2, b / 2, 1);
+    const mood_fraction = api.get_ui_float_value.?(api.context, mood_fraction_handle);
+    c.glad.glClearColor(r * mood_fraction, g * mood_fraction, b * mood_fraction, 1);
     c.glad.glClear(c.glad.GL_COLOR_BUFFER_BIT);
 
     const frequency_multiplier = api.get_ui_float_value.?(api.context, frequency_multiplier_handle);
@@ -188,24 +197,56 @@ export fn update() void {
     c.glad.glDrawArrays(c.glad.GL_TRIANGLES, 0, @intCast(vertex_index / 2));
 
     // Generate corner vertices for pulsing effect
-    const pulse: c.bob.bob_float_buffer = api.get_pulse_data.?(
+    const pulse_discrete: c.bob.bob_float_buffer = api.get_pulse_data.?(
         api.context,
         c.bob.BOB_MONO_CHANNEL,
     );
-    const beat_multiplier = api.get_ui_float_value.?(api.context, beat_multiplier_handle);
+    const pulse_continuous: c.bob.bob_float_buffer = api.get_pulse_graph.?(api.context, c.bob.BOB_MONO_CHANNEL);
 
-    // Find the maximum pulse value instead of average for more dramatic effect
-    var pulse_intensity: f32 = 0;
-    for (0..pulse.size) |i| {
-        if (pulse.ptr[i] > pulse_intensity) {
-            pulse_intensity = pulse.ptr[i];
+    // Discrete pulse. Check if it's 1.
+    var discrete_pulse_intensity: f32 = 0;
+    for (0..pulse_discrete.size) |i| {
+        if (pulse_discrete.ptr[i] > discrete_pulse_intensity) {
+            discrete_pulse_intensity = pulse_discrete.ptr[i];
         }
     }
 
-    // Make the corners more responsive to beats
-    var corner_size = 0.2 + pulse_intensity * beat_multiplier * 2.0;
-    if (corner_size > 0.5) {
-        corner_size = 0.5;
+    // Continous beat. Calculate sum
+    var continuous_pulse_intensity: f32 = 0.0;
+    for (0..pulse_continuous.size) |i| {
+        if (pulse_continuous.ptr[i] > continuous_pulse_intensity) {
+            continuous_pulse_intensity = pulse_continuous.ptr[i];
+        }
+    }
+
+    const is_discrete_pulse_right_now = discrete_pulse_intensity > 0.5;
+    if (is_discrete_pulse_right_now) {
+        // We have a pulse. Update the beat modifier to be
+        // correctly calibrated.
+        // 1 = continuous_pulse_intensity * beat_modifier;
+        // =>
+        // beat_modifier = 1 / continuous_pulse_intensity;
+        const desired_beat_modifier = 1 / continuous_pulse_intensity;
+        const adapt_speed = 0.05;
+        dynamic_beat_multiplier = dynamic_beat_multiplier * (1 - adapt_speed) + desired_beat_modifier * adapt_speed;
+        std.debug.print("{any}\n", .{dynamic_beat_multiplier});
+    }
+
+    const min_triangle_size = api.get_ui_float_value.?(api.context, min_triangle_size_handle);
+    const max_triangle_size = api.get_ui_float_value.?(api.context, max_triangle_size_handle);
+    var corner_size = min_triangle_size + continuous_pulse_intensity * dynamic_beat_multiplier * (max_triangle_size - min_triangle_size);
+    if (corner_size > max_triangle_size) {
+        corner_size = max_triangle_size;
+    }
+
+    const use_continous_beat = api.get_ui_bool_value.?(api.context, continous_beat_handle);
+    if (use_continous_beat == 0) {
+        // If not using continous, use discrete.
+        if (is_discrete_pulse_right_now) {
+            corner_size = max_triangle_size;
+        } else {
+            corner_size = min_height;
+        }
     }
 
     // Top-left corner
@@ -213,7 +254,7 @@ export fn update() void {
     corner_vertices[1] = 1.0;
     corner_vertices[2] = -1.0 + corner_size;
     corner_vertices[3] = 1.0;
-    corner_vertices[4] = -1.0 + corner_size;
+    corner_vertices[4] = -1.0;
     corner_vertices[5] = 1.0 - corner_size;
 
     // Top-right corner
@@ -228,8 +269,8 @@ export fn update() void {
     corner_vertices[12] = -1.0;
     corner_vertices[13] = -1.0 + corner_size;
     corner_vertices[14] = -1.0 + corner_size;
-    corner_vertices[15] = -1.0 + corner_size;
-    corner_vertices[16] = -1.0 + corner_size;
+    corner_vertices[15] = -1.0;
+    corner_vertices[16] = -1.0;
     corner_vertices[17] = -1.0;
 
     // Bottom-right corner
