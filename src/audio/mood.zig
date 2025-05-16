@@ -73,8 +73,6 @@ pub const MoodAnalyzer = struct {
         const timbre: f32 = self.spectralFlatness();
         const values = [_]f32{ intensity, timbre };
 
-        std.debug.print("{any}\n", .{values});
-
         inline for (std.meta.fields(Mood)) |m| {
             const mood: Mood = @field(Mood, m.name);
             var dist: f32 = 0.0;
