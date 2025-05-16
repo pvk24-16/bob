@@ -142,6 +142,7 @@ pub fn build(b: *std.Build) !void {
     try @import("examples/debug/build.zig").buildLib(b, "debug", "examples/debug/", target, optimize);
     try @import("examples/logvol/build.zig").buildLib(b, "mood", "examples/mood/", target, optimize);
     try @import("examples/spectrogram/build.zig").buildLib(b, "spectrogram", "examples/spectrogram/", target, optimize);
+    try @import("examples/circleflash/build.zig").buildLib(b, "circleflash", "examples/circleflash/", target, optimize);
 }
 
 const zig_imgui_build_script = @import("Zig-ImGui");
