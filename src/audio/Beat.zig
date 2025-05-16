@@ -5,8 +5,8 @@ const Config = @import("Config.zig");
 const Self = @This();
 
 const H: usize = 43;
-const C_dflt: f32 = 2.25;
-const Vl_dflt: f32 = -5.5;
+const C_dflt: f32 = 1.185;
+const Vl_dflt: f32 = -6.968;
 const max_bins: usize = 64;
 
 num_bins: usize,

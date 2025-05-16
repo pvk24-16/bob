@@ -117,7 +117,7 @@ EXPORT const char *create(void)
 	glUseProgram(prog);
 
 	C_handle = api.register_float_slider(api.context, "Magnitude threshold", 0.1f, 10.f, C);
-	Vl_handle = api.register_float_slider(api.context, "Variability threshold log", -7.f, -3.f, Vl);
+	Vl_handle = api.register_float_slider(api.context, "Variance threshold log", -10.f, -3.f, Vl);
 	M_handle = api.register_float_slider(api.context, "Graph scale", 1.f, 100.f, M);
 
 	return NULL;
@@ -134,6 +134,9 @@ EXPORT void update(void)
 	M = api.get_ui_float_value(api.context, M_handle);
 
 	api.set_pulse_params(api.context, BOB_MONO_CHANNEL, C, Vl);
+
+	glClearColor(0, 0, 0, 0);
+	glClear(GL_COLOR_BUFFER_BIT);
 
 	glBindVertexArray(vao);
 	glUseProgram(prog);
