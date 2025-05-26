@@ -1,11 +1,9 @@
 #version 330 core
 
 in vec2 f_pos;
-out vec4 f_col;
-
-uniform vec3 f_color;
-
+in vec3 f_col;
+out vec4 out_col;
 
 void main() {
-    f_col = vec4(f_color, 1.0);
+    out_col = vec4(f_col, 1.0);
 }
