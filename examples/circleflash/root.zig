@@ -42,7 +42,7 @@ export fn get_info() [*c]const Info {
 
 export fn create() [*c]const u8 {
     // Sliders
-    frequency_multiplier_handle = api.register_float_slider.?(api.context, "Frequency Multiplier", 0.0, 50.0, 20.0);
+    frequency_multiplier_handle = api.register_float_slider.?(api.context, "Frequency Multiplier", 0.0, 50.0, 5.0);
     min_height_handle = api.register_float_slider.?(api.context, "Min Height", 0.0, 0.1, 0.002);
     min_triangle_size_handle = api.register_float_slider.?(api.context, "Minimum Beat Triangle Size", 0.0, 2, 0.2);
     max_triangle_size_handle = api.register_float_slider.?(api.context, "Maximum Beat Triangle Size", 0.0, 2, 0.3);
@@ -160,6 +160,8 @@ export fn update() void {
 
         // Left channel (top-left half)
         var left_volume = freqs_left.ptr[i * freqs_left.size / segments] * frequency_multiplier;
+        // Apply logarithmic scaling
+        left_volume = std.math.log10(left_volume + 1.0) * frequency_multiplier;
         if (left_volume < min_height) {
             left_volume = min_height;
         }
@@ -173,6 +175,8 @@ export fn update() void {
 
         // Right channel (top-right half)
         var right_volume = freqs_right.ptr[i * freqs_right.size / segments] * frequency_multiplier;
+        // Apply logarithmic scaling
+        right_volume = std.math.log10(right_volume + 1.0) * frequency_multiplier;
         if (right_volume < min_height) {
             right_volume = min_height;
         }
