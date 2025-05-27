@@ -91,9 +91,9 @@ pub fn main() !void {
         }
 
         // === Input ===
-        if (glfw.glfwGetKey(window.handle, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
-            break;
-        }
+        // if (glfw.glfwGetKey(window.handle, glfw.GLFW_KEY_ESCAPE) == glfw.GLFW_PRESS) {
+        //     break;
+        // }
 
         // === Update sate ===
         context.processAudio();
