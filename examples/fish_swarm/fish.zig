@@ -201,7 +201,7 @@ fn register_params() void {
     radius.register("radius", 0.0, 2.0, 0.5);
     num_fish.register("fish count", 1, 10000, 500);
     updates_per_second.register("Samples per second", 1.0, 60.0, 10.0);
-    min_pulse.register("Min deviation", 0.0, 1.0, 0.1);
+    min_pulse.register("Min spread", 0.0, 1.0, 0.1);
     amplitude.register("Amplitude", 0.0, 500.0, 100.0);
 }
 
@@ -249,7 +249,7 @@ fn set_const_uniforms() void {
         Mat4.perspective(90, 0.1, 20.0),
     );
 
-    tex = texture.createTexture("objects/fish_low_poly.png") catch |err| {
+    tex = texture.createTexture("objects/koi.png") catch |err| {
         std.debug.print("Could not create texture: {}", .{err});
         unreachable;
     };
@@ -343,10 +343,12 @@ export fn create() callconv(.C) [*c]const u8 {
         @panic("Could not load shader");
     };
 
-    buffers = objparser.parseObj("objects/fish_low_poly.obj", alloc) catch |err| {
+    buffers = objparser.parseObj("objects/koi.obj", alloc) catch |err| {
         std.debug.print("Could not parse obj: {}", .{err});
         unreachable;
     };
+
+    // std.debug.print("{} {}\n", .{ buffers.vertex_count, buffers.index_count });
 
     shader_program.bind();
     set_const_uniforms();
