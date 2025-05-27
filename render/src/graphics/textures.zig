@@ -13,7 +13,6 @@ pub fn createTexture(path: [:0]const u8) !u32 {
         &channels,
         0,
     );
-    std.debug.print("{} {} {}", .{ width, height, channels });
     var texture: u32 = 0;
 
     const clr_format: g.gl.GLenum = if (channels == 3) g.gl.GL_RGB else g.gl.GL_RGBA;
