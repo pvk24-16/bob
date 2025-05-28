@@ -65,7 +65,7 @@ export fn create() [*c]const u8 {
 
     shader_program.setMat4(
         "perspectiveMatrix",
-        Mat4.perspective(90, 0.1, 10.0),
+        Mat4.perspective(90, 16.0/9.0, 0.1, 10.0),
     );
     shader_program.setMat4(
         "transformMatrix",
