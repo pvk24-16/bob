@@ -6,47 +6,57 @@ const Example = struct {
     sources: []const []const u8,
     extra_files: []const []const u8 = &.{},
     uses_opengl: bool = true,
+    debug: bool = false,
 };
 
 const examples: []const Example = &.{
     .{
         .name = "simple",
         .sources = &.{"simple.c"},
+        .debug = true,
     },
     .{
         .name = "perf",
         .sources = &.{"perf.c"},
+        .debug = true,
     },
     .{
         .name = "key_test",
         .sources = &.{"key_test.c"},
+        .debug = true,
     },
     .{
         .name = "debugvisual",
         .sources = &.{"debugvisual.c"},
+        .debug = true,
     },
     .{
         .name = "debugprint",
         .sources = &.{"debugprint.c"},
+        .debug = true,
     },
     .{
         .name = "beat",
         .sources = &.{"beat.c"},
+        .debug = true,
     },
     .{
         .name = "breaks",
         .sources = &.{"breaks.c"},
+        .debug = true,
     },
     .{
         .name = "error",
         .sources = &.{"error.c"},
         .uses_opengl = false,
+        .debug = true,
     },
     .{
         .name = "cwd",
         .sources = &.{"cwd.c"},
         .extra_files = &.{"banana.txt"},
         .uses_opengl = false,
+        .debug = true,
     },
     .{
         .name = "meta_fifths",
@@ -66,10 +76,14 @@ pub fn build_c_examples(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
+    build_debug_visualizers: bool,
 ) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 
     for (examples) |example| {
+        if (example.debug and !build_debug_visualizers)
+            continue;
+
         const source_dir = try std.fs.path.join(gpa.allocator(), &.{ "examples", example.name });
         const dest_dir = try std.fs.path.join(gpa.allocator(), &.{ "bob", example.name });
 
