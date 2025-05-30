@@ -20,6 +20,8 @@ fn resizeCallback(x: i32, y: i32, userdata: ?*anyopaque) void {
     context.window_did_resize = true;
 }
 
+var hide_ui: bool = false;
+
 /// Userdata is window
 fn keyboardCallback(key: i32, _: i32, action: i32, _: i32, userdata: ?*anyopaque) void {
     var window: *Window = @ptrCast(@alignCast(userdata.?)); // This is ok
@@ -30,6 +32,17 @@ fn keyboardCallback(key: i32, _: i32, action: i32, _: i32, userdata: ?*anyopaque
                 // For now we reserve key F for toggling borderless fullscreen
                 // TODO: list monitors in GUI somehow, we use the primary monitor for now
                 window.toggleBorderless();
+            }
+        },
+        glfw.GLFW_KEY_H => {
+            if (action == glfw.GLFW_PRESS) {
+                if (hide_ui) {
+                    glfw.glfwSetInputMode(window.handle, glfw.GLFW_CURSOR, glfw.GLFW_CURSOR_NORMAL);
+                    hide_ui = false;
+                } else {
+                    glfw.glfwSetInputMode(window.handle, glfw.GLFW_CURSOR, glfw.GLFW_CURSOR_DISABLED);
+                    hide_ui = true;
+                }
             }
         },
         else => {},
@@ -107,81 +120,101 @@ pub fn main() !void {
             gl.glClear(gl.GL_COLOR_BUFFER_BIT);
         }
 
-        ui.beginFrame();
+        if (!hide_ui) {
+            ui.beginFrame();
 
-        // Make the default window a bit bigger. As it is too small with
-        // the new font otherwise.
-        imgui.SetWindowSize_Vec2Ext(imgui.Vec2{ .x = 600, .y = 300 }, imgui.CondFlags{ .Once = true });
+            // Make the default window a bit bigger. As it is too small with
+            // the new font otherwise.
+            imgui.SetWindowSize_Vec2Ext(imgui.Vec2{ .x = 600, .y = 300 }, imgui.CondFlags{ .Once = true });
 
-        if (context.capturer) |_| {
-            if (imgui.Button("Disconnect")) {
-                context.disconnect(allocator) catch |e| {
-                    std.log.err("unable to disconnect: {s}", .{@errorName(e)});
-                };
-            }
-        } else {
-            _ = imgui.InputText("Application PID", &pid_str, @sizeOf(@TypeOf(pid_str)));
-            imgui.SameLine();
-            if (imgui.Button("Connect")) {
-                const pid_str_c: [*c]const u8 = &pid_str;
-                context.connect(std.mem.span(pid_str_c), allocator) catch |e| {
-                    std.log.err("Failed to connect to application with PID {s}: {s}", .{ pid_str_c, @errorName(e) });
-                    try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
-                };
-            }
-
-            if (imgui.BeginCombo("Window Select", "Click for list")) {
-                if (!audio_source_list_is_open) {
-                    possible_audio_producers.clearRetainingCapacity();
-                    audio_producer_enumerator.enumerate(&possible_audio_producers) catch |e| {
-                        try context.err.setMessage("Unable to list audio sources: {s}", .{@errorName(e)}, allocator);
+            if (context.capturer) |_| {
+                if (imgui.Button("Disconnect")) {
+                    context.disconnect(allocator) catch |e| {
+                        std.log.err("unable to disconnect: {s}", .{@errorName(e)});
                     };
                 }
-                audio_source_list_is_open = true;
-                for (possible_audio_producers.items) |producer| {
-                    if (imgui.Selectable_Bool(&producer.name)) {
-                        const pid_len = std.mem.indexOfScalar(u8, &producer.process_id, 0) orelse producer.process_id.len;
-                        std.log.info("PID: {s}\n", .{producer.process_id[0..pid_len]});
-                        context.connect(producer.process_id[0..pid_len], gpa.allocator()) catch |e| {
-                            std.log.err("Failed to connect to application with PID {s}: {s}", .{ producer.process_id[0..pid_len], @errorName(e) });
-                            try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
+            } else {
+                _ = imgui.InputText("Application PID", &pid_str, @sizeOf(@TypeOf(pid_str)));
+                imgui.SameLine();
+                if (imgui.Button("Connect")) {
+                    const pid_str_c: [*c]const u8 = &pid_str;
+                    context.connect(std.mem.span(pid_str_c), allocator) catch |e| {
+                        std.log.err("Failed to connect to application with PID {s}: {s}", .{ pid_str_c, @errorName(e) });
+                        try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
+                    };
+                }
+
+                if (imgui.BeginCombo("Window Select", "Click for list")) {
+                    if (!audio_source_list_is_open) {
+                        possible_audio_producers.clearRetainingCapacity();
+                        audio_producer_enumerator.enumerate(&possible_audio_producers) catch |e| {
+                            try context.err.setMessage("Unable to list audio sources: {s}", .{@errorName(e)}, allocator);
                         };
                     }
-                }
-                imgui.EndCombo();
-            } else audio_source_list_is_open = false;
-        }
-
-        if (ui.selectVisualizer(&visualizer_list, current_name)) |index| {
-            if (context.visualizer) |*visualizer| {
-                std.log.info("unloading visualizer", .{});
-                visualizer.destroy();
-                visualizer.unload();
-                context.visualizer = null;
-                context.gui_state.clear();
-                current_name = null;
-                std.process.changeCurDir(bob_dir) catch {};
+                    audio_source_list_is_open = true;
+                    for (possible_audio_producers.items) |producer| {
+                        if (imgui.Selectable_Bool(&producer.name)) {
+                            const pid_len = std.mem.indexOfScalar(u8, &producer.process_id, 0) orelse producer.process_id.len;
+                            std.log.info("PID: {s}\n", .{producer.process_id[0..pid_len]});
+                            context.connect(producer.process_id[0..pid_len], gpa.allocator()) catch |e| {
+                                std.log.err("Failed to connect to application with PID {s}: {s}", .{ producer.process_id[0..pid_len], @errorName(e) });
+                                try context.err.setMessage("Unable to connect: {s}", .{@errorName(e)}, allocator);
+                            };
+                        }
+                    }
+                    imgui.EndCombo();
+                } else audio_source_list_is_open = false;
             }
 
-            current_name = visualizer_list.list.items[index];
-            const path = try visualizer_list.getVisualizerPath(index);
-            defer visualizer_list.freePath(path);
+            if (ui.selectVisualizer(&visualizer_list, current_name)) |index| {
+                if (context.visualizer) |*visualizer| {
+                    std.log.info("unloading visualizer", .{});
+                    visualizer.destroy();
+                    visualizer.unload();
+                    context.visualizer = null;
+                    context.gui_state.clear();
+                    current_name = null;
+                    std.process.changeCurDir(bob_dir) catch {};
+                }
 
-            std.log.info("loading visualizer {s}", .{current_name.?});
+                current_name = visualizer_list.list.items[index];
+                const path = try visualizer_list.getVisualizerPath(index);
+                defer visualizer_list.freePath(path);
 
-            context.visualizer = Visualizer.load(path) catch |e| blk: {
-                std.log.err("failed to load {s}: {s}", .{ path, @errorName(e) });
-                try context.err.setMessage("Failed to load visualizer: {s}", .{@errorName(e)}, allocator);
-                break :blk null;
-            };
+                std.log.info("loading visualizer {s}", .{current_name.?});
+
+                context.visualizer = Visualizer.load(path) catch |e| blk: {
+                    std.log.err("failed to load {s}: {s}", .{ path, @errorName(e) });
+                    try context.err.setMessage("Failed to load visualizer: {s}", .{@errorName(e)}, allocator);
+                    break :blk null;
+                };
+
+                if (context.visualizer) |*visualizer| {
+                    const visualizer_dir = std.fs.path.dirname(path) orelse unreachable;
+                    std.process.changeCurDir(visualizer_dir) catch {};
+
+                    bob_impl.fill(@ptrCast(&context), visualizer.api.api);
+                    if (visualizer.create()) |err| {
+                        try context.err.setMessage("Failed to initialize visualizer: {s}", .{err}, allocator);
+                        std.log.info("unloading visualizer", .{});
+                        visualizer.destroy();
+                        visualizer.unload();
+                        context.visualizer = null;
+                        context.gui_state.clear();
+                        current_name = null;
+                        context.flags = Flags{};
+                        std.process.changeCurDir(bob_dir) catch {};
+                    } else {
+                        context.flags = Flags.init(visualizer.info.enabled);
+                        context.flags.log();
+                        current_index = index;
+                    }
+                }
+            }
 
             if (context.visualizer) |*visualizer| {
-                const visualizer_dir = std.fs.path.dirname(path) orelse unreachable;
-                std.process.changeCurDir(visualizer_dir) catch {};
-
-                bob_impl.fill(@ptrCast(&context), visualizer.api.api);
-                if (visualizer.create()) |err| {
-                    try context.err.setMessage("Failed to initialize visualizer: {s}", .{err}, allocator);
+                imgui.SeparatorText(visualizer.info.name);
+                if (imgui.Button("Unload")) {
                     std.log.info("unloading visualizer", .{});
                     visualizer.destroy();
                     visualizer.unload();
@@ -191,61 +224,43 @@ pub fn main() !void {
                     context.flags = Flags{};
                     std.process.changeCurDir(bob_dir) catch {};
                 } else {
-                    context.flags = Flags.init(visualizer.info.enabled);
-                    context.flags.log();
-                    current_index = index;
-                }
-            }
-        }
+                    const path = visualizer_list.getVisualizerParentPath(current_index.?) catch |e| blk: {
+                        std.log.err("failed to create parent path for visualizer: {s}", .{@errorName(e)});
+                        break :blk null;
+                    };
+                    defer if (path) |path_| visualizer_list.freePath(path_);
 
-        if (context.visualizer) |*visualizer| {
-            imgui.SeparatorText(visualizer.info.name);
-            if (imgui.Button("Unload")) {
-                std.log.info("unloading visualizer", .{});
-                visualizer.destroy();
-                visualizer.unload();
-                context.visualizer = null;
-                context.gui_state.clear();
-                current_name = null;
-                context.flags = Flags{};
-                std.process.changeCurDir(bob_dir) catch {};
-            } else {
-                const path = visualizer_list.getVisualizerParentPath(current_index.?) catch |e| blk: {
-                    std.log.err("failed to create parent path for visualizer: {s}", .{@errorName(e)});
-                    break :blk null;
-                };
-                defer if (path) |path_| visualizer_list.freePath(path_);
-
-                var load_preset = false;
-                var save_preset = false;
-                if (path) |_| {
-                    imgui.SameLine();
-                    load_preset = imgui.Button("Load preset");
-                    imgui.SameLine();
-                    save_preset = imgui.Button("Save preset");
-                }
-
-                context.gui_state.update();
-                imgui.SeparatorText("Description");
-                imgui.Text(visualizer.info.description);
-
-                if (path) |_| {
-                    if (load_preset) {
-                        context.gui_state.loadPreset() catch |e| {
-                            try context.err.setMessage("Failed to load preset: {s}", .{@errorName(e)}, allocator);
-                        };
+                    var load_preset = false;
+                    var save_preset = false;
+                    if (path) |_| {
+                        imgui.SameLine();
+                        load_preset = imgui.Button("Load preset");
+                        imgui.SameLine();
+                        save_preset = imgui.Button("Save preset");
                     }
-                    if (save_preset) {
-                        context.gui_state.savePreset() catch |e| {
-                            try context.err.setMessage("Failed to save preset: {s}", .{@errorName(e)}, allocator);
-                        };
+
+                    context.gui_state.update();
+                    imgui.SeparatorText("Description");
+                    imgui.Text(visualizer.info.description);
+
+                    if (path) |_| {
+                        if (load_preset) {
+                            context.gui_state.loadPreset() catch |e| {
+                                try context.err.setMessage("Failed to load preset: {s}", .{@errorName(e)}, allocator);
+                            };
+                        }
+                        if (save_preset) {
+                            context.gui_state.savePreset() catch |e| {
+                                try context.err.setMessage("Failed to save preset: {s}", .{@errorName(e)}, allocator);
+                            };
+                        }
                     }
                 }
             }
+
+            context.err.show(allocator);
+
+            ui.endFrame();
         }
-
-        context.err.show(allocator);
-
-        ui.endFrame();
     }
 }
