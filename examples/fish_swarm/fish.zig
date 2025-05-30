@@ -54,6 +54,33 @@ const IntParam = struct {
     }
 };
 
+const CheckBoxParam = struct {
+    const Self = @This();
+
+    handle: c_int = undefined,
+    value: bool = undefined,
+
+    pub fn register(self: *Self, name: [*c]const u8, default: bool) void {
+        self.handle = api.register_checkbox.?(api.context, name, @intFromBool(default));
+        self.value = default;
+    }
+
+    pub fn update(self: *Self) bool {
+        if (api.ui_element_is_updated.?(api.context, self.handle) > 0) {
+            self.value = api.get_ui_bool_value.?(api.context, self.handle) > 0;
+            return true;
+        }
+        return false;
+    }
+};
+
+const FishType = enum { NORMAL, KOI };
+
+const FishData = struct {
+    tex_path: [:0]const u8,
+    obj_path: [:0]const u8,
+};
+
 var alloc = std.heap.page_allocator;
 
 // Visualizer data
@@ -70,6 +97,7 @@ var pulse_data: []f32 = undefined;
 var wiggle_coefs: []Vec4 = undefined;
 var pulse_last_updated_time: f32 = 0;
 var interpolation_time_seconds: f32 = 0.1;
+var fish_type = FishType.NORMAL;
 
 // User controlled data
 var speed: FloatParam = undefined;
@@ -88,6 +116,7 @@ var z_offset: FloatParam = undefined;
 var x_stddev: FloatParam = undefined;
 var y_stddev: FloatParam = undefined;
 var z_stddev: FloatParam = undefined;
+var f_type: CheckBoxParam = undefined;
 
 const bob = @cImport({
     @cInclude("bob.h");
@@ -98,6 +127,19 @@ const BobAPI = bob.bob_api;
 
 /// Export api variable, it will be populated with information by the API
 export var api: BobAPI = undefined;
+
+fn get_fish_data(ftype: FishType) FishData {
+    return switch (ftype) {
+        .NORMAL => FishData{
+            .tex_path = "objects/fish_low_poly.png",
+            .obj_path = "objects/fish_low_poly.obj",
+        },
+        .KOI => FishData{
+            .tex_path = "objects/koi.png",
+            .obj_path = "objects/koi.obj",
+        },
+    };
+}
 
 // Box-Muller Transform: Converts two uniform random numbers into a normal distribution
 fn randomNormal(rng: *std.Random, mean: f32, stddev: f32) f32 {
@@ -201,8 +243,10 @@ fn register_params() void {
     radius.register("radius", 0.0, 2.0, 0.5);
     num_fish.register("fish count", 1, 10000, 500);
     updates_per_second.register("Samples per second", 1.0, 60.0, 10.0);
-    min_pulse.register("Min deviation", 0.0, 1.0, 0.1);
+    min_pulse.register("Min spread", 0.0, 1.0, 0.1);
     amplitude.register("Amplitude", 0.0, 500.0, 100.0);
+
+    f_type.register("Koi Fish", false);
 }
 
 fn update_params() void {
@@ -223,6 +267,15 @@ fn update_params() void {
         z_stddev.update())
     {
         update_fish_buffers();
+    }
+    if (f_type.update()) {
+        if (f_type.value) {
+            fish_type = FishType.KOI;
+        } else {
+            fish_type = FishType.NORMAL;
+        }
+
+        update_buffers();
     }
     if (updates_per_second.update()) {
         interpolation_time_seconds = speed.value / updates_per_second.value;
@@ -248,15 +301,10 @@ fn set_const_uniforms() void {
         "perspectiveMatrix",
         Mat4.perspective(90, 0.1, 20.0),
     );
-
-    tex = texture.createTexture("objects/fish_low_poly.png") catch |err| {
-        std.debug.print("Could not create texture: {}", .{err});
-        unreachable;
-    };
-
-    shader_program.setTexture("tex", tex, 0);
 }
 fn set_variable_uniforms() void {
+    shader_program.setTexture("tex", tex, 0);
+
     shader_program.setMat4(
         "scaleRotateMatrix",
         Mat4.identity()
@@ -285,6 +333,31 @@ fn set_variable_uniforms() void {
     shader_program.setVec3("absoluteOffset", offset);
 }
 
+fn update_buffers() void {
+    const fish = get_fish_data(fish_type);
+
+    tex = texture.createTexture(fish.tex_path) catch |err| {
+        std.debug.print("Could not create texture: {}", .{err});
+        unreachable;
+    };
+
+    buffers = objparser.parseObj(fish.obj_path, alloc) catch |err| {
+        std.debug.print("Could not parse obj: {}", .{err});
+        unreachable;
+    };
+
+    // Idk why this is needed, but it does not work otherwise
+    pulse_buffer.bind();
+    pulse_buffer.enableAttribute(5, 1, .float, false, 0);
+    pulse_buffer.setDivisior(5, 1);
+
+    prev_pulse_buffer.bind();
+    prev_pulse_buffer.enableAttribute(6, 1, .float, false, 0);
+    prev_pulse_buffer.setDivisior(6, 1);
+
+    update_fish_buffers();
+}
+
 fn update_fish_buffers() void {
     // x : side-to-side amplitude
     // y : side-to-side wiggle
@@ -293,7 +366,7 @@ fn update_fish_buffers() void {
     wiggle_coefs = randomWiggleCoefs(
         &alloc,
         @intCast(num_fish.value),
-        .{ .mean = 0.5, .stddev = 0.3 },
+        .{ .mean = 1.0, .stddev = 0.3 },
         .{ .mean = 5.0, .stddev = 1.0 },
         .{ .mean = 0.1, .stddev = 1.0 },
         .{ .mean = 0.0, .stddev = 1.0 },
@@ -343,7 +416,14 @@ export fn create() callconv(.C) [*c]const u8 {
         @panic("Could not load shader");
     };
 
-    buffers = objparser.parseObj("objects/fish_low_poly.obj", alloc) catch |err| {
+    const fish = get_fish_data(fish_type);
+
+    tex = texture.createTexture(fish.tex_path) catch |err| {
+        std.debug.print("Could not create texture: {}", .{err});
+        unreachable;
+    };
+
+    buffers = objparser.parseObj(fish.obj_path, alloc) catch |err| {
         std.debug.print("Could not parse obj: {}", .{err});
         unreachable;
     };
@@ -357,7 +437,7 @@ export fn create() callconv(.C) [*c]const u8 {
 
     update_fish_buffers();
 
-    // Buffers for pulseuency data
+    // Buffers for pulse data
     pulse_buffer = ArrayBuffer(f32).init();
     prev_pulse_buffer = ArrayBuffer(f32).init();
 

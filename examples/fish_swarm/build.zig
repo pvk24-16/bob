@@ -28,7 +28,7 @@ pub fn buildLib(
 
     lib.addIncludePath(b.path("api"));
 
-    const extra_files = [_][]const u8{ "objects/fish_low_poly.png", "objects/fish_low_poly.obj" };
+    const extra_files = [_][]const u8{ "objects/fish_low_poly.png", "objects/fish_low_poly.obj", "objects/koi.png", "objects/koi.obj" };
 
     for (extra_files) |file| {
         const source_path = try std.fs.path.join(gpa.allocator(), &.{ source_dir, file });
