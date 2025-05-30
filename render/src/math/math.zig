@@ -35,14 +35,14 @@ pub const Mat4 = struct {
             0.0, 0.0, 0.0, 1.0,
         } };
     }
-    pub fn perspective(fov_degrees: f32, aspect : f32, near: f32, far: f32) Mat4 {
+    pub fn perspective(fov_degrees: f32, aspect: f32, near: f32, far: f32) Mat4 {
         const s = 1.0 / std.math.tan((fov_degrees / 2.0) * (std.math.pi / 180.0));
 
         return Mat4{ .arr = .{
-            s / aspect,   0.0, 0.0,                          0.0,
-            0.0, s,   0.0,                          0.0,
-            0.0, 0.0, -far / (far - near),          -1.0,
-            0.0, 0.0, -(far * near) / (far - near), 0.0,
+            s / aspect, 0.0, 0.0,                          0.0,
+            0.0,        s,   0.0,                          0.0,
+            0.0,        0.0, -far / (far - near),          -1.0,
+            0.0,        0.0, -(far * near) / (far - near), 0.0,
         } };
     }
 

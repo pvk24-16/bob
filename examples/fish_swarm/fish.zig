@@ -299,7 +299,7 @@ export fn get_info() callconv(.C) [*c]const VisualizationInfo {
 fn set_const_uniforms() void {
     shader_program.setMat4(
         "perspectiveMatrix",
-        Mat4.perspective(90, 16.0/9.0, 0.1, 20.0),
+        Mat4.perspective(90, 16.0 / 9.0, 0.1, 20.0),
     );
 }
 fn set_variable_uniforms() void {
