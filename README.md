@@ -43,7 +43,7 @@ Since the API is defined as a C header, there are few restrictions to what langu
 
 The `get_info()` function must return a `bob_visualizer_info` which contains the visualizer name, description and analyses to enable.
 
-The `create()` function may return arbitrary user data, otherwise `null`. This function is called once and may be used to initialize objects and data.
+The `create()` function should return `NULL` on success, or an error string on failure. This function is called once and may be used to initialize objects and data.
 
 The `update()` function is called every frame and is used to update the visualization state.
 
